@@ -1,12 +1,16 @@
 ### Install
+Tested with Python3
 ```
 pip install fathomnet
 pip install openai
 ```
 
 ### Test
+Obtain the `.env` file containing the secret API keys and save it in the same directory
+
+Run: 
 ```
-python server/test.py
+python test.py
 ```
 To change the amount of debugging messages, change the `DEBUG_LEVEL` in `constants.py`.
 
