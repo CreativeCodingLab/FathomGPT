@@ -8,6 +8,7 @@ pip install openai
 ```
 python server/test.py
 ```
+To change the amount of debugging messages, change the `DEBUG_LEVEL` in `constants.py`.
 
 ### Documentation
 - `test.py` - For debugging. Not used in production
