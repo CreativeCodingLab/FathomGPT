@@ -9,6 +9,9 @@ import json
 from fathomnet.api import regions
 from fathomnet.api import taxa
 
+
+# Sorting ---------------------------
+
 def toTimestamp(d):
   if '.' in d['timestamp']:
     return datetime.strptime(d['timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -43,6 +46,8 @@ def sort_images(data, orderedBy, isAscending, isDecending):
     data.reverse()
     return data
 
+
+# Location filtering ---------------------------
 
 # algorithm from https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-a-latitude-longitude-by-some-amount-of-meters
 def latLongOffsetAppox(lat, lon, distance, direction):
@@ -115,6 +120,8 @@ def filterByBodiesOfWater(data, bodiesOfWater):
   return filtered_data
 
 
+# Taxonomy ---------------------------
+
 def findDescendantSpecies(taxaProviderName, concept):
   descendants = taxa.find_taxa(taxaProviderName, concept)
   return [d for d in descendants if d.rank == 'Species']
@@ -131,6 +138,8 @@ def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findPare
     return findDescendantSpecies(taxaProviderName, parent)
   return None
 
+
+# Bounding box processing ---------------------------
 
 def containsOtherSpecies(boundingBoxes, concept):
   for box in boundingBoxes:
@@ -171,6 +180,8 @@ def filterByBoundingBoxes(data, concept, includeGood, findOtherSpecies, excludeO
 
   return data
 
+
+# Name ---------------------------
 
 def getScientificName(concept):
   concept = concept.lower()
