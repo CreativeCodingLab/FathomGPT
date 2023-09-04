@@ -19,6 +19,7 @@ EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
 
 DEBUG_LEVEL = 2
+# only print debugging messages if the initial caller is test.py
 python_call_stack = inspect.stack()
 if len(python_call_stack) == 0 or not python_call_stack[-1].filename.endswith('test.py'):
     DEBUG_LEVEL = 0

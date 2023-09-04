@@ -143,7 +143,7 @@ def boundingBoxIsGood(d, concept):
   for box in d['boundingBoxes']:
     if box['concept'] != concept:
       continue
-    if box['width']/d['width'] > 0.2 and box['height']/d['height'] > 0.2:
+    if box['width']/d['width'] > GOOD_BOUNDING_BOX_SIZE and box['height']/d['height'] > GOOD_BOUNDING_BOX_SIZE:
       return True
   return False
 
