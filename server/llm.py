@@ -1,5 +1,5 @@
 from functions import *
-from constants import KEYS, AVAILABLE_FUNCTIONS
+from constants import *
 
 import openai
 import json
@@ -40,7 +40,8 @@ def get_response(messages):
 def run_prompt(prompt, messages=[]):
     messages.append({"role": "user", "content": prompt})
     chatResponse = get_response(messages)
-    print(chatResponse)
+    if DEBUG_LEVEL >= 1:
+        print(chatResponse)
     messages.append(
         {"role": "assistant", "content": json.dumps(chatResponse.choices[0])},
     )

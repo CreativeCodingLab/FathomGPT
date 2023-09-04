@@ -160,7 +160,8 @@ def filterByBoundingBoxes(data, concept, includeGood, findOtherSpecies, excludeO
           otherSpecies[other] = otherSpecies[other] + 1
         else:
           otherSpecies[other] = 1
-    print(otherSpecies)
+    if DEBUG_LEVEL >= 1:
+        print(otherSpecies)
 
   elif excludeOtherSpecies:
     data = [d for d in data if not containsOtherSpecies(d['boundingBoxes'], concept)]
@@ -173,12 +174,14 @@ def filterByBoundingBoxes(data, concept, includeGood, findOtherSpecies, excludeO
 
 def getScientificName(concept):
   concept = concept.lower()
-  print(WORMS_URL + quote(concept))
+  if DEBUG_LEVEL >= 2:
+    print(WORMS_URL + quote(concept))
   try:
     response = urlopen(WORMS_URL + quote(concept))
     synonyms = json.loads(response.read())
   except Exception as e:
-    print(e)
+    if DEBUG_LEVEL >= 2:
+        print(e)
     return concept.capitalize()
   else:
     if len(synonyms) == 0 or ('code' in synonyms and synonyms['code'] == 404):
