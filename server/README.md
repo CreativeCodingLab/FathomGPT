@@ -6,7 +6,11 @@ pip install openai
 ```
 
 ### Test
-Add the OpenAI key to the `.env` file. It could be found in the Jupiter notebook that was shared
+Create a `.env` file in this folder containing:
+```
+OPENAI_KEY=<openai key>
+```
+The OpenAI key could be found in the Jupiter notebook that was shared
 
 Run: 
 ```
