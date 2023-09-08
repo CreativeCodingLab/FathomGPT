@@ -191,7 +191,7 @@ def getScientificName(concept):
     response = urlopen(WORMS_URL + quote(concept))
     synonyms = json.loads(response.read())
   except Exception as e:
-    if DEBUG_LEVEL >= 2:
+    if DEBUG_LEVEL >= 3:
         print(e)
     return concept.capitalize()
   else:
