@@ -5,7 +5,7 @@ pip install fathomnet
 pip install openai
 ```
 
-### Test
+### Running
 Create a `.env` file in this folder containing:
 ```
 OPENAI_KEY=<your openai key>
@@ -13,12 +13,12 @@ OPENAI_KEY=<your openai key>
 
 Run: 
 ```
-python test.py
+python debug.py
 ```
 To change the amount of debugging messages, change the `DEBUG_LEVEL` in `constants.py`.
 
 ### Documentation
-- `test.py` - For debugging. Not used in production
+- `debug.py` - For debugging. Not used in production
 - `llm.py` - Main function `run_prompt` is called by the client-side. Processes the input prompt with LLM
 - `functions.py` - Functions called by the LLM to fetch data from FathomNet
 - `utils.py` - Util functions used by `functions.py` to pre-process the arguments or post-process the fetched data
