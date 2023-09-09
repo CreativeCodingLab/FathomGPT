@@ -1,69 +1,65 @@
 from llm import run_prompt
+import sys
 
 
-TEST_CASES = [
-    {
-      "name": "basic",
+TEST_CASES = {
+    "basic": {
       "input": "Find me images of species 'Aurelia aurita'",
       "expected_uuids": [],
     },
-    {
-      "name": "distanceFrom",
+    "distanceFrom": {
       "input": "Find me 3 newest images of species 'Aurelia aurita' within 100km from San Francisco and depth less than 5000m",
       "expected_uuids": [],
     },
-    {
-      "name": "bodyOfWater",
+    "bodyOfWater": {
       "input": "Find me images of species 'Aurelia aurita' in Monterey Bay and depth less than 5000m",
       "expected_uuids": [],
     },
-    {
-      "name": "bodiesOfWater",
+    "bodiesOfWater": {
       "input": "Find me image of species 'Aurelia aurita' in the Pacific or Atlantic oceans and depth less than 5000m",
       "expected_uuids": [],
     },
-    {
-      "name": "goodImages",
+    "goodImages": {
       "input": "Find me good images of species 'Aurelia aurita'",
       "expected_uuids": [],
     },
-    {
-      "name": "closestRelatives",
+    "closestRelatives": {
       "input": "Find me images of the closest relatives of 'Aegina rosea' in Monterey Bay",
       "expected_uuids": [],
     },
-    {
-      "name": "commonlyFoundWith",
+    "commonlyFoundWith": {
       "input": "Find me images of species commonly found with 'Sebastolobus'",
       "expected_uuids": [],
     },
-    {
-      "name": "excludeOthers",
+    "excludeOthers": {
       "input": "Find me images of 'Sebastolobus' by themselves",
       "expected_uuids": [],
     },
-    {
-      "name": "commonName",
+    "commonName": {
       "input": "Find me images of Moon Jellyfish",
       "expected_uuids": [],
     },
-    {
-      "name": "commonNameCategory",
+    "commonNameCategory": {
       "input": "Find me images of jellyfish",
       "expected_uuids": [],
     },
-    {
-      "name": "bestImages",
+    "bestImages": {
       "input": "Find me the best images containing only octopus",
       "expected_uuids": [],
     },
-    {
-      "name": "worstImages",
+    "worstImages": {
       "input": "Find me the worst images containing only octopus",
       "expected_uuids": [],
     },
-]
+}
 
-for test in TEST_CASES:
-    output = run_prompt(test['input'])
+if len(sys.argv) > 0:
+    test_names = sys.argv
+else:
+    test_names = TEST_CASES
+
+for test in test_names:
+    t = TEST_CASES[test]
+    print("Running test: "+test)
+    output = run_prompt(t['input'])
     # todo: implement unit tests
