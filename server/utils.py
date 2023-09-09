@@ -129,7 +129,6 @@ def filterByBodiesOfWater(data, bodiesOfWater):
 
   return filtered_data
 
-
 # Taxonomy ---------------------------
 
 def findDescendants(taxaProviderName, concept, species_only = True):
@@ -214,13 +213,12 @@ def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOth
       scores[d['uuid']] = boundingBoxQualityScore(d, names)
     data = [d for d in data if scores[d['uuid']] > 0]
     
-    if findWorst:
-      data.sort(key=lambda d: scores[d['uuid']])
-      return data
-      
-    data = [d for d in data if scores[d['uuid']] > GOOD_BOUNDING_BOX_MIN_SIZE]
+    if includeGood:
+        data = [d for d in data if scores[d['uuid']] > GOOD_BOUNDING_BOX_MIN_SIZE]
     if findBest:
         data.sort(key=lambda d: scores[d['uuid']], reverse=True)
+    if findWorst:
+      data.sort(key=lambda d: scores[d['uuid']])
 
   return data
 
