@@ -31,8 +31,7 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
 
   data = []
   for concept_name in names:
-    data.extend(
-      images.find(GeoImageConstraints(
+    constraints = GeoImageConstraints(
         concept=concept_name,
         contributorsEmail=contributorsEmail,
         includeUnverified=includeUnverified,
@@ -45,7 +44,9 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
         minLatitude=minLatitude,
         minLongitude=minLongitude,
         taxaProviderName=taxaProviderName
-      ))
+      )
+    data.extend(
+      images.find(constraints)
     )
 
   if len(data) == 0:
