@@ -15,7 +15,7 @@ def get_normalized(name):
     return ' '.join([get_singular(w) for w in words])
     
 
-f = open('data/names.json')
+f = open('data/names_worms.json')
 names = json.load(f)
 
 normalized_names = {}
@@ -25,6 +25,10 @@ for n in names:
     if normalized not in normalized_names:
         normalized_names[normalized] = []
     normalized_names[normalized].extend(names[n])
+
+for n in normalized_names:
+    normalized_names[n] = list(set(normalized_names[n]))
+
 
 with open("names_normalized.json", "w") as outfile:
     json.dump(normalized_names, outfile)
