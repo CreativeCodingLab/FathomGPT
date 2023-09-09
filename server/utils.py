@@ -5,9 +5,11 @@ import math
 from urllib.request import urlopen
 from urllib.parse import quote
 import json
+import re
 
 from fathomnet.api import regions
 from fathomnet.api import taxa
+from fathomnet.api import boundingboxes
 
 
 # Sorting ---------------------------
@@ -46,6 +48,14 @@ def sort_images(data, orderedBy, isAscending, isDecending):
     data.reverse()
     return data
 
+def removeDuplicateImages(data):
+    seen = []
+    data_filtered = []
+    for d in data:
+        if d['uuid'] not in seen:
+            data_filtered.append(d)
+            seen.append(d['uuid'])
+    return data_filtered
 
 # Location filtering ---------------------------
 
@@ -122,79 +132,120 @@ def filterByBodiesOfWater(data, bodiesOfWater):
 
 # Taxonomy ---------------------------
 
-def findDescendantSpecies(taxaProviderName, concept):
+def findDescendants(taxaProviderName, concept, species_only = True):
   descendants = taxa.find_taxa(taxaProviderName, concept)
-  return [d for d in descendants if d.rank == 'Species']
+  return [d for d in descendants if d.rank == 'Species' or not species_only]
 
 def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName):
   if findChildren:
     return taxa.find_children(taxaProviderName, concept)
   if findSpeciesBelongingToTaxonomy:
-    return findDescendantSpecies(taxaProviderName, parent)
+    return findDescendants(taxaProviderName, parent)
   if findParent:
     return [taxa.find_parent(taxaProviderName, concept)]
   if findClosestRelative:
     parent = taxa.find_parent(taxaProviderName, concept).name
-    return findDescendantSpecies(taxaProviderName, parent)
+    return findDescendants(taxaProviderName, parent)
   return None
 
+def getNamesFromTaxa(concept, taxa):
+  if taxa is None:
+    return [concept]
+  taxa = [t.name for t in taxa if t.name != concept]
+  if len(taxa) == 0:
+    return [concept]
+  return taxa
+  
+def filterUnavailableConcepts(names):
+  concepts = boundingboxes.find_concepts()
+  return [n for n in names if n in concepts]
 
 # Bounding box processing ---------------------------
 
-def containsOtherSpecies(boundingBoxes, concept):
+def containsOtherSpecies(boundingBoxes, names):
   for box in boundingBoxes:
-    if box['concept'] != concept:
+    if box['concept'] not in names:
       return True
   return False
 
-def boundingBoxIsGood(d, concept):
-  # return true if there is at least 1 large enough bounding box of the concept
+def marginGood(margin_width, image_width):
+    return margin_width / image_width > GOOD_BOUNDING_BOX_MIN_MARGINS
+
+def boundingBoxQualityScore(d, names):
+  # the score is the average size of the bounding boxes divided by the image size
+  score = 0
+  count = 0
+  if d['width']*d['height'] == 0:
+    return 0
   for box in d['boundingBoxes']:
-    if box['concept'] != concept:
+    if box['concept'] not in names:
       continue
-    if box['width']/d['width'] > GOOD_BOUNDING_BOX_SIZE and box['height']/d['height'] > GOOD_BOUNDING_BOX_SIZE:
-      return True
-  return False
+    count = count + 1
+    if marginGood(box['x'], d['width']) and marginGood(d['width']-(box['x']+box['width']), d['width']) \
+      and marginGood(box['y'], d['height']) and marginGood(d['height']-(box['y']+box['height']), d['width']):
+      # boxes that fill the entire image have score=0
+      score = score + (box['width']*box['height'])
+  if count == 0:
+    return 0
+  avg_size = (score/count)
+  return avg_size/(d['width']*d['height'])
 
-def filterByBoundingBoxes(data, concept, includeGood, findOtherSpecies, excludeOtherSpecies):
+def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOtherSpecies, excludeOtherSpecies):
   if findOtherSpecies:
-    data = [d for d in data if containsOtherSpecies(d['boundingBoxes'], concept)]
+    data = [d for d in data if containsOtherSpecies(d['boundingBoxes'], names)]
     otherSpecies = {}
     for d in data:
       for b in d['boundingBoxes']:
         other = b['concept']
-        if other == concept:
+        if other in names:
           continue
-        if other in otherSpecies:
-          otherSpecies[other] = otherSpecies[other] + 1
-        else:
-          otherSpecies[other] = 1
+        if other not in otherSpecies:
+          otherSpecies[other] = 0
+        otherSpecies[other] = otherSpecies[other] + 1
     if DEBUG_LEVEL >= 1:
         print(otherSpecies)
 
   elif excludeOtherSpecies:
-    data = [d for d in data if not containsOtherSpecies(d['boundingBoxes'], concept)]
+    data = [d for d in data if not containsOtherSpecies(d['boundingBoxes'], names)]
   
-  if includeGood:
-    data = [d for d in data if boundingBoxIsGood(d, concept)]
+  if includeGood or findBest or findWorst:
+    scores = {}
+    for d in data:
+      scores[d['uuid']] = boundingBoxQualityScore(d, names)
+    data = [d for d in data if scores[d['uuid']] > 0]
+    
+    if findWorst:
+      data.sort(key=lambda d: scores[d['uuid']])
+      return data
+      
+    data = [d for d in data if scores[d['uuid']] > GOOD_BOUNDING_BOX_MIN_SIZE]
+    if findBest:
+        data.sort(key=lambda d: scores[d['uuid']], reverse=True)
 
   return data
 
 
 # Name ---------------------------
 
-def getScientificName(concept):
-  concept = concept.lower()
+def get_singular(word):
+    word = re.sub('es$', '', word)
+    word = re.sub('s$', '', word)
+    return word
+
+def get_normalized(name):
+    name = name.lower()
+    name = name.replace('-', ' ').replace('/', ' ').replace(',', '').replace('"', '').replace('(', '').replace(')', '')
+    words = name.split(' ')
+    words.sort()
+    return ' '.join([get_singular(w) for w in words])
+    
+def getScientificNames(concept):
+  f = open(NAMES_JSON)
+  names = json.load(f)
+  
+  concept_normalized = get_normalized(concept)
   if DEBUG_LEVEL >= 2:
-    print(WORMS_URL + quote(concept))
-  try:
-    response = urlopen(WORMS_URL + quote(concept))
-    synonyms = json.loads(response.read())
-  except Exception as e:
-    if DEBUG_LEVEL >= 3:
-        print(e)
-    return concept.capitalize()
-  else:
-    if len(synonyms) == 0 or ('code' in synonyms and synonyms['code'] == 404):
-      return concept.capitalize()
-    return synonyms[0]
+    print('normalized name: '+concept_normalized)
+  if concept_normalized in names:
+    return names[concept_normalized]
+  return [concept]

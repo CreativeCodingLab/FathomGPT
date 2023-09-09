@@ -11,9 +11,12 @@ KEYS = {
 DEFAULT_LIMIT = 5
 RETRIEVAL_LIMIT = 100
 DEFAULT_TAXA_PROVIDER = 'fathomnet'
-GOOD_BOUNDING_BOX_SIZE = 0.2
+GOOD_BOUNDING_BOX_MIN_SIZE = 0.2
+GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
+FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
 
-WORMS_URL = 'https://fathomnet.org/worms/synonyms/'
+NAMES_JSON = 'data/names_normalized.json'
+CONCEPTS_JSON = 'data/concepts.json'
 
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
@@ -120,6 +123,14 @@ FUNCTION_PROPERTIES = {
     "includeGood": {
         "type": "boolean",
         "description": "Include good images only"
+    },
+    "findBest": {
+        "type": "boolean",
+        "description": "Sort the images by highest quality"
+    },
+    "findWorst": {
+        "type": "boolean",
+        "description": "Sort the images by lowest quality"
     },
     "findOtherSpecies": {
         "type": "boolean",
