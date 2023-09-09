@@ -12,6 +12,10 @@ concepts = json.load(f)
 names = {}
 for concept in concepts:
     print(concept)
+    s = concept.lower()
+    if s not in names:
+        names[s] = []
+    names[s].append(concept)
     
     try:
         response = urlopen(WORMS_URL + quote(concept))
@@ -25,7 +29,7 @@ for concept in concepts:
         print("  "+str(e))
         continue
     
-    time.sleep(0.1)
+    time.sleep(0.01)
 
 with open("names.json", "w") as outfile:
     json.dump(names, outfile)
