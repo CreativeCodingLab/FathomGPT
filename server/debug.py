@@ -1,11 +1,7 @@
 from llm import run_prompt
 
+import json
 
-TEST_CASES = [
-    {
-      "input": "Find me images of species 'Aurelia aurita'",
-      "expected_uuids": [],
-    },
 #TEST_PROMPT = "Find me images of species 'Aurelia aurita'"
 #TEST_PROMPT = "Find me 3 newest images of species 'Aurelia aurita' within 100km from San Francisco and depth less than 5000m"
 #TEST_PROMPT = "Find me image of species 'Aurelia aurita' in the Pacific or Atlantic oceans and depth less than 5000m"
@@ -18,10 +14,7 @@ TEST_CASES = [
 #TEST_PROMPT = "Find me good images of species 'Aurelia aurita'"
 #TEST_PROMPT = "Find me images of Moon Jellyfish"
 #TEST_PROMPT = "Find me images of jellyfish"
-#TEST_PROMPT = "Find me the best images containing only octopus"
+TEST_PROMPT = "Find me the best images containing only octopus"
 #TEST_PROMPT = "Find me the worst images containing only octopus"
-]
 
-for test in TEST_CASES:
-    output = run_prompt(test['input'])
-    # todo: implement unit tests
+print(json.dumps(run_prompt(TEST_PROMPT)))
