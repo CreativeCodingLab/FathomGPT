@@ -31,5 +31,8 @@ for concept in concepts:
     
     time.sleep(0.01)
 
-with open("names.json", "w") as outfile:
+for n in names:
+    names[n] = list(set(names[n]))
+
+with open("names_worms.json", "w") as outfile:
     json.dump(names, outfile)
