@@ -1,4 +1,5 @@
 from constants import *
+from utilslangchain import getScientificNamesLangchain
 
 from datetime import datetime
 import math
@@ -238,12 +239,17 @@ def get_normalized(name):
     return ' '.join([get_singular(w) for w in words])
     
 def getScientificNames(concept):
-  f = open(NAMES_JSON)
-  names = json.load(f)
+  if not ONLY_USE_LANGCHAIN_NAME_MAPPING:
+      f = open(NAMES_JSON)
+      names = json.load(f)
+      
+      concept_normalized = get_normalized(concept)
+      if DEBUG_LEVEL >= 2:
+        print('normalized name: '+concept_normalized)
+      if concept_normalized in names:
+        return names[concept_normalized]
   
-  concept_normalized = get_normalized(concept)
-  if DEBUG_LEVEL >= 2:
-    print('normalized name: '+concept_normalized)
-  if concept_normalized in names:
-    return names[concept_normalized]
+  names = getScientificNamesLangchain(concept)
+  if len(names) > 0:
+      return names
   return [concept]
