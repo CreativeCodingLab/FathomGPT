@@ -11,8 +11,7 @@ def get_normalized(name):
     name = name.lower()
     name = name.replace('-', ' ').replace('/', ' ').replace(',', '').replace('"', '').replace('(', '').replace(')', '')
     words = name.split(' ')
-    words.sort()
-    return ' '.join([get_singular(w) for w in words])
+    return ''.join([get_singular(w) for w in words])
     
 
 f = open('data/names_worms.json')

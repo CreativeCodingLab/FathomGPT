@@ -12,7 +12,7 @@ import json
 #TEST_PROMPT = "Find me images of 'Sebastolobus' by themselves"
 #TEST_PROMPT = "Find me images only containing 'Sebastolobus'"
 #TEST_PROMPT = "Find me good images of species 'Aurelia aurita'"
-TEST_PROMPT = "Find me images of Moon Jellyfish"
+TEST_PROMPT = "Find me images of Moon Jelly fish"
 #TEST_PROMPT = "Find me images of jellyfish"
 #TEST_PROMPT = "Find me the best images containing only octopus"
 #TEST_PROMPT = "Find me the worst images containing only octopus"

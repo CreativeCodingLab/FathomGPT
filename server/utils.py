@@ -235,8 +235,7 @@ def get_normalized(name):
     name = name.lower()
     name = name.replace('-', ' ').replace('/', ' ').replace(',', '').replace('"', '').replace('(', '').replace(')', '')
     words = name.split(' ')
-    words.sort()
-    return ' '.join([get_singular(w) for w in words])
+    return ''.join([get_singular(w) for w in words])
     
 def getScientificNames(concept):
   if not ONLY_USE_LANGCHAIN_NAME_MAPPING:
