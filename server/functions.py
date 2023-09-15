@@ -11,20 +11,24 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
 ):
   maxLatitude, maxLongitude, minLatitude, minLongitude = latLongBoundary(latitude, longitude, kilometersFrom, milesFrom)
   
-  sci_names = getScientificNames(concept)
-
-  concept_names = []
-  for name in sci_names:
-    relatives = getRelatives(name, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName)
-    concept_names.extend(getNamesFromTaxa(name, relatives))
-  
   names = []
-  if FIND_DESCENDENTS_DEFAULT:
-    for name in concept_names:
-      descendants = findDescendants(taxaProviderName, name, False)
-      names.extend(getNamesFromTaxa(name, descendants))
+  try:
+    sci_names = getScientificNames(concept)
+
+    concept_names = []
+    for name in sci_names:
+        relatives = getRelatives(name, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName)
+        concept_names.extend(getNamesFromTaxa(name, relatives))
+
+    if FIND_DESCENDENTS_DEFAULT:
+        for name in concept_names:
+            descendants = findDescendants(taxaProviderName, name, False)
+            names.extend(getNamesFromTaxa(name, descendants))
       
-  names = set(filterUnavailableConcepts(names))
+    names = set(filterUnavailableConcepts(names))
+  except:
+    if DEBUG_LEVEL >= 1:
+        print("failed to fetch concept names")
 
   if DEBUG_LEVEL >= 1:
     print("Concepts to fetch: "+str(names))
