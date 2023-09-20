@@ -5,6 +5,7 @@
         "id": 0, //int
         "name": "", //species name
         "url": "", //string
+        "taxonomy": ["",""], //string array in order, optional
         "created_timestamp": "", //string, optional
         "depth_meters": "", //string, optional
         "imaging_type": "", //string, optional
@@ -25,6 +26,6 @@
         "x": 0, //x location on image, int, optional
         "y": 0, //y location on image, int, optional
         "width": 0, //width on image, int, optional
-        "height": 0 //height on image, int, optional
+        "height": 0, //height on image, int, optional
     }]
 }
