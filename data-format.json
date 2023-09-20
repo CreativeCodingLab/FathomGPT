@@ -2,7 +2,7 @@
     "outputType": "", //image, histogram, text
     "textResponse": "",
     "species": [{
-        "id": "", //guid
+        "id": 0, //int
         "name": "", //species name
         "url": "", //string
         "created_timestamp": "", //string, optional
