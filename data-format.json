@@ -1,0 +1,31 @@
+{
+    "outputType": "", //image, histogram, text
+    "textResponse": "",
+    "species": [{
+        "id": "", //guid
+        "name": "", //species name
+        "url": "", //string
+        "created_timestamp": "", //string, optional
+        "depth_meters": "", //string, optional
+        "imaging_type": "", //string, optional
+        "last_updated_timestamp": "", //string, optional
+        "last_validation": "", //string, optional
+        "latitude": "", //string, optional
+        "longitude": "", //string, optional
+        "media_type": "", //string, optional
+        "submitter": "", //string, optional
+        "timestamp": "", //string, optional
+        "uuid": "", //string, optional
+        "valid": "", //string, optional
+        "contributors_email": "", //string, optional
+        "altitude": "", //string, optional
+        "oxygen_ml_l": "", //string, optional
+        "pressure_dbar": "", //string, optional
+        "salinity": "", //string, optional
+        "temperature_celsius": "", //string, optional
+        "x": 0, //x location on image, int, optional
+        "y": 0, //y location on image, int, optional
+        "width": 0, //width on image, int, optional
+        "height": 0 //height on image, int, optional
+    }]
+}
