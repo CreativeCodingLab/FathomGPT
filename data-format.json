@@ -1,6 +1,6 @@
 {
-    "outputType": "", //image, histogram, text
-    "textResponse": "",
+    "outputType": "", //enum(image, histogram, text)
+    "textResponse": "", //string
     "species": [{
         "id": 0, //int
         "name": "", //species name
