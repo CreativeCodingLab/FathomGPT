@@ -15,7 +15,6 @@
         "media_type": "", //string, optional
         "submitter": "", //string, optional
         "timestamp": "", //string, optional
-        "uuid": "", //string, optional
         "valid": "", //string, optional
         "contributors_email": "", //string, optional
         "altitude": "", //string, optional
