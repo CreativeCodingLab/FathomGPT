@@ -34,7 +34,7 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
                 names.append(name)
       
     names = set(filterUnavailableConcepts(names))
-  except IndentationError:
+  except:
     if DEBUG_LEVEL >= 1:
         print("failed to fetch concept names")
 
