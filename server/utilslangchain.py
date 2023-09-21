@@ -22,6 +22,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
+from langchain.prompts.chat import ChatPromptTemplate
 
 import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
@@ -33,7 +34,7 @@ df = pd.read_csv(datafile_path)
 df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
 
 # search through the reviews for a specific product
-def search_concepts(df, product_description, n=3, pprint=False):
+def search_concepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
     product_embedding = get_embedding(
         product_description,
         engine="text-embedding-ada-002"
@@ -53,32 +54,13 @@ def search_concepts(df, product_description, n=3, pprint=False):
             print(r[:200])
             print()
     return results
-
-def getFromConceptsFile(file, query):
-    loader = TextLoader("data/"+file)
-    data = loader.load()
-
-    embeddings = OpenAIEmbeddings(openai_api_key = openai.api_key)
-
-    text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=10)
-    texts = text_splitter.split_documents(data)
-
-    db = Chroma.from_documents(texts, embeddings)
-    retriever = db.as_retriever(search_kwargs={"k": 1})
-    qa = RetrievalQA.from_chain_type(llm=ChatOpenAI(temperature=0.0,model_name='gpt-4'), chain_type="stuff", retriever=retriever)
-    results = qa.run(query)
-    print(results)
-    return json.loads(results)
     
-
-def searchScientificNames(
-    description: Optional[str] = None
-) -> str:
-    """Function to get a list of scientific names from the provided names that fit a description"""
-    #query = 'Find at most 10 scientific names that fit the description "'+description+'". ONLY return a JSON list, and nothing more.'
-    #return getFromConceptsFile('concepts1.txt', query) + getFromConceptsFile('concepts2.txt', query)
     
-    results = search_concepts(df, description, n=10)
+def getAvailableScientificNames(
+    description: str
+) -> list:
+    """Function to get all available scientific names that fit a description"""
+    results = search_concepts(df, description)
     results = results.values.tolist()
     if 'marine organism' in results:
         results.remove('marine organism')
@@ -86,21 +68,53 @@ def searchScientificNames(
     return json.dumps(results)
 
 
+def searchScientificNames(
+    description: Optional[str] = None,
+    names: Optional[list] = None
+) -> str:
+    """Function to get a list of scientific names from the provided names that fit a description"""
+    template = """You generate comma separated lists.
+    A user will pass in a description, and you should select all objects from names that fit the description.
+    ONLY return a comma separated list, and nothing more."""
+    human_template = "{description} {names}"
+
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", template),
+        ("human", human_template),
+    ])
+    chain = chat_prompt | ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
+    data = chain.invoke({"description": description, "names": names})
+    return data
+
+
 def initLangchain():
     searchScientificNames_tool = StructuredTool.from_function(
         searchScientificNames
         )
+    getAvailableScientificNames_tool = StructuredTool.from_function(
+        getAvailableScientificNames
+        )
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
-    tools = [searchScientificNames_tool]
+    tools = [getAvailableScientificNames_tool, searchScientificNames_tool]
     return initialize_agent(tools,
                                chat,
                                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
                                verbose=(DEBUG_LEVEL >= 1))
+                               
+def getSciNamesPrompt(concept):
+    template = """First get all the available scientific names that fit the description. Then search names that fit the description. ONLY return a machine-readable JSON list, and nothing more."""
+    human_template = "Get me scientific names of "+concept+"."
+    
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", template),
+        ("human", human_template),
+    ])
+    return chat_prompt
 
 def getScientificNamesLangchain(concept):
     try:
-        data = agent_chain("Get me scientific names of "+concept+". Output a comma-separated list and nothing more.")
+        data = agent_chain(getSciNamesPrompt(concept))
         data = data['output']
         if DEBUG_LEVEL >= 1:
             print('Fetched scientific names from Langchain:')
@@ -113,4 +127,7 @@ def getScientificNamesLangchain(concept):
         return []
 
 agent_chain = initLangchain()
+
+print(agent_chain(getSciNamesPrompt('tentacles'))['output'])
+
 #print(searchScientificNames('tentacles'))
