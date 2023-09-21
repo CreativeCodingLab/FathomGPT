@@ -15,6 +15,7 @@ GOOD_BOUNDING_BOX_MIN_SIZE = 0.2
 GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
 FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
 ONLY_USE_LANGCHAIN_NAME_MAPPING = False 
+LANGCHAIN_SEARCH_CONCEPTS_TOPN = 20
 
 NAMES_JSON = 'data/names_normalized.json'
 CONCEPTS_JSON = 'data/concepts.json'
