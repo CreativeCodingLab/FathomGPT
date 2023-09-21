@@ -17,16 +17,24 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
 
     concept_names = []
     for name in sci_names:
-        relatives = getRelatives(name, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName)
-        concept_names.extend(getNamesFromTaxa(name, relatives))
+        try:
+            relatives = getRelatives(name, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName)
+            concept_names.extend(getNamesFromTaxa(name, relatives))
+        except:
+            print('Failed to find relatives for '+name)
+            concept_names.append(name)
 
     if FIND_DESCENDENTS_DEFAULT:
         for name in concept_names:
-            descendants = findDescendants(taxaProviderName, name, False)
-            names.extend(getNamesFromTaxa(name, descendants))
+            try:
+                descendants = findDescendants(taxaProviderName, name, False)
+                names.extend(getNamesFromTaxa(name, descendants))
+            except:
+                print('Failed to find relatives for '+name)
+                names.append(name)
       
     names = set(filterUnavailableConcepts(names))
-  except:
+  except IndentationError:
     if DEBUG_LEVEL >= 1:
         print("failed to fetch concept names")
 
@@ -53,6 +61,8 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
       images.find(constraints)
     )
 
+  if DEBUG_LEVEL >= 1:
+    print("Num images retrieved: "+str(len(data)))
   if len(data) == 0:
     return []
   data = [r.to_dict() for r in data]
