@@ -96,7 +96,7 @@ def initLangchain():
     return initialize_agent(tools,
                                chat,
                                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-                               verbose=True)
+                               verbose=(DEBUG_LEVEL >= 1))
 
 def getScientificNamesLangchain(concept):
     try:
