@@ -18,9 +18,25 @@ for concept in df.concepts:
     print(concept)
     name = concept
     try:
-        related = wikipedia.search(concept)
+        related = wikipedia.search(concept, results=5)
         if len(related) > 0:
+            related = [r for r in related if r.count('List ')==0] + [r for r in related if r.count('List ')>0] # move "List ..." to the back
             name = related[0]
+        cat = wikipedia.page(name).categories
+        """
+        if "Articles with 'species' microformats" not in cat:
+            related2 = wikipedia.search(concept+" genus", results=5)
+            if len(related2) > 0:
+                related = [r for r in related2 if r.count('List ')==0] + [r for r in related2 if r.count('List ')>0]
+                name = related[0]
+                cat = wikipedia.page(name).categories
+        """
+        
+        if "Articles with 'species' microformats" not in cat:
+            description.append("")
+            related_terms.append("")
+            continue
+            
         if name != concept:
             related_terms.append(", ".join(related))
         elif len(related)>1:
@@ -31,7 +47,7 @@ for concept in df.concepts:
         related_terms.append("")
         
     try:
-        summary = wikipedia.summary(name, sentences=2)
+        summary = wikipedia.summary(name, auto_suggest=False, sentences=2)
         summary = summary.split('\n')
         description.append(summary[0])
     except:
@@ -45,4 +61,4 @@ df.to_csv("data/concepts_desc.csv")
 
 #print(wikipedia.search("Octogonade mediterranea"))
 #print(wikipedia.summary("Bathypolypus", sentences=2).split("\n"))
-
+#print(wikipedia.page("Aurelia aurita").categories)
