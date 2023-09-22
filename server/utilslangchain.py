@@ -29,18 +29,16 @@ os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
 
-datafile_path = "data/concepts_embeddings.csv"
-df = pd.read_csv(datafile_path)
-df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+df = pd.read_csv(CONCEPTS_EMBEDDING)
 
-# search through the reviews for a specific product
-def search_concepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
+def getAvailableConcepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
     product_embedding = get_embedding(
         product_description,
         engine="text-embedding-ada-002"
     )
     df["similarity"] = df.embedding.apply(lambda x: cosine_similarity(x, product_embedding))
     df = df.sort_values("similarity", ascending=False)
+    df = df[df['similarity'] > 0.8] 
     
     print(df.head(n))
 
@@ -55,26 +53,11 @@ def search_concepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, p
             print()
     return results
     
-    
-def getAvailableScientificNames(
-    description: str
-) -> list:
-    """Function to get all available scientific names that fit a description"""
-    results = search_concepts(df, description)
-    results = results.values.tolist()
-    if 'marine organism' in results:
-        results.remove('marine organism')
-    print(results)
-    return json.dumps(results)
-
-
-def searchScientificNames(
+def filterScientificNames(
     description: Optional[str] = None,
     names: Optional[list] = None
 ) -> str:
-    """Function to get a list of scientific names from the provided names that fit a description"""
-    template = """You generate comma separated lists.
-    A user will pass in a description, and you should select all objects from names that fit the description.
+    template = """A user will pass in a description, and you should select all objects from names that fit the description.
     ONLY return a comma separated list, and nothing more."""
     human_template = "{description} {names}"
 
@@ -87,23 +70,33 @@ def searchScientificNames(
     return data
 
 
+def getScientificNamesFromDescription(
+    description: str
+) -> list:
+    """Function to get all scientific names that fit a description"""
+    results = getAvailableConcepts(df, description)
+    results = results.values.tolist()
+    print(results)
+    results = filterScientificNames(description, results)
+    return results
+
+
 def initLangchain():
-    searchScientificNames_tool = StructuredTool.from_function(
-        searchScientificNames
-        )
-    getAvailableScientificNames_tool = StructuredTool.from_function(
-        getAvailableScientificNames
+    df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+    
+    getScientificNamesFromDescription_tool = StructuredTool.from_function(
+        getScientificNamesFromDescription
         )
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
-    tools = [getAvailableScientificNames_tool, searchScientificNames_tool]
+    tools = [getScientificNamesFromDescription_tool]
     return initialize_agent(tools,
                                chat,
                                agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
                                verbose=(DEBUG_LEVEL >= 1))
                                
 def getSciNamesPrompt(concept):
-    template = """First get all the available scientific names that fit the description. Then search names that fit the description. ONLY return a machine-readable JSON list, and nothing more."""
+    template = """ONLY return a comma-separated list, and nothing more."""
     human_template = "Get me scientific names of "+concept+"."
     
     chat_prompt = ChatPromptTemplate.from_messages([
@@ -128,6 +121,7 @@ def getScientificNamesLangchain(concept):
 
 agent_chain = initLangchain()
 
-print(agent_chain(getSciNamesPrompt('tentacles'))['output'])
+#DEBUG_LEVEL = 5
+print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
 #print(searchScientificNames('tentacles'))
