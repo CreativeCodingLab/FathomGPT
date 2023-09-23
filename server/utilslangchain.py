@@ -78,6 +78,7 @@ def getScientificNamesFromDescription(
     results = results.values.tolist()
     print(results)
     results = filterScientificNames(description, results)
+    print(results)
     return results
 
 
@@ -122,6 +123,6 @@ def getScientificNamesLangchain(concept):
 agent_chain = initLangchain()
 
 #DEBUG_LEVEL = 5
-print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
+#print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
-#print(searchScientificNames('tentacles'))
+print(getScientificNamesLangchain('moon jellyfish'))

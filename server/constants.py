@@ -15,11 +15,11 @@ GOOD_BOUNDING_BOX_MIN_SIZE = 0.2
 GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
 FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
 ONLY_USE_LANGCHAIN_NAME_MAPPING = False 
-LANGCHAIN_SEARCH_CONCEPTS_TOPN = 5
+LANGCHAIN_SEARCH_CONCEPTS_TOPN = 10
 
 NAMES_JSON = 'data/names_normalized.json'
 CONCEPTS_JSON = 'data/concepts.json'
-CONCEPTS_EMBEDDING = "data/concepts_embeddings.csv"
+CONCEPTS_EMBEDDING = "data/concepts_names_embeddings.csv"
 
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
