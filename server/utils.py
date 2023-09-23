@@ -249,6 +249,7 @@ def getScientificNames(concept):
         return names[concept_normalized]
   
   names = getScientificNamesLangchain(concept)
+
   if len(names) > 0:
       return names
   return [concept]
