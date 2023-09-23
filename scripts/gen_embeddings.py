@@ -14,13 +14,19 @@ embedding_encoding = "cl100k_base"  # this the encoding for text-embedding-ada-0
 # load & inspect dataset
 input_datapath = "data/concepts_desc.csv" 
 df = pd.read_csv(input_datapath)
-df = df[["concepts", "description", "related"]]
+df = df[["concepts", "names", "links", "description", "related"]]
 df = df.dropna()
 df["combined"] = (
-    df.description.str.strip()+" ("+df.related.str.strip()+")"
+    #df.concepts.str.strip()+': '+df.description.str.strip() #+" ("+df.related.str.strip()+")"
+    #df.concepts.str.strip() +" ("+ df.names.str.strip() +"): "+ df.description.str.strip()
+    df.concepts.str.strip() +" ("+ df.names.str.strip() +")"
 )
+
+print(df['combined'][:10])
 
 encoding = tiktoken.get_encoding(embedding_encoding)
 
 df["embedding"] = df.combined.apply(lambda x: get_embedding(x, engine=embedding_model, ))
-df.to_csv("data/concepts_desc_embeddings.csv")
+#df.to_csv("data/concepts_desc_embeddings2.csv")
+#df.to_csv("data/concepts_names_desc_embeddings2.csv")
+df.to_csv("data/concepts_names_embeddings2.csv")
