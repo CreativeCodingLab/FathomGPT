@@ -1,0 +1,1421 @@
+Prompt1	Observation	Sql query	Sql Result	Human Response	Prompt2
+Find me images of Aurelia aurita	"To find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Since the prompt does not specify number of images. Limit the query to top 10 images"	"SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+WHERE b.concept = 'Aurelia aurita'
+FOR JSON PATH"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586151
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586152
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586153
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586154
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586155
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586156
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0199\/00_01_04_07.png"",
+        ""image_id"": 2586296,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586298
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/04_59_42_11.png"",
+        ""image_id"": 2587742,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2587744
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/0893\/06_13_15_15.png"",
+        ""image_id"": 2588036,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2588038
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2934\/05_23_41_12.png"",
+        ""image_id"": 2589496,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2589498
+    }
+]"		
+What is the maximum and minumum latitude and longitude of Atlantic Ocean	The prompt asks to find maximum and minumum latitude and longitude of Atlantic Ocean. It can be found based on the marine_regions table	"SELECT min_latitude, min_longitude, max_latitude, max_longitude
+From marine_regions WHERE name = 'Atlantic Ocean'"	"min_latitude min_longitude max_latitude max_longitude
+-60	-83.008056640625	68.62359619140625	20"		
+Find me images of Aurelia aurita in Monterey Bay	"To find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+The prompt is asking image for a particular region, so its better to add the latitude and longitude information to the species data too. Since you need to find the images of Aurelia aurita in Monterey Bay, use the marine_regions table to lookup the Monterey Bay min/max latitude/longitude values to search for images.
+Since the prompt does not specify number of images. Limit the query to top 10 images"	"SELECT i.urlSELECT TOP 10 i.url, i.id as image_id, b.concept, b.id, i.latitude, i.longitude
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND
+i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Monterey Bay'
+FOR JSON PATH
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Pacific Ocean'"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590411,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590412,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590413,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590414,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590415,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590416,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590417,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590418,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590419,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590420,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    }
+]"		
+Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+The prompt asks for species at depth less than 5k, so add the depth data too.
+Use the bounding_boxes, images and marine_regions table to find the species images"	"SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id, i.depth_meters
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Monterey bay'
+    AND i.depth_meters < 5000
+FOR JSON PATH"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590411,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590412,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590413,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590414,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590415,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590416,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590417,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590418,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590419,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590420,
+        ""depth_meters"": 4.447999954223633e+001
+    }
+]"		
+Which location has the most Aurelia aurita	"The prompt asks for location that has the most Aurelia aurita. The prompt does not provide detail on what location would mean. So, use the marine_regions table and find the count of bounding boxes of Aurelia aurita in the regions, sort them from highest and smallest and output the top 15 results
+"	"SELECT TOP 10 r.name, COUNT(b.id) AS count
+FROM dbo.bounding_boxes b
+JOIN dbo.images i ON b.image_id = i.id
+JOIN dbo.marine_regions r ON i.latitude BETWEEN r.min_latitude AND r.max_latitude
+                  AND i.longitude BETWEEN r.min_longitude AND r.max_longitude
+WHERE b.concept = 'Aurelia aurita'
+GROUP BY r.name
+ORDER BY count DESC"	"name count
+Global	110
+California Current	110
+North America	110
+SeaVox Sea Areas	110
+United States Exclusive Economic Zone	110
+World	110
+World Oceans	110
+United States	109
+California Borderland	109
+Greater Monterey Bay	109
+Monterey Bay	108
+Monterey Bay Region	108
+Pacific Northwest	1
+Canadian Exclusive Economic Zone	1"		
+What species are frequently found near Aurelia aurita?	"The prompt asks for frequently found species near Aurelia aurita without providing detail what frequent means numerically. So, find the number of images that have Aurelia aurita and another species. Use the bounding_boxes table to find another species that is near Aurelia aurita and output the name and the frequency
+"	"SELECT b2.concept AS species, COUNT(*) AS frequency
+FROM dbo.bounding_boxes b1
+JOIN dbo.bounding_boxes b2 ON b1.image_id = b2.image_id
+WHERE b1.concept = 'Aurelia aurita' AND b2.concept <> 'Aurelia aurita'
+GROUP BY b2.concept
+ORDER BY frequency DESC;"	"species frequency
+Chrysaora fuscescens	211
+Siphonophorae	20
+Pyrosoma	4
+Chrysaora	2
+Mitrocomidae	1"		
+How often are Aurelia aurita found near other species?	"The prompt does not provide what often would mean numerically, so first find all distinct images in the database that has Aurelia aurita. Now, find the images that have Aurelia aurita and another species. Now output the total AureliaImages and images that have other species
+"	"WITH AureliaImages AS (
+  SELECT DISTINCT image_id
+  FROM dbo.bounding_boxes
+  WHERE concept = 'Aurelia aurita'
+),
+OtherSpeciesInAureliaImages AS (
+  SELECT DISTINCT bb1.image_id
+  FROM dbo.bounding_boxes AS bb1
+  JOIN dbo.bounding_boxes AS bb2 ON bb1.image_id = bb2.image_id
+  WHERE bb1.concept = 'Aurelia aurita' AND bb2.concept != 'Aurelia aurita'
+)
+SELECT 
+  COUNT(*) AS 'Frequency',
+  (SELECT COUNT(*) FROM AureliaImages) AS 'TotalAureliaImages'
+FROM OtherSpeciesInAureliaImages;"	"Frequency TotalAureliaImages
+9	45"		
+Find me an image containing both Aurelia aurita and Siphonophorae	"The prompt asks for an image of individual species so, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id.
+Also since you are showing images that has more than one species, add the bounding box data x, y, width, height.
+Since you need to output data as species array, first you will get the image id that has both concepts. After that you can search the database using the image id to generate the data in json format with id, concept, url, image_id, x, y, width and height values
+"	"WITH ImageConcepts AS (
+SELECT TOP 1 i.id as image_id
+FROM dbo.images i
+WHERE 
+    EXISTS (
+        SELECT 1
+        FROM dbo.bounding_boxes b
+        WHERE b.image_id = i.id AND b.concept = 'Aurelia aurita'
+    )
+    AND EXISTS (
+        SELECT 1
+        FROM dbo.bounding_boxes b
+        WHERE b.image_id = i.id AND b.concept = 'Siphonophorae'
+    )
+GROUP BY i.id)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    ImageConcepts c ON c.image_id = i.id
+WHERE 
+    b.concept IN ('Aurelia aurita', 'Siphonophorae')
+FOR JSON PATH"	"[
+    {
+        ""id"": 2600146,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1200,
+        ""y"": 686,
+        ""width"": 72,
+        ""height"": 96
+    },
+    {
+        ""id"": 2600148,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 170,
+        ""y"": 364,
+        ""width"": 72,
+        ""height"": 66
+    },
+    {
+        ""id"": 2600149,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1357,
+        ""y"": 118,
+        ""width"": 51,
+        ""height"": 57
+    },
+    {
+        ""id"": 2600150,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1434,
+        ""y"": 715,
+        ""width"": 50,
+        ""height"": 74
+    },
+    {
+        ""id"": 2600151,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 126,
+        ""y"": 863,
+        ""width"": 66,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600152,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 9,
+        ""y"": 805,
+        ""width"": 82,
+        ""height"": 76
+    },
+    {
+        ""id"": 2600153,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 831,
+        ""y"": 161,
+        ""width"": 41,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600158,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1598,
+        ""y"": 69,
+        ""width"": 77,
+        ""height"": 111
+    },
+    {
+        ""id"": 2600159,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1,
+        ""y"": 279,
+        ""width"": 41,
+        ""height"": 75
+    },
+    {
+        ""id"": 2600160,
+        ""concept"": ""Siphonophorae"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 928,
+        ""y"": 555,
+        ""width"": 192,
+        ""height"": 125
+    },
+    {
+        ""id"": 2600161,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1018,
+        ""y"": 372,
+        ""width"": 80,
+        ""height"": 82
+    },
+    {
+        ""id"": 2600162,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 728,
+        ""y"": 962,
+        ""width"": 57,
+        ""height"": 63
+    },
+    {
+        ""id"": 2600163,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 963,
+        ""y"": 65,
+        ""width"": 39,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600164,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 703,
+        ""y"": 136,
+        ""width"": 48,
+        ""height"": 65
+    },
+    {
+        ""id"": 2600165,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 796,
+        ""y"": 359,
+        ""width"": 57,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600167,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1777,
+        ""y"": 171,
+        ""width"": 53,
+        ""height"": 70
+    },
+    {
+        ""id"": 2600169,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1154,
+        ""y"": 583,
+        ""width"": 35,
+        ""height"": 48
+    },
+    {
+        ""id"": 2600171,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1527,
+        ""y"": 453,
+        ""width"": 42,
+        ""height"": 56
+    },
+    {
+        ""id"": 2600174,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1314,
+        ""y"": 183,
+        ""width"": 40,
+        ""height"": 62
+    },
+    {
+        ""id"": 2600175,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 392,
+        ""y"": 224,
+        ""width"": 56,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600176,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1389,
+        ""y"": 231,
+        ""width"": 42,
+        ""height"": 57
+    }
+]"		
+What species are frequently found at 1000m depth?	"The prompt is asking the frequency of species found at depth of 1000m, so output freuqency data of species name with the frequency using the bounding_boxes and images table
+"	"SELECT b.concept AS species, COUNT(*) AS frequency
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE i.depth_meters = 1000
+GROUP BY b.concept
+ORDER BY frequency DESC;"	"species frequency
+Isosicyonis	24
+Sebastolobus	6
+Embassichthys bathybius	4
+Actiniaria	3
+Ceriantharia	2
+Chionoecetes tanneri	2
+Corallimorphus	2
+Eptatretus	2
+Microstomus pacificus	2
+Umbellula sp. 2	2"		
+How many distinct species are there at Monterey Bay?	"The species is asking for number of distinct species in Monterey Bay, so use the bounding_boxes and marine_regions table from database to find the number of species
+"	"SELECT COUNT(DISTINCT b.concept) as DistinctSpeciesCount
+FROM dbo.bounding_boxes b
+WHERE EXISTS (
+    SELECT 1
+    FROM dbo.images i
+    JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+                             AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+    WHERE mr.name = 'Monterey Bay'
+      AND i.id = b.image_id
+)"	"DistinctSpeciesCount
+711"		
+"Find me images of Aurelia aurita that looks good
+"	"The prompt asks for images of individual species so, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id.
+Since the prompt is asking for image that looks good without specifying what type of image would look good, find images that has highest bounding box width, height to image width, height ratio and show 10 top results
+"	"SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE b.concept = 'Aurelia aurita'
+ORDER BY (b.width * b.height) / (i.width * i.height) DESC
+FOR JSON PATH"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/05_02_20_21.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590274,
+        ""image_id"": 2590272
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2934\/05_23_41_12.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2589498,
+        ""image_id"": 2589496
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/0893\/06_13_15_15.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2588038,
+        ""image_id"": 2588036
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/04_59_42_11.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2587744,
+        ""image_id"": 2587742
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0199\/00_01_04_07.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586298,
+        ""image_id"": 2586296
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586156,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586155,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586154,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586153,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586152,
+        ""image_id"": 2586149
+    }
+]"		
+Give data of all species in Monterey Bay to show in a heatmap	"The prompt asks to give data of all species in Monterey Bay to show in a heatmap. So, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id.
+Also since the data will be shown in a heatmap, location data is very important, so you will add the latitude, longitude and depth data of the species. "	"SELECT
+    b.concept,
+    b.id,
+    i.latitude,
+    i.longitude,
+    i.depth_meters
+FROM
+    dbo.bounding_boxes b
+    JOIN dbo.images i ON b.image_id = i.id
+    JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+        AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE
+    mr.name = 'Monterey Bay'
+FOR JSON PATH"	"[
+    {
+        ""concept"": ""Beringraja rhina"",
+        ""id"": 2343675,
+        ""latitude"": 3.658101500000000e+001,
+        ""longitude"": -1.220103770000000e+002,
+        ""depth_meters"": 2.918299865722656e+002
+    },
+    {
+        ""concept"": ""Asteroidea"",
+        ""id"": 2416979,
+        ""latitude"": 3.658115600000000e+001,
+        ""longitude"": -1.220557880000000e+002,
+        ""depth_meters"": 9.054000244140625e+002
+    },
+    ...
+]"		
+Find me a place where Aurelia aurita is found the most	"Since the prompt is asking about the place where Aurelia aurita is found the most without specifying any region, you can use the marine_regions table along with the bounding_boxes table to find out the number of that species in a region. After that you can sort the data and get the result.
+"	"SELECT TOP 1 mr.name as region_name, COUNT(bb.id) as count
+FROM dbo.bounding_boxes bb
+JOIN dbo.images i ON bb.image_id = i.id
+JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE bb.concept = 'Aurelia aurita'
+GROUP BY mr.name
+ORDER BY count DESC"	"region_name COUNT
+California Current	110"		
+Provide the data that correlates salinity levels with the distribution of Aurelia aurita	"The prompt asks to find correlation between salinity levels with the distribution of Aurelia aurita. Since the prompt does not provide the salinity levels, use the salinity level normally used to understand ocean water salinity level. So, use levels <32, 32-33, 33-34, 34-35, 35-36, 36-37, >37
+Use these region to find out, the distribution of the species in these regions. Also, make sure you include the 0 values, which will help user better understand that some region donot have the species.
+"	"WITH SalinityLevels AS (
+    SELECT '<32' AS salinity_level
+    UNION ALL
+    SELECT '32-33'
+    UNION ALL
+    SELECT '33-34'
+    UNION ALL
+    SELECT '34-35'
+    UNION ALL
+    SELECT '35-36'
+    UNION ALL
+    SELECT '36-37'
+    UNION ALL
+    SELECT '>37'
+),
+AggregatedData AS (
+    SELECT 
+        CASE 
+            WHEN images.salinity < 32 THEN '<32'
+            WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'
+            WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'
+            WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'
+            WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'
+            WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'
+            WHEN images.salinity > 37 THEN '>37'
+        END AS salinity_level,
+        COUNT(bounding_boxes.concept) AS species_count
+    FROM 
+        dbo.images
+    JOIN 
+        dbo.bounding_boxes ON images.id = bounding_boxes.image_id
+    WHERE 
+        bounding_boxes.concept = 'Aurelia aurita'
+    AND 
+        images.salinity IS NOT NULL
+    GROUP BY 
+        CASE 
+            WHEN images.salinity < 32 THEN '<32'
+            WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'
+            WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'
+            WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'
+            WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'
+            WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'
+            WHEN images.salinity > 37 THEN '>37'
+        END
+)
+SELECT 
+    sl.salinity_level,
+    COALESCE(ad.species_count, 0) AS species_count
+FROM 
+    SalinityLevels sl
+LEFT JOIN 
+    AggregatedData ad ON sl.salinity_level = ad.salinity_level
+ORDER BY 
+    salinity_level;"	"salinity_level species_count
+<32	0
+>37	0
+32-33	1
+33-34	100
+34-35	9
+35-36	0
+36-37	0"		
+"Provide the data that correlates depth with the distribution of Aurelia aurita
+"	"The prompt asks the correlation between depth with the distribution of Aurelia aurita. Since you are asked about depth, without providing the level of depths, it is better to use normal ocean depth levels like Epipelagic (0-200m), Mesopelagic (200-1000m), Bathypelagic (1000-4000m), Abyssopelagic (4000-6000m) and Hadalpelagic (>6000m).
+Use these region to find out, the number of the species in these regions. Also, make sure you include the 0 values, which will help user better understand that some region donot have the species.
+"	"WITH DepthLevels AS (
+    SELECT 'Epipelagic (0-200m)' AS depth_level, 0 AS min_depth, 200 AS max_depth
+    UNION ALL
+    SELECT 'Mesopelagic (200-1000m)', 200, 1000
+    UNION ALL
+    SELECT 'Bathypelagic (1000-4000m)', 1000, 4000
+    UNION ALL
+    SELECT 'Abyssopelagic (4000-6000m)', 4000, 6000
+    UNION ALL
+    SELECT 'Hadalpelagic (>6000m)', 6001, 1000000  -- assuming a large max value to capture everything > 6000
+),
+AggregatedData AS (
+    SELECT 
+        CASE 
+            WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'
+            WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'
+            WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'
+            WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'
+            WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'
+        END AS depth_level,
+        COUNT(bounding_boxes.id) AS distribution
+    FROM 
+        images 
+    JOIN 
+        bounding_boxes 
+    ON 
+        images.id = bounding_boxes.image_id
+    WHERE 
+        bounding_boxes.concept = 'Aurelia aurita'
+    AND 
+        images.depth_meters IS NOT NULL
+    GROUP BY 
+        CASE 
+            WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'
+            WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'
+            WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'
+            WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'
+            WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'
+        END
+)
+SELECT 
+    dl.depth_level, 
+    COALESCE(ad.distribution, 0) AS distribution
+FROM 
+    DepthLevels dl
+LEFT JOIN 
+    AggregatedData ad ON dl.depth_level = ad.depth_level
+ORDER BY 
+    dl.min_depth;"	"depth_level distribution
+Epipelagic (0-200m)	110
+Mesopelagic (200-1000m)	0
+Bathypelagic (1000-4000m)	0
+Abyssopelagic (4000-6000m)	0
+Hadalpelagic (>6000m)	0"		
+"Find place that has the highest temperature and species that is found the most at that place
+"	"You need to find the detail of specific species from the database. So you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id
+The prompt has two section, first is to find the place that has the highest temperature. Since the prompt does not talk about how we should define a place, you should use the regions table and its minimum latitude/longitude. To find maximum temperature in a particular region, we should take the average of all temperature in images data in that region
+Once the region with highest temperature is found out, now you should use the region minimum latitude, minimum longitude, maximum latitude, maximum longitude data to find the most found species in the region. 
+After the species data is found, you need to generate output data in the json format and should have species concept as concept and species bounding box id as id. Also since the prompt is asking about maximum temperature and species count, add maximum temperature and species count in the response
+"	"WITH RegionAvgTemp AS (
+    SELECT 
+        r.name as region_name,
+        AVG(i.temperature_celsius) as avg_temperature
+    FROM dbo.images i
+    JOIN dbo.marine_regions r ON 
+        i.latitude BETWEEN r.min_latitude AND r.max_latitude AND
+        i.longitude BETWEEN r.min_longitude AND r.max_longitude
+    GROUP BY r.name
+),
+MaxTempRegion AS (
+    SELECT TOP 1 region_name, avg_temperature
+    FROM RegionAvgTemp
+    ORDER BY avg_temperature ASC
+),
+MostFoundSpecies AS (
+    SELECT 
+        b.concept, 
+        COUNT(*) as count
+    FROM dbo.bounding_boxes b
+    JOIN dbo.images i ON b.image_id = i.id
+    JOIN dbo.marine_regions r ON 
+        i.latitude BETWEEN r.min_latitude AND r.max_latitude AND
+        i.longitude BETWEEN r.min_longitude AND r.max_longitude
+    JOIN MaxTempRegion m ON r.name = m.region_name
+    GROUP BY b.concept
+)
+SELECT TOP 1 bb.id, mfs.concept, mfs.count, mtr.avg_temperature, mtr.region_name
+FROM MostFoundSpecies mfs
+JOIN dbo.bounding_boxes bb ON bb.concept = mfs.concept
+JOIN MaxTempRegion mtr ON 1=1
+ORDER BY mfs.count ASC
+FOR JSON PATH;"	"[
+    {
+        ""id"": 2281439,
+        ""concept"": ""Brachyura"",
+        ""count"": 1,
+        ""avg_temperature"": -2.280888888888891e+000,
+        ""region_name"": ""American Samoa Exclusive Economic Zone""
+    }
+]"		
+"Find the species that are found in image with id 2256720
+"	"You need to find the detail of specific species in an image from the database. So you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+So, you need to search image table and bounding_boxes table using image id 2256720"	"SELECT b.concept, b.id, i.id as image_id, i.url as url
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE b.image_id = 2256720
+FOR JSON PATH;"	"[
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258718,
+        ""image_id"": 2256720,
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""
+    },
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258719,
+        ""image_id"": 2256720,
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""
+    }
+]"		
+Find the species that is found in bounding box table with id 2258719	"You need to find the detail of specific species from the database. So you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id
+"	"SELECT concept, id
+FROM dbo.bounding_boxes 
+WHERE id = 2258719
+FOR JSON PATH;"	"[
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258719
+    }
+]"		
+Identify the two species that most frequently appear together within a single image	"You need to find out any two species which are found the most in a single image, so you need to combine the bounding_boxes and compare the image_id of the two species.
+"	"SELECT TOP 1
+    bb1.concept AS species1, 
+    bb2.concept AS species2, 
+    COUNT(*) AS frequency
+FROM 
+    dbo.bounding_boxes AS bb1
+JOIN 
+    dbo.bounding_boxes AS bb2 
+ON 
+    bb1.image_id = bb2.image_id AND bb1.concept < bb2.concept
+GROUP BY 
+    bb1.concept, 
+    bb2.concept"	"species1 species2 frequency
+Rathbunaster californicus	Strongylocentrotus fragilis	4529"		
+Provide an image showcasing the highest concentration of Bathochordaeus stygius	"You need to find the image from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Also in this query asks for image that has many species within a single image, it would be better to include bounding box detail(x, y, width, height) of species
+So, you will first find out the image that contains highest conceentration of the species. Once you get that data, you will format the result such that it is a json array with species id, image url, image_id and concept
+"	"WITH HighestConcentrationImage AS (
+    SELECT TOP 1
+        i.id as image_id,
+        COUNT(b.id) as concentration
+    FROM
+        dbo.images i
+    JOIN
+        dbo.bounding_boxes b ON i.id = b.image_id
+    WHERE
+        b.concept = 'Bathochordaeus stygius' OR b.alt_concept = 'Bathochordaeus stygius'
+    GROUP BY
+        i.id
+    ORDER BY
+        concentration DESC
+)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    HighestConcentrationImage hci ON hci.image_id = i.id
+WHERE 
+    b.concept = 'Bathochordaeus stygius'
+FOR JSON PATH"	"[
+    {
+        ""id"": 2497449,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 264,
+        ""y"": 64,
+        ""width"": 292,
+        ""height"": 226
+    },
+    {
+        ""id"": 2497450,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 376,
+        ""y"": 261,
+        ""width"": 143,
+        ""height"": 102
+    },
+    {
+        ""id"": 2497451,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 431,
+        ""y"": 309,
+        ""width"": 17,
+        ""height"": 21
+    },
+    {
+        ""id"": 2497452,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 120,
+        ""y"": 44,
+        ""width"": 236,
+        ""height"": 205
+    },
+    {
+        ""id"": 2497453,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 230,
+        ""y"": 160,
+        ""width"": 17,
+        ""height"": 7
+    },
+    {
+        ""id"": 2497454,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 224,
+        ""y"": 151,
+        ""width"": 32,
+        ""height"": 16
+    },
+    {
+        ""id"": 2497455,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 407,
+        ""y"": 192,
+        ""width"": 12,
+        ""height"": 13
+    },
+    {
+        ""id"": 2497456,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 395,
+        ""y"": 176,
+        ""width"": 23,
+        ""height"": 31
+    },
+    {
+        ""id"": 2497457,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 439,
+        ""y"": 320,
+        ""width"": 9,
+        ""height"": 11
+    }
+]
+"		
+In what pressure level is the species with bounding box id 2258729 living at	"You need to find the pressure level the species with bounding box id 2258729 living at so you can find it by first finding the image data such that it has image id same as the bounding box image id and then find the value that is in the pressure_dbar column
+"	"
+SELECT images.pressure_dbar
+FROM dbo.bounding_boxes
+JOIN dbo.images ON bounding_boxes.image_id = images.id
+WHERE bounding_boxes.id = 2258739;"	"pressure_dbar
+875.7999877929688"		
+"Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides
+"	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Since there may be many images in the database and the image count is not provided, you will search for only 5 images
+You will search for the species in bounding boxes table with provided concepts and format it such that it has species id, image url, image_id and concept"	"SELECT TOP 5
+    i.url AS url,
+    b.concept AS concept,
+    b.id as id,
+    b.image_id as image_id
+FROM 
+    dbo.bounding_boxes AS b
+JOIN 
+    dbo.images AS i ON b.image_id = i.id
+WHERE 
+    b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')
+FOR JSON PATH"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2987\/03_37_12_17.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2370352,
+        ""image_id"": 2368076
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2987\/02_15_00_13.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2450919,
+        ""image_id"": 2448715
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3488\/03_52_48_07.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2474652,
+        ""image_id"": 2472626
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3580\/06_23_04_25.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2522769,
+        ""image_id"": 2520579
+    }
+]"		
+"How many images of Pycnopodia helianthoides are in the database
+"	"You need to provide the total number of images of species Pycnopodia helianthoides in the database.
+So, you will search the bounding box table that has a row with concept 'Pycnopodia helianthoides'
+"	"SELECT COUNT(*) as TotalImages
+FROM dbo.bounding_boxes 
+WHERE concept = 'Pycnopodia helianthoides';"	"TotalImages
+4"		
+"Find me some images that has Acanthaster planci, Chrysaora fuscescens and Siphonophorae
+"	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Also in this query asks for image that has many species within a single image, it would be better to include bounding box detail(x, y, width, height) of species
+So, you will first find out the image that contains all the three species. Also, since there may be many images in the database and the image count is not provided, you will search for only 5 images. Once you get that data, you will format the result such that it is a json array with species id, image url, image_id and concept
+"	"WITH ImageConcepts AS (
+    SELECT TOP 5 i.id as image_id
+    FROM dbo.images i
+    JOIN dbo.bounding_boxes b ON i.id = b.image_id
+    WHERE b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')
+    GROUP BY i.id
+    HAVING COUNT(DISTINCT b.concept) = 3
+)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    ImageConcepts c ON c.image_id = i.id
+WHERE 
+    b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')
+FOR JSON PATH"	"[
+    {
+        ""id"": 2600146,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1200,
+        ""y"": 686,
+        ""width"": 72,
+        ""height"": 96
+    },
+    {
+        ""id"": 2600147,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 235,
+        ""y"": 784,
+        ""width"": 48,
+        ""height"": 52
+    },
+    {
+        ""id"": 2600148,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 170,
+        ""y"": 364,
+        ""width"": 72,
+        ""height"": 66
+    },
+    {
+        ""id"": 2600149,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1357,
+        ""y"": 118,
+        ""width"": 51,
+        ""height"": 57
+    },
+    {
+        ""id"": 2600150,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1434,
+        ""y"": 715,
+        ""width"": 50,
+        ""height"": 74
+    },
+    {
+        ""id"": 2600151,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 126,
+        ""y"": 863,
+        ""width"": 66,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600152,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 9,
+        ""y"": 805,
+        ""width"": 82,
+        ""height"": 76
+    },
+    {
+        ""id"": 2600153,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 831,
+        ""y"": 161,
+        ""width"": 41,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600154,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1798,
+        ""y"": 565,
+        ""width"": 101,
+        ""height"": 47
+    },
+    {
+        ""id"": 2600155,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1765,
+        ""y"": 868,
+        ""width"": 120,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600156,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 942,
+        ""y"": 938,
+        ""width"": 158,
+        ""height"": 89
+    },
+    {
+        ""id"": 2600157,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 4,
+        ""y"": 186,
+        ""width"": 102,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600158,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1598,
+        ""y"": 69,
+        ""width"": 77,
+        ""height"": 111
+    },
+    {
+        ""id"": 2600159,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1,
+        ""y"": 279,
+        ""width"": 41,
+        ""height"": 75
+    },
+    {
+        ""id"": 2600160,
+        ""concept"": ""Siphonophorae"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 928,
+        ""y"": 555,
+        ""width"": 192,
+        ""height"": 125
+    },
+    {
+        ""id"": 2600161,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1018,
+        ""y"": 372,
+        ""width"": 80,
+        ""height"": 82
+    },
+    {
+        ""id"": 2600162,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 728,
+        ""y"": 962,
+        ""width"": 57,
+        ""height"": 63
+    },
+    {
+        ""id"": 2600163,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 963,
+        ""y"": 65,
+        ""width"": 39,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600164,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 703,
+        ""y"": 136,
+        ""width"": 48,
+        ""height"": 65
+    },
+    {
+        ""id"": 2600165,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 796,
+        ""y"": 359,
+        ""width"": 57,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600166,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 452,
+        ""y"": 373,
+        ""width"": 75,
+        ""height"": 38
+    },
+    {
+        ""id"": 2600167,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1777,
+        ""y"": 171,
+        ""width"": 53,
+        ""height"": 70
+    },
+    {
+        ""id"": 2600168,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 254,
+        ""y"": 991,
+        ""width"": 113,
+        ""height"": 46
+    },
+    {
+        ""id"": 2600169,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1154,
+        ""y"": 583,
+        ""width"": 35,
+        ""height"": 48
+    },
+    {
+        ""id"": 2600170,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1391,
+        ""y"": 985,
+        ""width"": 103,
+        ""height"": 90
+    },
+    {
+        ""id"": 2600171,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1527,
+        ""y"": 453,
+        ""width"": 42,
+        ""height"": 56
+    },
+    {
+        ""id"": 2600172,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 10,
+        ""y"": 546,
+        ""width"": 118,
+        ""height"": 90
+    },
+    {
+        ""id"": 2600173,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 894,
+        ""y"": 1005,
+        ""width"": 107,
+        ""height"": 52
+    },
+    {
+        ""id"": 2600174,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1314,
+        ""y"": 183,
+        ""width"": 40,
+        ""height"": 62
+    },
+    {
+        ""id"": 2600175,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 392,
+        ""y"": 224,
+        ""width"": 56,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600176,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1389,
+        ""y"": 231,
+        ""width"": 42,
+        ""height"": 57
+    }
+]"		
