@@ -37,6 +37,7 @@ def get_response(messages):
         functions=AVAILABLE_FUNCTIONS,
         function_call="auto",
     )
+
 def run_prompt(prompt, messages=[]):
     messages.append({"role": "user", "content": prompt})
     chatResponse = get_response(messages)

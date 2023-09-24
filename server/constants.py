@@ -5,7 +5,11 @@ import inspect
 
 load_dotenv()
 KEYS = {
-    "openai": os.getenv("OPENAI_KEY")
+    "openai": os.getenv("OPENAI_KEY"),
+    "SQL_server": os.getenv("SQL_SERVER"),
+    "Db": os.getenv("DATABASE"),
+    "Db_user": os.getenv("DB_USER"),
+    "Db_pwd": os.getenv("DB_PWD"),
 }
 
 DEFAULT_LIMIT = 5
@@ -23,6 +27,8 @@ CONCEPTS_EMBEDDING = "data/concepts_names_embeddings.csv"
 
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
+
+SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
 
 DEBUG_LEVEL = 2
 # only print debugging messages if the initial caller is debug.py
