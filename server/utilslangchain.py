@@ -30,7 +30,7 @@ os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
 
-#df = pd.read_csv(CONCEPTS_EMBEDDING)
+df = pd.read_csv(CONCEPTS_EMBEDDING)
 
 def getAvailableConcepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
     product_embedding = get_embedding(
