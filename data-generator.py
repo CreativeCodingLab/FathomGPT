@@ -12,7 +12,7 @@ with open('sql-query-and-response.txt', mode='r', newline='', encoding='utf-8') 
         # Iterate through the rows and write each row as a JSON object on a new line in the output file
         for row in reader:
             messages = [{
-                "role": "system", "content": "You are a text-to-sql generator. You have a database of marine species. You must provide the response only in sql format. The sql should be generated in a way such that the response from sql is also in the expected format"
+                "role": "system", "content": "You are a text-to-sql generator. You have a database of marine species. The sql should be generated in a way such that the response from sql is a json. "
             },
             {
                 "role": "user","content": """
