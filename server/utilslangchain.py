@@ -433,7 +433,7 @@ def generateSQLQuery(
 
 
 def initLangchain():
-    #df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+    df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
     
     getScientificNamesFromDescription_tool = StructuredTool.from_function(
         getScientificNamesFromDescription,

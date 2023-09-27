@@ -33,7 +33,7 @@ SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
 DEBUG_LEVEL = 2
 # only print debugging messages if the initial caller is debug.py
 python_call_stack = inspect.stack()
-if len(python_call_stack) == 0 or not python_call_stack[-1].filename.endswith('debug.py'):
+if len(python_call_stack) == 0 or not (python_call_stack[-1].filename.endswith('debug.py') or python_call_stack[-1].filename.endswith('utilslangchain.py')):
     DEBUG_LEVEL = 0
 
 FUNCTION_PROPERTIES = {
