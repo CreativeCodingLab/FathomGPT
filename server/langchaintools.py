@@ -194,7 +194,8 @@ def getScientificNamesLangchain(concept):
     return data
 
 def get_Response(prompt, agent_chain):
-    sql_query = agent_chain("Provide the data to "+prompt)
+    sql_query = agent_chain("Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
+    print(sql_query['output'])
     isJSON, result = GetSQLResult(sql_query['output'])
 
     summerizerModel = ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
@@ -231,5 +232,6 @@ agent_chain = initLangchain()
 #DEBUG_LEVEL = 5
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
-print(getScientificNamesLangchain('rattail'))
-#print(get_Response("Provide the data that correlates depth with the distribution of Moon jellyfish", agent_chain))
+#print(getScientificNamesLangchain('rattail'))
+print(get_Response("Provide me images of Aurelia Aurata from Pacific icean", agent_chain))
+#print(get_Response("Give data of all species in Monterey Bay to show in a heatmap", agent_chain))
