@@ -139,7 +139,7 @@ def generateSQLQuery(
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
     sqlQuery = sql_generation_model.invoke([
-        SystemMessage(content="You are a text-to-sql generator. You have a database of marine species, with marine regions, images, bounding boxes table. You must provide the response only in sql format. The sql should be generated in a way such that the response from sql is also in the expected format"),
+        SystemMessage(content="You are a text-to-sql generator. You have a database of marine species, with marine regions, images, bounding boxes table. You must provide the response only in sql format. The sql should be generated in a way such that the response from sql is also in the expected format. ONLY return the sql query and nothing more."),
         HumanMessage(content="""
             The database has the following structure.
 
@@ -201,7 +201,7 @@ def getScientificNamesLangchain(concept):
         return []
 
 def get_Response(prompt, agent_chain):
-    sql_query = agent_chain(prompt)
+    sql_query = agent_chain("Provide the data to "+prompt)
     isJSON, result = GetSQLResult(sql_query['output'])
 
     summerizerModel = ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
@@ -214,7 +214,7 @@ def get_Response(prompt, agent_chain):
 
         The outputType should be based on the input and the summary should be based on the output
         """),
-        HumanMessage(content="{\"input\": \"" + prompt + "\", \"output\":\"" + str(result[:3000]) + "\"}"),
+        HumanMessage(content="{\"input\": \"" + prompt + "\", \"output\":\"" + str(result[:NUM_RESULTS_TO_SUMMARIZE]) + "\"}"),
     ])
 
     summaryPromptResponse = json.loads(summaryPrompt.content)
