@@ -24,7 +24,7 @@ NUM_RESULTS_TO_SUMMARIZE = 3000
 
 NAMES_JSON = 'data/names_normalized.json'
 CONCEPTS_JSON = 'data/concepts.json'
-CONCEPTS_EMBEDDING = "data/concepts_names_embeddings.csv"
+CONCEPTS_EMBEDDING = "data/concepts_names_desc_embeddings.csv"
 
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34

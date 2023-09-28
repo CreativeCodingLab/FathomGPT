@@ -4,8 +4,30 @@
 import pandas as pd
 import tiktoken
 
+from dotenv import load_dotenv
 import os
-os.environ["OPENAI_API_KEY"] = 
+
+load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_KEY")
+
+def getNames(row):
+    names = row['concepts'].strip()
+    if row['names'] != ' ':
+        nl = row['names'].strip().split(', ')
+        if nl[0] == row['concepts'].strip().lower():
+            if len(nl) == 1:
+                return names
+            nl = nl[1:]
+        return names + ", " + ', '.join(nl)
+    return names
+
+def getCombined(row):
+    combined = "Names: " + getNames(row) + ";"
+    if row['description'] != ' ':
+        combined = combined + " Description: " + row['description'].strip() + ";"
+    if row['related'] != ' ':
+        combined = combined + " Related: " + row['related'].strip() 
+    return combined
 
 from openai.embeddings_utils import get_embedding
 # embedding model parameters
@@ -16,11 +38,18 @@ input_datapath = "data/concepts_desc.csv"
 df = pd.read_csv(input_datapath)
 df = df[["concepts", "names", "links", "description", "related"]]
 df = df.dropna()
-df["combined"] = (
+df["combined"] = [
+    getCombined(row)
+    for index, row in df.iterrows()
+]
+"""
+(
     #df.concepts.str.strip()+': '+df.description.str.strip() #+" ("+df.related.str.strip()+")"
     #df.concepts.str.strip() +" ("+ df.names.str.strip() +"): "+ df.description.str.strip()
-    df.concepts.str.strip() +" ("+ df.names.str.strip() +")"
+    #df.concepts.str.strip() +" ("+ df.names.str.strip() +")"
+    "Names: " + df.concepts.str.strip() + ", " + df.names.str.strip() + "; Description: " + df.description.str.strip() + "; Related: " + df.related.str.strip() 
 )
+"""
 
 print(df['combined'][:10])
 
@@ -28,5 +57,5 @@ encoding = tiktoken.get_encoding(embedding_encoding)
 
 df["embedding"] = df.combined.apply(lambda x: get_embedding(x, engine=embedding_model, ))
 #df.to_csv("data/concepts_desc_embeddings2.csv")
-#df.to_csv("data/concepts_names_desc_embeddings2.csv")
-df.to_csv("data/concepts_names_embeddings2.csv")
+df.to_csv("data/concepts_names_desc_embeddings2.csv")
+#df.to_csv("data/concepts_names_embeddings2.csv")
