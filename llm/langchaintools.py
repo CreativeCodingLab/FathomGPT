@@ -32,6 +32,7 @@ openai.api_key = KEYS['openai']
 
 
 df = pd.read_csv(CONCEPTS_EMBEDDING)
+df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
 
 def getConceptCandidates(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
     product_embedding = get_embedding(
@@ -156,7 +157,6 @@ def generateSQLQuery(
 
 
 def initLangchain():
-    df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
     
     getScientificNamesFromDescription_tool = StructuredTool.from_function(
         getScientificNamesFromDescription,

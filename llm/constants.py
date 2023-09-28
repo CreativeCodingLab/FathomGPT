@@ -31,7 +31,7 @@ MILES_TO_METERS=1609.34
 
 SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
 
-DEBUG_LEVEL = 2
+DEBUG_LEVEL = 1
 # only print debugging messages if the initial caller is debug.py
 def hideDebugMessagesInProd():
     stack = inspect.stack()
