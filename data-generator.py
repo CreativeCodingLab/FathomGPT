@@ -303,12 +303,13 @@ with open('sql-query-and-response.txt', mode='r', newline='', encoding='utf-8') 
                     dbo.bounding_boxes b ON b.image_id = i.id
                 ;
 
+                First generate the observation from the prompt and how will you generate thq query, then only generate the prompt. Make sure the sql query is inside ```
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
 
                 Prompt: """ + row["Prompt1"]
             },
             {
-                "role": "assistant", "content": row["Sql query"]
+                "role": "assistant", "content": "Observation:"+row["Observation"]+"\nSql Query:```"+row["Sql query"]+"```"
             }]
             filtered_row = {
                 "messages": messages

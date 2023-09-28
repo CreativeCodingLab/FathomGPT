@@ -233,5 +233,5 @@ agent_chain = initLangchain()
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
 #print(getScientificNamesLangchain('rattail'))
-print(get_Response("Provide me images of Aurelia Aurata from Pacific icean", agent_chain))
+print(get_Response("Show the distribution of Aurelia Aurata in Monterey Bay by depth", agent_chain))
 #print(get_Response("Give data of all species in Monterey Bay to show in a heatmap", agent_chain))
