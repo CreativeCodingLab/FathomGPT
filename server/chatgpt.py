@@ -1,4 +1,4 @@
-from functions import *
+from chatgptfunctions import *
 from constants import *
 
 import openai
@@ -37,7 +37,8 @@ def get_response(messages):
         functions=AVAILABLE_FUNCTIONS,
         function_call="auto",
     )
-def run_prompt(prompt, messages=[]):
+
+def run_prompt_chatgpt(prompt, messages=[]):
     messages.append({"role": "user", "content": prompt})
     chatResponse = get_response(messages)
     if DEBUG_LEVEL >= 1:
