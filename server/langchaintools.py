@@ -33,7 +33,7 @@ openai.api_key = KEYS['openai']
 
 df = pd.read_csv(CONCEPTS_EMBEDDING)
 
-def getAvailableConcepts(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
+def getConceptCandidates(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
     product_embedding = get_embedding(
         product_description,
         engine="text-embedding-ada-002"
@@ -77,11 +77,9 @@ def getScientificNamesFromDescription(
 ) -> list:
     """Function to get all scientific names that fit a description"""
     results = getScientificNames(description)
-    if len(results) > 0:
-        return results
-    
-    results = getAvailableConcepts(df, description)
-    results = results.values.tolist()
+    candidates = getConceptCandidates(df, description)
+    results.extend(candidates.values.tolist())
+    results = list(dict.fromkeys(results))
     print(results)
     results = filterScientificNames(description, results)
     print(results)
@@ -187,18 +185,13 @@ def getSciNamesPrompt(concept):
     return chat_prompt
 
 def getScientificNamesLangchain(concept):
-    try:
-        data = agent_chain(getSciNamesPrompt(concept))
-        data = data['output']
-        if DEBUG_LEVEL >= 1:
-            print('Fetched scientific names from Langchain:')
-            print(data)
-        data = data.strip().split(', ')
-        return data
-    except:
-        if DEBUG_LEVEL >= 1:
-            print('failed to fetch Langchain scientific names')
-        return []
+    data = agent_chain(getSciNamesPrompt(concept))
+    data = data['output']
+    if DEBUG_LEVEL >= 1:
+        print('Fetched scientific names from Langchain:')
+        print(data)
+    data = data.strip().split(', ')
+    return data
 
 def get_Response(prompt, agent_chain):
     sql_query = agent_chain("Provide the data to "+prompt)
@@ -238,5 +231,5 @@ agent_chain = initLangchain()
 #DEBUG_LEVEL = 5
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
-print(getScientificNamesLangchain('tentacles'))
+print(getScientificNamesLangchain('rattail'))
 #print(get_Response("Provide the data that correlates depth with the distribution of Moon jellyfish", agent_chain))
