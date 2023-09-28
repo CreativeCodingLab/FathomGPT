@@ -233,10 +233,10 @@ def get_Response(prompt, agent_chain):
 
 
 
-#agent_chain = initLangchain()
+agent_chain = initLangchain()
 
 #DEBUG_LEVEL = 5
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
-#print(getScientificNamesLangchain('moon jellyfish'))
+print(getScientificNamesLangchain('tentacles'))
 #print(get_Response("Provide the data that correlates depth with the distribution of Moon jellyfish", agent_chain))
