@@ -14,6 +14,8 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
   names = []
   try:
     sci_names = getScientificNames(concept)
+    if len(sci_names) == 0:
+        sci_names = [concept]
 
     concept_names = []
     for name in sci_names:

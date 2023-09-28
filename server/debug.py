@@ -17,6 +17,7 @@ import json
 #TEST_PROMPT = "Find me the best images containing only octopus"
 #TEST_PROMPT = "Find me the worst images containing only octopus"
 #TEST_PROMPT = "Find me images of species Strongylocentrotus fragilis"
-TEST_PROMPT = "Find me images of creatures with tentacles in Monterey Bay"
+#TEST_PROMPT = "Find me images of creatures with tentacles in Monterey Bay"
+TEST_PROMPT = "Provide the data that correlates depth with the distribution of Moon jellyfish"
 
-print(json.dumps(run_prompt(TEST_PROMPT)))
+print(run_prompt(TEST_PROMPT))
