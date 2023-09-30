@@ -76,7 +76,7 @@ def filterScientificNames(
 def getScientificNamesFromDescription(
     description: str
 ) -> list:
-    """Function to get all scientific names that fit a description"""
+    """Function to get all scientific names that fits a description"""
     results = getScientificNames(description)
     candidates = getConceptCandidates(df, description)
     results.extend(candidates.values.tolist())
@@ -87,43 +87,48 @@ def getScientificNamesFromDescription(
     return results
 
 def GetSQLResult(query:str):
-    connection = pymssql.connect(
-        server=KEYS['SQL_server'],
-        user=KEYS['Db_user'],
-        password=KEYS['Db_pwd'],
-        database=KEYS['Db']
-    )
-    
-    cursor = connection.cursor()
-
-    cursor.execute(query)
-
-    rows = cursor.fetchall()
     isJSON = False
+    output = ""
+    try:
+        connection = pymssql.connect(
+            server=KEYS['SQL_server'],
+            user=KEYS['Db_user'],
+            password=KEYS['Db_pwd'],
+            database=KEYS['Db']
+        )
+        
+        cursor = connection.cursor()
 
-    # Concatenate all rows to form a single string
-    content = ''.join(str(row[0]) for row in rows)
+        cursor.execute(query)
 
-    if content:
-        try:
-            # Try to load the content string as JSON
-            decoded = json.loads(content)
-            # Check if decoded is a JSON structure (dict or list)
-            if isinstance(decoded, (dict, list)):
-                output = decoded
-                isJSON = True
-            else:
-                # If decoded is a basic data type, treat it as a table
-                raise ValueError("Not a JSON structure")
-        except (json.JSONDecodeError, ValueError):
-            # Content is not JSON, treat it as a table
-            if rows:
-                columns = [column[0] for column in cursor.description]
-                output = [dict(zip(columns, row)) for row in rows]
-            else:
-                output = None
-    else:
-        output = None
+        rows = cursor.fetchall()
+
+        # Concatenate all rows to form a single string
+        content = ''.join(str(row[0]) for row in rows)
+
+        if content:
+            try:
+                # Try to load the content string as JSON
+                decoded = json.loads(content)
+                # Check if decoded is a JSON structure (dict or list)
+                if isinstance(decoded, (dict, list)):
+                    output = decoded
+                    isJSON = True
+                else:
+                    # If decoded is a basic data type, treat it as a table
+                    raise ValueError("Not a JSON structure")
+            except (json.JSONDecodeError, ValueError):
+                # Content is not JSON, treat it as a table
+                if rows:
+                    columns = [column[0] for column in cursor.description]
+                    output = [dict(zip(columns, row)) for row in rows]
+                else:
+                    output = None
+        else:
+            output = None
+    except:
+        print("Error processing sql server response")
+        output = query
 
     return (isJSON, output)
 
@@ -131,7 +136,7 @@ def GetSQLResult(query:str):
 def generateSQLQuery(
     prompt: str
 ) -> (bool, str):
-    """Converts text to sql. It is important to provide a scientific name when a species data is provided. If the data is need for specific task, input the task too."""
+    """Converts text to sql. It is important to provide a scientific name when a species data is provided. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The datbase has data of species in a marine region with the corresponding images"""
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -147,8 +152,6 @@ def generateSQLQuery(
 
                 Output only the sql query. Prompt: """ + prompt)
     ])
-
-    print(sql_generation_model)
     
     return sqlQuery.content
 
@@ -194,31 +197,33 @@ def getScientificNamesLangchain(concept):
 
 def get_Response(prompt, agent_chain):
     sql_query = agent_chain("Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
-    print(sql_query['output'])
     isJSON, result = GetSQLResult(sql_query['output'])
 
 
     summerizerResponse = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4-0613",
         temperature=0,
-        messages=[{"role": "system","content":"""You are a summarizer. You summarize the data, find out the outputType and output a json in the format. The response must be a json
+        messages=[{"role": "system","content":"""Based on the below details output a json in provided format. The response must be a json. 
+        
         {
-            "outputType": "", //enum(image, histogram, text, table)
-            "summary": "", //string
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite) The data type based on the 'input'
+            "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
+            "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
+            }
         }
 
-        The outputType should be based on the input and the summary should be based on the output
         """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
 
     summaryPromptResponse = json.loads(summerizerResponse["choices"][0]["message"]["content"])
     output = {
         "outputType": summaryPromptResponse["outputType"],
-        "responseText": summaryPromptResponse["summary"]
+        "responseText": summaryPromptResponse["summary"],
+        "vegaSchema": summaryPromptResponse["vegaSchema"],
     }
     if(isJSON):
         output["species"] = result
-    else:
+    elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
 
     return output
@@ -233,9 +238,10 @@ agent_chain = initLangchain()
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 
 #print(getScientificNamesLangchain('rattail'))
-#print(get_Response("Show the distribution of all species in Monterey Bay by depth using standard ocean depth levels", agent_chain))
-print(get_Response("Generate a heatmap of species in Monterey Bay", agent_chain))
-#print(get_Response("Show me images of Aurelia Aurata from Moneterey Bay", agent_chain))
+#print(get_Response("Display a bar chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals.", agent_chain))
+#print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals.", agent_chain))
+#print(get_Response("Generate a heatmap of species in Monterey Bay", agent_chain))
+#print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay", agent_chain))
 #print(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters", agent_chain))
 #print(get_Response("What is the total number of images in the database?", agent_chain))
-#print(get_Response("What is the the most found species in the database and what is it's location?", agent_chain))
+print(get_Response("What is the the most found species in the database and what is it's location?", agent_chain))
