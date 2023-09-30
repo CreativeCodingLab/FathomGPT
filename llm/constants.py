@@ -20,7 +20,7 @@ GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
 FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
 LANGCHAIN_SEARCH_CONCEPTS_TOPN = 30
 LLM_TYPE = 'langchain'
-NUM_RESULTS_TO_SUMMARIZE = 3000
+NUM_RESULTS_TO_SUMMARIZE = 1000
 
 NAMES_JSON = 'data/names_normalized.json'
 CONCEPTS_JSON = 'data/concepts.json'
@@ -30,6 +30,9 @@ EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
 
 SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
+
+#'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV' Without observation gpt-3.5-turbo-0613
+#'ft:gpt-3.5-turbo-0613:forbeslab::83TTzs4O' With observation gpt-3.5-turbo-0613
 
 DEBUG_LEVEL = 1
 # only print debugging messages if the initial caller is debug.py
