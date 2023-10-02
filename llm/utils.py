@@ -135,7 +135,10 @@ def findDescendants(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER, species_onl
   try:
     descendants = taxa.find_taxa(taxaProviderName, concept)
   except:
-    return []
+    try:
+        descendants = taxa.find_taxa('mbari', concept)
+    except:
+        return []
   return [d for d in descendants if d.rank == 'Species' or not species_only]
 
 def findAncestors(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
