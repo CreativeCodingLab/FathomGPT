@@ -160,15 +160,14 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
-        print('a1')
+        
         cursor.execute(query)
-        print('a2')
+
         rows = cursor.fetchall()
-        print(len(rows))
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
-        print(len(content))
+
         if content:
             try:
                 # Try to load the content string as JSON
@@ -307,11 +306,8 @@ def get_Response(prompt, messages=[]):
     All outputs must be converted to a string.
         
     Prompt: """+prompt)
-    
-    
-        
-    print('a')
-    
+
+
     isSpeciesData = False
     try:
         result = json.loads(result)
@@ -319,9 +315,6 @@ def get_Response(prompt, messages=[]):
             result = [result]
     except:
         isSpeciesData, result = GetSQLResult(result)
-
-    print(len(result))
-
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
@@ -344,20 +337,16 @@ def get_Response(prompt, messages=[]):
         "responseText": summaryPromptResponse["summary"],
         "vegaSchema": summaryPromptResponse["vegaSchema"],
     }
-    print('b')
     if(isSpeciesData):
         computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         if isinstance(result, dict) or isinstance(result, list):
             for specimen in result:
                 if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
-                    print(specimen["concept"])
                     taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
-                    print(taxonomyResponse)
                     specimen["rank"] = taxonomyResponse["rank"]
                     specimen["taxonomy"] = taxonomyResponse["taxonomy"]
                     computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
-        print('c')
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
             output["species"] = result
@@ -367,7 +356,6 @@ def get_Response(prompt, messages=[]):
     elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
 
-    print('d')
     return output
 
 
