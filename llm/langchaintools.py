@@ -43,6 +43,7 @@ def getTaxonomyTree(
     descendants = filterUnavailableDescendants(findDescendants(scientificName, species_only=False))
     ancestors = findAncestors(scientificName)
     
+    rank = ""
     for d in descendants:
         if d.name.lower() == scientificName.lower():
             rank = d.rank
@@ -159,12 +160,15 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
+        print('a1')
         cursor.execute(query)
-
+        print('a2')
         rows = cursor.fetchall()
+        print(len(rows))
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
+        print(len(content))
         if content:
             try:
                 # Try to load the content string as JSON
@@ -290,6 +294,7 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
+
     result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or the JSON string. 
     If the result is sql, output it directly without converting it to JSON.
     Otherwise, add each result as a separate element in a JSON list.
@@ -303,6 +308,10 @@ def get_Response(prompt, messages=[]):
         
     Prompt: """+prompt)
     
+    
+        
+    print('a')
+    
     isSpeciesData = False
     try:
         result = json.loads(result)
@@ -310,6 +319,8 @@ def get_Response(prompt, messages=[]):
             result = [result]
     except:
         isSpeciesData, result = GetSQLResult(result)
+
+    print(len(result))
 
 
     summerizerResponse = openai.ChatCompletion.create(
@@ -333,16 +344,20 @@ def get_Response(prompt, messages=[]):
         "responseText": summaryPromptResponse["summary"],
         "vegaSchema": summaryPromptResponse["vegaSchema"],
     }
+    print('b')
     if(isSpeciesData):
         computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         if isinstance(result, dict) or isinstance(result, list):
             for specimen in result:
                 if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
+                    print(specimen["concept"])
                     taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
+                    print(taxonomyResponse)
                     specimen["rank"] = taxonomyResponse["rank"]
                     specimen["taxonomy"] = taxonomyResponse["taxonomy"]
                     computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
+        print('c')
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
             output["species"] = result
@@ -352,6 +367,7 @@ def get_Response(prompt, messages=[]):
     elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
 
+    print('d')
     return output
 
 
@@ -364,7 +380,7 @@ def get_Response(prompt, messages=[]):
 
 #print(get_Response("Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean zones."))
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita. Salinity levels should be from 30 to 38."))
-#print(get_Response("Generate a heatmap of species in Monterey Bay"))
+#print(get_Response("Generate a heatmap of 20 species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
 #print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
@@ -377,3 +393,5 @@ def get_Response(prompt, messages=[]):
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What do they look like', "response": json.dumps({'responseText': 'They are pink and translucent'})}]
 #print(get_Response("Where can I find them", test_msgs))
 #print(get_Response("What color are they", test_msgs))
+
+#print(json.loads(getTaxonomyTree('Asteroidea')))
