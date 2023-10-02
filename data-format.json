@@ -1,5 +1,5 @@
 {
-    "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy)
+    "outputType": "", //enum(image, text, table, heatmap, vegaLite)
     "textResponse": "", //string
     "species": [{
         "id": 0, //int
