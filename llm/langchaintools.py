@@ -1,5 +1,5 @@
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, findRelatives, filterUnavailableDescendants
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants
 
 import openai
 import json
@@ -47,10 +47,10 @@ def getTaxonomyTree(
         if d.name.lower() == scientificName.lower():
             rank = d.rank
     
-    descendants = [{'name': d.name, 'rank': d.rank.lower()} for d in descendants if d.name.lower() != scientificName.lower()]
+    descendants = [{'name': d.name, 'rank': d.rank.lower(), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != scientificName.lower()]
     ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
     
-    return json.dumps({'name': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
+    return json.dumps({'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
 
 
 def getRelatives(
@@ -60,8 +60,7 @@ def getRelatives(
     relatives = findRelatives(scientificName)
     relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
     
-    return json.dumps({'name': scientificName, 'relatives': relatives})
-
+    return json.dumps({'concept': scientificName, 'relatives': relatives})
 
 
 # ==== Scientific name mapping ====
@@ -246,7 +245,7 @@ def initLangchain(messages=[]):
     memory = ConversationBufferMemory(memory_key="chat_history")
 
     for m in messages:
-        memory.save_context({"input": m['prompt']}, {"input": m['response']})
+        memory.save_context({"input": m['prompt']}, {"output": m['response']})
 
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
@@ -291,7 +290,19 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    result = agent_chain.run(input="Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or machine-readable JSON list string. Prompt: "+prompt)
+    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or the JSON string. 
+    If the result is sql, output it directly without converting it to JSON.
+    Otherwise, add each result as a separate element in a JSON list.
+
+        [
+            {}, // first result
+            {}, // second result
+        ]
+    
+    All outputs must be converted to a string.
+        
+    Prompt: """+prompt)
+    
     isSpeciesData = False
     try:
         result = json.loads(result)
@@ -358,11 +369,11 @@ def get_Response(prompt, messages=[]):
 #print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
-#print(json.dumps(get_Response("Show me the taxonomy tree of Aurelia aurita")))
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
-#test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
+#test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What do they look like', "response": json.dumps({'responseText': 'They are pink and translucent'})}]
 #print(get_Response("Where can I find them", test_msgs))
-
+#print(get_Response("What color are they", test_msgs))
