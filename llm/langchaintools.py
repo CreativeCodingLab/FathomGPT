@@ -292,23 +292,15 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    agent_result = agent_chain.run(input="""Your function is to generate sql query to retreice the data for the prompt or response to the prompt using the tools provided. Output in the json format provided. Output must be a json.
-            {
-             response: "",//string response when the output is evaluated with other tools and no sql query is needed
-             sqlQuery: ""//sql query output when the prompt needs to be evaluated based on the data from database.
-            }
-        Prompt: """+prompt)
-
-    print('agent result    ',agent_result)
-    agent_result_json = json.loads(agent_result)
-
-    if(len(agent_result_json["sqlQuery"])==0):
-        return {
-            "outputType": "text",
-            "responseText": agent_result_json["response"]
-        }
-    else:
-        isJSON, result = GetSQLResult(agent_result_json["sqlQuery"])
+    result = agent_chain.run(input="Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or machine-readable JSON list string. Prompt: "+prompt)
+    
+    try:
+        result = json.loads(result)
+        isJSON = True
+        if not isinstance(result, list):
+            result = [result]
+    except:
+        isJSON, result = GetSQLResult(result)
 
 
     summerizerResponse = openai.ChatCompletion.create(
@@ -354,8 +346,9 @@ def get_Response(prompt, messages=[]):
 #print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
-print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
-#print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Aurelia aurita")))
+print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
