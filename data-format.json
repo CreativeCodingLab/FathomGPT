@@ -6,7 +6,7 @@
         "name": "", //species name
         "url": "", //string
         "taxonomy": { //arrays of name and taxonomic rank for the descendants and ancestors, optional
-          "descendants": [{"name": "", "rank": ""}, {"name": "", "rank": ""}], 
+          "descendants": [{"name": "", "rank": "", "parent": ""}, {"name": "", "rank": "", , "parent": ""}], 
           "ancestors": [{"name": "", "rank": ""}, {"name": "", "rank": ""}]}, 
         "rank": "", //taxonomic rank of this concept, optional
         "created_timestamp": "", //string, optional

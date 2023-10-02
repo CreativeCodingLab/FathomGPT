@@ -172,6 +172,15 @@ def findRelatives(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
         return [parent]
     return relatives
     
+def getParent(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
+    try:
+        parent = taxa.find_parent(taxaProviderName, concept)
+    except:
+        try:
+            parent = taxa.find_parent('mbari', concept)
+        except:
+            return ""
+    return parent.name
 
 def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName):
   if findChildren:
