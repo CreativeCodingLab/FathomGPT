@@ -34,7 +34,7 @@ SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
 #'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV' Without observation gpt-3.5-turbo-0613
 #'ft:gpt-3.5-turbo-0613:forbeslab::83TTzs4O' With observation gpt-3.5-turbo-0613
 
-DEBUG_LEVEL = 1
+DEBUG_LEVEL = 0
 # only print debugging messages if the initial caller is debug.py
 def hideDebugMessagesInProd():
     stack = inspect.stack()

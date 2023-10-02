@@ -160,7 +160,6 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
-        print(query)
         cursor.execute(query)
 
         rows = cursor.fetchall()
@@ -356,7 +355,7 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita. Salinity levels should be from 30 to 38."))
 #print(get_Response("Generate a heatmap of species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
-print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
+#print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
