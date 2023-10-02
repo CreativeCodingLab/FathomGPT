@@ -1,4 +1,4 @@
-from .constants import *
+from constants import *
 
 from datetime import datetime
 import math
@@ -131,20 +131,43 @@ def filterByBodiesOfWater(data, bodiesOfWater):
 
 # Taxonomy ---------------------------
 
-def findDescendants(taxaProviderName, concept, species_only = True):
-  descendants = taxa.find_taxa(taxaProviderName, concept)
+def findDescendants(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER, species_only = True):
+  try:
+    descendants = taxa.find_taxa(taxaProviderName, concept)
+  except:
+    return []
   return [d for d in descendants if d.rank == 'Species' or not species_only]
+
+def findAncestors(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
+    ancestors = []
+    iters = 0
+    while iters < 20: # to prevent infinite loop
+        try:
+            parent = taxa.find_parent(taxaProviderName, concept)
+        except:
+            try:
+                parent = taxa.find_parent('mbari', concept)
+            except:
+                break
+        if parent.rank is None:
+            break
+        ancestors.append(parent)
+        concept = parent.name
+        iters = iters + 1
+        if parent.rank.lower() == 'superkingdom':
+            break
+    return ancestors
 
 def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName):
   if findChildren:
     return taxa.find_children(taxaProviderName, concept)
   if findSpeciesBelongingToTaxonomy:
-    return findDescendants(taxaProviderName, parent)
+    return findDescendants(parent, taxaProviderName)
   if findParent:
     return [taxa.find_parent(taxaProviderName, concept)]
   if findClosestRelative:
     parent = taxa.find_parent(taxaProviderName, concept).name
-    return findDescendants(taxaProviderName, parent)
+    return findDescendants(parent, taxaProviderName)
   return None
 
 def getNamesFromTaxa(concept, taxa):
@@ -158,6 +181,10 @@ def getNamesFromTaxa(concept, taxa):
 def filterUnavailableConcepts(names):
   concepts = boundingboxes.find_concepts()
   return [n for n in names if n in concepts]
+
+def filterUnavailableDescendants(names):
+  concepts = boundingboxes.find_concepts()
+  return [n for n in names if n.name in concepts]
 
 # Bounding box processing ---------------------------
 
