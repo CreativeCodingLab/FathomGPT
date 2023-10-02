@@ -183,25 +183,6 @@ def initLangchain(messages=[]):
     {chat_history}
     Question: {input}
     {agent_scratchpad}"""
-    
-    return initialize_agent(
-        tools,
-        chat,
-        agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-        verbose=False,
-        agent_kwargs={
-            "prefix": prefix,
-            "suffix": suffix,
-            #"format_instructions": format_ins,
-            "input_variables": [
-                 "input",
-                 "agent_scratchpad",
-                 "chat_history"
-             ],
-            #"stop": ["\nObservation:"],
-        },
-    )
-
 
     prompt = StructuredChatAgent.create_prompt(
         tools,
@@ -246,7 +227,8 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    sql_query = agent_chain("Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
+    sql_query = agent_chain.run(input="Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
+
     isJSON, result = GetSQLResult(sql_query['output'])
 
 
