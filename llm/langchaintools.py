@@ -1,5 +1,5 @@
-from constants import *
-from utils import getScientificNames, findDescendants, findAncestors, filterUnavailableDescendants
+from .constants import *
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, findRelatives, filterUnavailableDescendants
 
 import openai
 import json
@@ -32,7 +32,8 @@ os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
 
-# ==== Fathomnet functions ====
+
+# ==== Taxonomy ====
 
 def getTaxonomyTree(
     scientificName: str
@@ -50,6 +51,16 @@ def getTaxonomyTree(
     ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
     
     return json.dumps({'name': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
+
+
+def getRelatives(
+    scientificName: str
+) -> list:
+    """Function to get the closest taxonomic relatives for a scientific name."""
+    relatives = findRelatives(scientificName)
+    relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
+    
+    return json.dumps({'name': scientificName, 'relatives': relatives})
 
 
 
@@ -100,7 +111,10 @@ def filterScientificNames(
 def getScientificNamesFromDescription(
     description: str
 ) -> list:
-    """Function to get all scientific names that fits a description"""
+    """Function to get all scientific names that fits a common name or appearance.
+    DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature"""
+    if isNameAvaliable(description):
+        return description
     results = getScientificNames(description)
     candidates = getConceptCandidates(description)
     results.extend(candidates.values.tolist())
@@ -132,9 +146,10 @@ def getScientificNamesLangchain(concept):
     return data
     
 
-# ==== SQL generation ====
+# ==== SQL database query ====
 
 def GetSQLResult(query:str):
+    """Fetch data by querying the database using the generated SQL query."""
     isJSON = False
     output = ""
     try:
@@ -178,13 +193,13 @@ def GetSQLResult(query:str):
         print("Error processing sql server response")
         output = query
 
-    return (isJSON, output)
+    return json.dumps(output)
 
 
 def generateSQLQuery(
     prompt: str
 ) -> (bool, str):
-    """Converts text to sql. It is important to provide a scientific name when a species data is provided. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The datbase has data of species in a marine region with the corresponding images"""
+    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images."""
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -205,6 +220,23 @@ def generateSQLQuery(
 
 
     
+# ==== Bounding box processing ====
+
+def getOtherCreaturesInImage(
+    boundingBoxes: str
+) -> list:
+    """Function to find other species in each image. You must first query the database for bounding boxes. The input must be in the format of a machine-readable JSON list of bounding box data."""
+    print(boundingBoxes)
+    return [{'name': 'Aegina rosea', 'frequency': 4}, {'name': 'Aegina citrea', 'frequency': 2}]
+    
+def getImageQualityScore(
+    images: str
+) -> list:
+    """Function to calculate the score for image quality, the higher the better. To get the best images, sort by this score. You must first query the database for images and bounding boxes. The input must be in the format of a machine-readable JSON string of image data containing bounding boxes."""
+    print(image)
+    return 0.5
+    
+
 # ==== Main Langchain functions ====
 
 def genTool(function):
@@ -217,21 +249,16 @@ def initLangchain(messages=[]):
     for m in messages:
         memory.save_context({"input": m['prompt']}, {"input": m['response']})
 
-    """
-    getScientificNamesFromDescription_tool = StructuredTool.from_function(
-        getScientificNamesFromDescription,
-        )
-    generateSQLQuery_tool = StructuredTool.from_function(
-        generateSQLQuery
-        )
-    """
-        
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
     tools = [
         genTool(getScientificNamesFromDescription), 
         genTool(generateSQLQuery),
-        genTool(getTaxonomyTree)
+        genTool(GetSQLResult),
+        genTool(getTaxonomyTree),
+        genTool(getRelatives),
+        #genTool(getOtherCreaturesInImage),
+        #genTool(getImageQualityScore)
     ]
 
 
@@ -265,7 +292,7 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    result = agent_chain.run(input="Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or machine-readable JSON list string. Prompt: "+prompt)
+    result = agent_chain.run(input="Your function is to generate sql and query the database for the prompt using the tools provided. Output only the machine-readable JSON list string. Prompt: "+prompt)
 
     try:
         result = json.loads(result)
@@ -273,6 +300,7 @@ def get_Response(prompt, messages=[]):
         if not isinstance(result, list):
             result = [result]
     except:
+        isJSON = False
         isJSON, result = GetSQLResult(result)
 
 
@@ -316,10 +344,10 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
 #print(get_Response("Generate a heatmap of species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay"))
-#print(json.dumps(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters")))
+#print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
-print(json.dumps(get_Response("Show me the taxonomy tree of Aurelia aurita")))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
 
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
 #print(get_Response("Where can I find them", test_msgs))
