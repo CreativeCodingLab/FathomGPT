@@ -149,7 +149,6 @@ def getScientificNamesLangchain(concept):
 # ==== SQL database query ====
 
 def GetSQLResult(query:str):
-    """Fetch data by querying the database using the generated SQL query."""
     isJSON = False
     output = ""
     try:
@@ -161,14 +160,13 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
-
+        print(query)
         cursor.execute(query)
 
         rows = cursor.fetchall()
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
-
         if content:
             try:
                 # Try to load the content string as JSON
@@ -193,7 +191,7 @@ def GetSQLResult(query:str):
         print("Error processing sql server response")
         output = query
 
-    return json.dumps(output)
+    return (isJSON, output)
 
 
 def generateSQLQuery(
@@ -211,6 +209,8 @@ def generateSQLQuery(
                 """
                 +DB_STRUCTURE+
                 """
+
+                There is no direct mapping between marine region and image data, use the latitude/longitude data to search in a region.
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
 
                 Output only the sql query. Prompt: """ + prompt)
@@ -254,7 +254,7 @@ def initLangchain(messages=[]):
     tools = [
         genTool(getScientificNamesFromDescription), 
         genTool(generateSQLQuery),
-        genTool(GetSQLResult),
+        #genTool(GetSQLResult),
         genTool(getTaxonomyTree),
         genTool(getRelatives),
         #genTool(getOtherCreaturesInImage),
@@ -292,26 +292,29 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    result = agent_chain.run(input="Your function is to generate sql and query the database for the prompt using the tools provided. Output only the machine-readable JSON list string. Prompt: "+prompt)
+    agent_result = agent_chain.run(input="""Your function is to generate sql query to retreice the data for the prompt or response to the prompt using the tools provided. Output in the json format provided. Output must be a json.
+            {
+             response: "",//string response when the output is evaluated with other tools and no sql query is needed
+             sqlQuery: ""//sql query output when the prompt needs to be evaluated based on the data from database.
+            }
+        Prompt: """+prompt)
 
-    try:
-        result = json.loads(result)
-        isJSON = True
-        if not isinstance(result, list):
-            result = [result]
-    except:
-        result = GetSQLResult(result)
-        try:
-            result = json.loads(result)
-            isJSON = True
-        except:
-            pass
+    print('agent result    ',agent_result)
+    agent_result_json = json.loads(agent_result)
+
+    if(len(agent_result_json["sqlQuery"])==0):
+        return {
+            "outputType": "text",
+            "responseText": agent_result_json["response"]
+        }
+    else:
+        isJSON, result = GetSQLResult(agent_result_json["sqlQuery"])
 
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
         temperature=0,
-        messages=[{"role": "system","content":"""Based on the below details output a json in provided format. The response must be a json. 
+        messages=[{"role": "system","content":"""Based on the below details output a json in provided format. The response must be a json.
         
         {
             "outputType": "", //enum(image, text, table, heatmap, vegaLite) The data type based on the 'input'
@@ -344,15 +347,15 @@ def get_Response(prompt, messages=[]):
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
 #print(getScientificNamesLangchain('rattail'))
 
-#print(get_Response("Display a bar chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
-#print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
+#print(get_Response("Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean zones."))
+#print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita. Salinity levels should be from 30 to 38."))
 #print(get_Response("Generate a heatmap of species in Monterey Bay"))
-#print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay"))
+#print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
 #print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
-#print(get_Response("What is the total number of images in the database?"))
+#print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
-#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
-print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
+print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
+#print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
