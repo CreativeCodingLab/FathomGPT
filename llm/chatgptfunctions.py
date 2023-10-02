@@ -29,7 +29,7 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
     if FIND_DESCENDENTS_DEFAULT:
         for name in concept_names:
             try:
-                descendants = findDescendants(taxaProviderName, name, False)
+                descendants = findDescendants(name, taxaProviderName, False)
                 names.extend(getNamesFromTaxa(name, descendants))
             except:
                 print('Failed to find relatives for '+name)

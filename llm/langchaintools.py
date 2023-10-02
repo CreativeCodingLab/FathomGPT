@@ -1,5 +1,5 @@
-from .constants import *
-from .utils import getScientificNames
+from constants import *
+from utils import getScientificNames, findDescendants, findAncestors, filterUnavailableDescendants
 
 import openai
 import json
@@ -32,10 +32,33 @@ os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
 
-df = pd.read_csv(CONCEPTS_EMBEDDING)
-df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+# ==== Fathomnet functions ====
 
-def getConceptCandidates(df, product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
+def getTaxonomyTree(
+    scientificName: str
+) -> list:
+    """Function to get the taxonomy tree contain the names and taxonomic ranks of the ancestors and descendants for a scientific name. 
+    ONLY return a machine-readable JSON object, and nothing more."""
+    descendants = filterUnavailableDescendants(findDescendants(scientificName, species_only=False))
+    ancestors = findAncestors(scientificName)
+    
+    for d in descendants:
+        if d.name.lower() == scientificName.lower():
+            rank = d.rank
+    
+    descendants = [{'name': d.name, 'rank': d.rank.lower()} for d in descendants if d.name.lower() != scientificName.lower()]
+    ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
+    
+    return json.dumps({'name': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
+
+
+
+# ==== Scientific name mapping ====
+
+def getConceptCandidates(product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
+    df = pd.read_csv(CONCEPTS_EMBEDDING)
+    df["embedding"] = df.embedding.apply(literal_eval).apply(np.array)
+
     product_embedding = get_embedding(
         product_description,
         engine="text-embedding-ada-002"
@@ -79,13 +102,37 @@ def getScientificNamesFromDescription(
 ) -> list:
     """Function to get all scientific names that fits a description"""
     results = getScientificNames(description)
-    candidates = getConceptCandidates(df, description)
+    candidates = getConceptCandidates(description)
     results.extend(candidates.values.tolist())
     results = list(dict.fromkeys(results))
     print(results)
     results = filterScientificNames(description, results)
     print(results)
     return results
+
+
+def getSciNamesPrompt(concept):
+    template = """ONLY return a comma-separated list, and nothing more."""
+    human_template = "Get me scientific names of "+concept+"."
+    
+    chat_prompt = ChatPromptTemplate.from_messages([
+        ("system", template),
+        ("human", human_template),
+    ])
+    return chat_prompt
+
+def getScientificNamesLangchain(concept):
+    agent_chain = initLangchain()
+    data = agent_chain(getSciNamesPrompt(concept))
+    data = data['output']
+    if DEBUG_LEVEL >= 1:
+        print('Fetched scientific names from Langchain:')
+        print(data)
+    data = data.strip().split(', ')
+    return data
+    
+
+# ==== SQL generation ====
 
 def GetSQLResult(query:str):
     isJSON = False
@@ -156,8 +203,12 @@ def generateSQLQuery(
     
     return sqlQuery.content
 
-    
 
+    
+# ==== Main Langchain functions ====
+
+def genTool(function):
+    return StructuredTool.from_function(function)
 
 def initLangchain(messages=[]):
     
@@ -166,15 +217,22 @@ def initLangchain(messages=[]):
     for m in messages:
         memory.save_context({"input": m['prompt']}, {"input": m['response']})
 
+    """
     getScientificNamesFromDescription_tool = StructuredTool.from_function(
         getScientificNamesFromDescription,
         )
     generateSQLQuery_tool = StructuredTool.from_function(
         generateSQLQuery
         )
+    """
+        
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
-    tools = [getScientificNamesFromDescription_tool, generateSQLQuery_tool]
+    tools = [
+        genTool(getScientificNamesFromDescription), 
+        genTool(generateSQLQuery),
+        genTool(getTaxonomyTree)
+    ]
 
 
     prefix = """Have a conversation with a human, answering the following questions as best you can. You have access to the following tools:"""
@@ -199,26 +257,6 @@ def initLangchain(messages=[]):
         agent=agent, tools=tools, verbose=True, memory=memory
     )
 
-                               
-def getSciNamesPrompt(concept):
-    template = """ONLY return a comma-separated list, and nothing more."""
-    human_template = "Get me scientific names of "+concept+"."
-    
-    chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", template),
-        ("human", human_template),
-    ])
-    return chat_prompt
-
-def getScientificNamesLangchain(concept):
-    agent_chain = initLangchain()
-    data = agent_chain(getSciNamesPrompt(concept))
-    data = data['output']
-    if DEBUG_LEVEL >= 1:
-        print('Fetched scientific names from Langchain:')
-        print(data)
-    data = data.strip().split(', ')
-    return data
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[]):
@@ -227,9 +265,15 @@ def get_Response(prompt, messages=[]):
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
-    sql_query = agent_chain.run(input="Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
+    result = agent_chain.run(input="Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or machine-readable JSON list string. Prompt: "+prompt)
 
-    isJSON, result = GetSQLResult(sql_query)
+    try:
+        result = json.loads(result)
+        isJSON = True
+        if not isinstance(result, list):
+            result = [result]
+    except:
+        isJSON, result = GetSQLResult(result)
 
 
     summerizerResponse = openai.ChatCompletion.create(
@@ -272,10 +316,11 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
 #print(get_Response("Generate a heatmap of species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay"))
-#print(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters"))
+#print(json.dumps(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
+print(json.dumps(get_Response("Show me the taxonomy tree of Aurelia aurita")))
 
-test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
-print(get_Response("Where can I find them", test_msgs))
+#test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
+#print(get_Response("Where can I find them", test_msgs))
 
