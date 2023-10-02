@@ -1,4 +1,4 @@
-from constants import *
+from .constants import *
 
 from datetime import datetime
 import math
@@ -158,6 +158,21 @@ def findAncestors(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
             break
     return ancestors
 
+def findRelatives(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
+    parent = taxa.find_parent(taxaProviderName, concept)
+    relatives = filterUnavailableDescendants(findDescendants(parent.name, taxaProviderName, False))
+    relatives = [d for d in relatives if d.name.lower() != concept.lower()]
+    if len(relatives) == 0:
+        concepts = boundingboxes.find_concepts()
+        while parent.name not in concepts:
+            try:
+                parent = taxa.find_parent(taxaProviderName, parent.name)
+            except:
+                break
+        return [parent]
+    return relatives
+    
+
 def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findParent, findClosestRelative, taxaProviderName):
   if findChildren:
     return taxa.find_children(taxaProviderName, concept)
@@ -166,8 +181,7 @@ def getRelatives(concept, findChildren, findSpeciesBelongingToTaxonomy, findPare
   if findParent:
     return [taxa.find_parent(taxaProviderName, concept)]
   if findClosestRelative:
-    parent = taxa.find_parent(taxaProviderName, concept).name
-    return findDescendants(parent, taxaProviderName)
+    return findRelatives(concept, taxaProviderName)
   return None
 
 def getNamesFromTaxa(concept, taxa):
@@ -263,6 +277,10 @@ def get_normalized(name):
     words = name.split(' ')
     return ''.join([get_singular(w) for w in words])
     
+def isNameAvaliable(concept):
+    concepts = boundingboxes.find_concepts()
+    return concept in concepts
+
 def getScientificNames(concept):
     f = open(NAMES_JSON)
     names = json.load(f)
