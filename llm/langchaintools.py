@@ -1,5 +1,5 @@
-from constants import *
-from utils import getScientificNames
+from .constants import *
+from .utils import getScientificNames
 
 import openai
 import json
@@ -229,7 +229,7 @@ def get_Response(prompt, messages=[]):
 
     sql_query = agent_chain.run(input="Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
 
-    isJSON, result = GetSQLResult(sql_query['output'])
+    isJSON, result = GetSQLResult(sql_query)
 
 
     summerizerResponse = openai.ChatCompletion.create(
