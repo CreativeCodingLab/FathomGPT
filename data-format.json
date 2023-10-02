@@ -34,5 +34,8 @@
     "table":[{//optional
         "name": "",
         "frequency": 123//int
-    }]
+    }],
+    "vegaSchema": {
+
+    }
 }
