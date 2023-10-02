@@ -300,8 +300,12 @@ def get_Response(prompt, messages=[]):
         if not isinstance(result, list):
             result = [result]
     except:
-        isJSON = False
-        isJSON, result = GetSQLResult(result)
+        result = GetSQLResult(result)
+        try:
+            result = json.loads(result)
+            isJSON = True
+        except:
+            pass
 
 
     summerizerResponse = openai.ChatCompletion.create(
@@ -348,6 +352,8 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("What is the total number of images in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
+print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
+#print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
 #print(get_Response("Where can I find them", test_msgs))
