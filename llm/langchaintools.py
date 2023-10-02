@@ -1,5 +1,5 @@
-from .constants import *
-from .utils import getScientificNames
+from constants import *
+from utils import getScientificNames
 
 import openai
 import json
@@ -17,13 +17,14 @@ import pymssql
 from langchain.tools.base import StructuredTool
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
-from langchain.agents import initialize_agent, AgentType
+from langchain.agents import initialize_agent, AgentType, StructuredChatAgent, AgentExecutor
+from langchain.memory import ConversationBufferMemory
 
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, LLMChain
 from langchain.prompts.chat import ChatPromptTemplate
 
 import os
@@ -60,7 +61,7 @@ def filterScientificNames(
     description: Optional[str] = None,
     names: Optional[list] = None
 ) -> str:
-    template = """A user will pass in a description, and you should select all objects from names that fit the description.
+    template = """A user will pass in a description, and you should select all objects from names that exactly fit the description.
     ONLY return a comma separated list, and nothing more."""
     human_template = "{description} {names}"
 
@@ -158,23 +159,65 @@ def generateSQLQuery(
     
 
 
-def initLangchain():
+def initLangchain(messages=[]):
     
+    memory = ConversationBufferMemory(memory_key="chat_history")
+
+    for m in messages:
+        memory.save_context({"input": m['prompt']}, {"input": m['response']})
+
     getScientificNamesFromDescription_tool = StructuredTool.from_function(
         getScientificNamesFromDescription,
         )
     generateSQLQuery_tool = StructuredTool.from_function(
         generateSQLQuery
         )
-
-    
         
     chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
     tools = [getScientificNamesFromDescription_tool, generateSQLQuery_tool]
-    return initialize_agent(tools,
-                               chat,
-                               agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-                               verbose=(DEBUG_LEVEL >= 1))
+
+
+    prefix = """Have a conversation with a human, answering the following questions as best you can. You have access to the following tools:"""
+    suffix = """Begin!"
+
+    {chat_history}
+    Question: {input}
+    {agent_scratchpad}"""
+    
+    return initialize_agent(
+        tools,
+        chat,
+        agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+        verbose=False,
+        agent_kwargs={
+            "prefix": prefix,
+            "suffix": suffix,
+            #"format_instructions": format_ins,
+            "input_variables": [
+                 "input",
+                 "agent_scratchpad",
+                 "chat_history"
+             ],
+            #"stop": ["\nObservation:"],
+        },
+    )
+
+
+    prompt = StructuredChatAgent.create_prompt(
+        tools,
+        prefix=prefix,
+        suffix=suffix,
+        input_variables=["input", "chat_history", "agent_scratchpad"],
+    )
+    
+    
+    llm_chain = LLMChain(llm=chat, prompt=prompt)
+    agent = StructuredChatAgent(llm_chain=llm_chain, tools=tools, verbose=True)
+
+    return AgentExecutor.from_agent_and_tools(
+        agent=agent, tools=tools, verbose=True, memory=memory
+    )
+
                                
 def getSciNamesPrompt(concept):
     template = """ONLY return a comma-separated list, and nothing more."""
@@ -187,6 +230,7 @@ def getSciNamesPrompt(concept):
     return chat_prompt
 
 def getScientificNamesLangchain(concept):
+    agent_chain = initLangchain()
     data = agent_chain(getSciNamesPrompt(concept))
     data = data['output']
     if DEBUG_LEVEL >= 1:
@@ -195,7 +239,13 @@ def getScientificNamesLangchain(concept):
     data = data.strip().split(', ')
     return data
 
-def get_Response(prompt, agent_chain):
+# messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
+def get_Response(prompt, messages=[]):
+    agent_chain = initLangchain(messages)
+    
+    if DEBUG_LEVEL >= 3:
+        print(agent_chain)
+
     sql_query = agent_chain("Your function is to generate sql for the prompt using the tools provided. Output only the sql query. Prompt: "+prompt)
     isJSON, result = GetSQLResult(sql_query['output'])
 
@@ -228,20 +278,22 @@ def get_Response(prompt, agent_chain):
 
     return output
 
-    
 
 
 
-agent_chain = initLangchain()
 
 #DEBUG_LEVEL = 5
 #print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
-
 #print(getScientificNamesLangchain('rattail'))
-#print(get_Response("Display a bar chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals.", agent_chain))
-#print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals.", agent_chain))
-#print(get_Response("Generate a heatmap of species in Monterey Bay", agent_chain))
-#print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay", agent_chain))
-#print(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters", agent_chain))
-#print(get_Response("What is the total number of images in the database?", agent_chain))
-print(get_Response("What is the the most found species in the database and what is it's location?", agent_chain))
+
+#print(get_Response("Display a bar chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
+#print(get_Response("Display a pie chart illustrating the distribution of every species in Monterey Bay, categorized by standard ocean depth intervals."))
+#print(get_Response("Generate a heatmap of species in Monterey Bay"))
+#print(get_Response("Show me images of Aurelia Aurita from Moneterey Bay"))
+#print(get_Response("Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters"))
+#print(get_Response("What is the total number of images in the database?"))
+#print(get_Response("What is the the most found species in the database and what is it's location?"))
+
+test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
+print(get_Response("Where can I find them", test_msgs))
+

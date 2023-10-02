@@ -1,18 +1,17 @@
 from .constants import LLM_TYPE
 from .chatgpt import run_prompt_chatgpt
-from .langchaintools import initLangchain, get_Response
+from .langchaintools import get_Response
 
 
 def run_chatgpt(prompt, messages):
     return run_prompt_chatgpt(prompt, messages)
 
 def run_langchain(prompt, messages):
-    agent_chain = initLangchain()
-    return get_Response(prompt, agent_chain)
+    return get_Response(prompt, messages)
 
-def run_prompt(prompt, messages=[]):
-    if LLM_TYPE == 'chatgpt':
+def run_prompt(prompt, messages=[], llmtype=LLM_TYPE):
+    if llmtype == 'chatgpt':
         return run_chatgpt(prompt, messages)
-    if LLM_TYPE == 'langchain':
+    if llmtype == 'langchain':
         return run_langchain(prompt, messages)
     

@@ -1,4 +1,4 @@
-from .constants import *
+from constants import *
 
 from datetime import datetime
 import math
