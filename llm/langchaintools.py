@@ -149,7 +149,7 @@ def getScientificNamesLangchain(concept):
 # ==== SQL database query ====
 
 def GetSQLResult(query:str):
-    isJSON = False
+    isSpeciesData = False
     output = ""
     try:
         connection = pymssql.connect(
@@ -174,7 +174,7 @@ def GetSQLResult(query:str):
                 # Check if decoded is a JSON structure (dict or list)
                 if isinstance(decoded, (dict, list)):
                     output = decoded
-                    isJSON = True
+                    isSpeciesData = True
                 else:
                     # If decoded is a basic data type, treat it as a table
                     raise ValueError("Not a JSON structure")
@@ -191,7 +191,7 @@ def GetSQLResult(query:str):
         print("Error processing sql server response")
         output = query
 
-    return (isJSON, output)
+    return (isSpeciesData, output)
 
 
 def generateSQLQuery(
@@ -293,14 +293,13 @@ def get_Response(prompt, messages=[]):
         print(agent_chain)
 
     result = agent_chain.run(input="Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or machine-readable JSON list string. Prompt: "+prompt)
-    
+    isSpeciesData = False
     try:
         result = json.loads(result)
-        isJSON = True
         if not isinstance(result, list):
             result = [result]
     except:
-        isJSON, result = GetSQLResult(result)
+        isSpeciesData, result = GetSQLResult(result)
 
 
     summerizerResponse = openai.ChatCompletion.create(
@@ -309,7 +308,7 @@ def get_Response(prompt, messages=[]):
         messages=[{"role": "system","content":"""Based on the below details output a json in provided format. The response must be a json.
         
         {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite) The data type based on the 'input'
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input'
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
@@ -324,8 +323,22 @@ def get_Response(prompt, messages=[]):
         "responseText": summaryPromptResponse["summary"],
         "vegaSchema": summaryPromptResponse["vegaSchema"],
     }
-    if(isJSON):
+    if(isSpeciesData):
+        computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
+        if isinstance(result, dict) or isinstance(result, list):
+            for specimen in result:
+                if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
+                    taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
+                    specimen["rank"] = taxonomyResponse["rank"]
+                    specimen["taxonomy"] = taxonomyResponse["taxonomy"]
+                    computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
+    elif(summaryPromptResponse["outputType"]=="taxonomy"):
+        if(isinstance(result, list)):
+            output["species"] = result
+        else:
+            output["species"] = [result]
+        output["outputType"] = "species"
     elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
 
@@ -343,12 +356,12 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita. Salinity levels should be from 30 to 38."))
 #print(get_Response("Generate a heatmap of species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
-#print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
+print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
-#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Aurelia aurita")))
-print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
+#print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What are they', "response": json.dumps({'responseText': 'They are creatures found in Lake Ontario'})}]
