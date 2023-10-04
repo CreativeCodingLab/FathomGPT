@@ -360,6 +360,13 @@ def changeNumberToFetch(sql):
 def getProp(props, key):
     return key in props and props[key] == True
 
+def findByURL(url, results):
+    for r in results:
+        if r['url'] == url:
+            return r
+    return None
+
+
 def postprocess(results, limit, prompt):
     #print(results[0])
     if len(results) == 0 or 'url' not in results[0]:
@@ -396,7 +403,8 @@ def postprocess(results, limit, prompt):
     
     #print(json.dumps(data[:5]))
 
-    urls = set([d['url'] for d in data])
-    results = [r for r in results if r['url'] in urls]
+    urls = [d['url'] for d in data]
+    results = [findByURL(url, results) for url in urls]
+    results = [r for r in results if r is not None]
 
     return results
