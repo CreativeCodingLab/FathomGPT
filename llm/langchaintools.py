@@ -1,5 +1,5 @@
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess
 
 import openai
 import json
@@ -13,6 +13,7 @@ import numpy as np
 from ast import literal_eval
 from openai.embeddings_utils import get_embedding, cosine_similarity
 import pymssql
+import re
 
 from langchain.tools.base import StructuredTool
 from langchain.chat_models import ChatOpenAI
@@ -221,23 +222,6 @@ def generateSQLQuery(
     return sqlQuery.content
 
 
-    
-# ==== Bounding box processing ====
-
-def getOtherCreaturesInImage(
-    boundingBoxes: str
-) -> list:
-    """Function to find other species in each image. You must first query the database for bounding boxes. The input must be in the format of a machine-readable JSON list of bounding box data."""
-    print(boundingBoxes)
-    return [{'name': 'Aegina rosea', 'frequency': 4}, {'name': 'Aegina citrea', 'frequency': 2}]
-    
-def getImageQualityScore(
-    images: str
-) -> list:
-    """Function to calculate the score for image quality, the higher the better. To get the best images, sort by this score. You must first query the database for images and bounding boxes. The input must be in the format of a machine-readable JSON string of image data containing bounding boxes."""
-    print(image)
-    return 0.5
-    
 
 # ==== Main Langchain functions ====
 
@@ -324,12 +308,23 @@ def get_Response(prompt, messages=[]):
 
 
     isSpeciesData = False
+    limit = -1
     try:
         result = json.loads(result)
         if not isinstance(result, list):
             result = [result]
     except:
+        if result.strip().startswith('SELECT '):
+            limit, result = changeNumberToFetch(result)
         isSpeciesData, result = GetSQLResult(result)
+
+    if isSpeciesData:
+        try:
+            result = postprocess(result, limit, prompt)
+        except:
+            pass
+        if limit != -1 and limit < len(result) and isinstance(result, list):
+            result = result[:limit]
 
     print(messages+[{"role": "system","content":"""
                    

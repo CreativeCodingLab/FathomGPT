@@ -1,5 +1,5 @@
-from .chatgptfunctions import *
-from .constants import *
+from chatgptfunctions import *
+from constants import *
 
 import openai
 import json
@@ -41,6 +41,7 @@ def get_response(messages):
 def run_prompt_chatgpt(prompt, messages=[]):
     messages.append({"role": "user", "content": prompt})
     chatResponse = get_response(messages)
+    print(chatResponse.choices[0])
     if DEBUG_LEVEL >= 1:
         print(chatResponse)
     messages.append(
@@ -57,3 +58,11 @@ def run_prompt_chatgpt(prompt, messages=[]):
             return {'text': summaryResponse.choices[0].message.content}
     else:
         return {'text': chatResponse.choices[0].message.content}
+
+
+#print(json.dumps(run_prompt_chatgpt('Find me the best images of Aurelia aurita')))
+#print(json.dumps(run_prompt_chatgpt('Find me creatures commonly found near moon jellyfish in Monterey Bay')))
+#print(json.dumps(run_prompt_chatgpt('Find me images of Moon Jellyfish that don’t have other creatures in them')))
+
+#print(json.dumps(run_prompt_chatgpt('Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters')))
+
