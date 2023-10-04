@@ -50,6 +50,7 @@ def getTaxonomyTree(
     
     descendants = [{'name': d.name, 'rank': d.rank.lower(), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != scientificName.lower()]
     ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
+    #ancestors.reverse()
     
     return json.dumps({'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
 
@@ -402,7 +403,7 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
-#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
+print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
