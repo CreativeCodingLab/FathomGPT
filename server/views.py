@@ -47,7 +47,7 @@ class MainObjectViewSet(viewsets.ModelViewSet):
 
             messages.append({"role": "user", "content": question})
             messages.append({"role": "assistant", "content": answer})
-        new_answer = run_promptv1(new_question, messages)
+        new_answer = run_prompt(new_question, messages)
         
         Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
 
