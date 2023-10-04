@@ -251,7 +251,7 @@ def initLangchain(messages=[]):
         memory.save_context({"input": m['prompt']}, {"output": m['response']})
 
         
-    chat = ChatOpenAI(model_name="gpt-4",temperature=0, openai_api_key = openai.api_key)
+    chat = ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
     tools = [
         genTool(getScientificNamesFromDescription), 
         genTool(generateSQLQuery),
@@ -288,13 +288,27 @@ def initLangchain(messages=[]):
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[]):
-    agent_chain = initLangchain(messages)
+    formattedMessage = []
+    curResponseFormat = {
+        "prompt": "",
+        "response": ""
+    }
+    for message in messages:
+        if(message["role"] == 'user'):
+            curResponseFormat["prompt"] = message["content"]
+        elif(message["role"] == 'assistant'):
+            curResponseFormat["response"] = message["content"]
+            formattedMessage.append(curResponseFormat.copy())
+            curResponseFormat["prompt"] = ""
+            curResponseFormat["response"] = ""
+    
+    agent_chain = initLangchain(formattedMessage)
     
     if DEBUG_LEVEL >= 3:
         print(agent_chain)
 
 
-    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. Output only the sql query or the JSON string. 
+    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses. Output only the sql query or the JSON string. 
     If the result is sql, output it directly without converting it to JSON.
     Otherwise, add each result as a separate element in a JSON list.
 
@@ -316,13 +330,27 @@ def get_Response(prompt, messages=[]):
     except:
         isSpeciesData, result = GetSQLResult(result)
 
-    summerizerResponse = openai.ChatCompletion.create(
-        model="gpt-4-0613",
-        temperature=0,
-        messages=[{"role": "system","content":"""Based on the below details output a json in provided format. The response must be a json.
+    print(messages+[{"role": "system","content":"""
+                   
+        Based on the below details output a json in provided format. The response must be a json.
         
         {
             "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input'
+            "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
+            "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
+            }
+        }
+
+        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}])
+    summerizerResponse = openai.ChatCompletion.create(
+        model="gpt-4-0613",
+        temperature=0,
+        messages=messages+[{"role": "system","content":"""
+                   
+        Based on the below details output a json in provided format. The response must be a json.
+        
+        {
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
@@ -339,13 +367,13 @@ def get_Response(prompt, messages=[]):
     }
     if(isSpeciesData):
         computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
-        if isinstance(result, dict) or isinstance(result, list):
-            for specimen in result:
-                if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
-                    taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
-                    specimen["rank"] = taxonomyResponse["rank"]
-                    specimen["taxonomy"] = taxonomyResponse["taxonomy"]
-                    computedTaxonomicConcepts.append(specimen["concept"])
+        #if isinstance(result, dict) or isinstance(result, list):
+        #    for specimen in result:
+        #        if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
+        #            taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
+        #            specimen["rank"] = taxonomyResponse["rank"]
+        #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
+        #            computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
@@ -367,7 +395,7 @@ def get_Response(prompt, messages=[]):
 #print(getScientificNamesLangchain('rattail'))
 
 #print(get_Response("Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean zones."))
-#print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita. Salinity levels should be from 30 to 38."))
+#print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita categorizing salinity levels from 30 to 38 with each level of width 1"))
 #print(get_Response("Generate a heatmap of 20 species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
 #print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
