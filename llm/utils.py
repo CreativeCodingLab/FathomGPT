@@ -10,6 +10,12 @@ import re
 from fathomnet.api import regions
 from fathomnet.api import taxa
 from fathomnet.api import boundingboxes
+from fathomnet.api import images
+from fathomnet.dto import GeoImageConstraints
+
+import openai
+
+openai.api_key = KEYS['openai']
 
 
 # Sorting ---------------------------
@@ -164,7 +170,7 @@ def findAncestors(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
 def findRelatives(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
     parent = taxa.find_parent(taxaProviderName, concept)
     relatives = filterUnavailableDescendants(findDescendants(parent.name, taxaProviderName, False))
-    relatives = [d for d in relatives if d.name.lower() != concept.lower()]
+    relatives = [d for d in relatives if d.name.lower() != concept.lower() and d.name.lower() != parent.name.lower()]
     if len(relatives) == 0:
         concepts = boundingboxes.find_concepts()
         while parent.name not in concepts:
@@ -236,11 +242,14 @@ def boundingBoxQualityScore(d, names):
     if marginGood(box['x'], d['width']) and marginGood(d['width']-(box['x']+box['width']), d['width']) \
       and marginGood(box['y'], d['height']) and marginGood(d['height']-(box['y']+box['height']), d['width']):
       # boxes that fill the entire image have score=0
-      score = score + (box['width']*box['height'])
+      s = (box['width']*box['height'])
+      if s > score:
+        score = s
   if count == 0:
     return 0
-  avg_size = (score/count)
-  return avg_size/(d['width']*d['height'])
+  #avg_size = (score/count)
+  #return avg_size/(d['width']*d['height'])
+  return score/(d['width']*d['height'])
 
 def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOtherSpecies, excludeOtherSpecies):
   if findOtherSpecies:
@@ -254,8 +263,12 @@ def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOth
         if other not in otherSpecies:
           otherSpecies[other] = 0
         otherSpecies[other] = otherSpecies[other] + 1
-    if DEBUG_LEVEL >= 1:
-        print(otherSpecies)
+    print(otherSpecies)
+    scores = {}
+    for d in data:
+      scores[d['uuid']] = boundingBoxQualityScore(d, otherSpecies.keys())
+    data.sort(key=lambda d: scores[d['uuid']], reverse=True)
+    
 
   elif excludeOtherSpecies:
     data = [d for d in data if not containsOtherSpecies(d['boundingBoxes'], names)]
@@ -304,3 +317,100 @@ def getScientificNames(concept):
         return names[concept_normalized]
 
     return []
+
+
+# ==== post-processing langchain ====
+
+def findImages(includeOnlyGood=False, findBest=False, findWorst=False, findOtherSpecies=False, excludeOtherSpecies=False):
+    #print('called')
+    return {'includeGood': includeGood, 'findBest': findBest, 'findWorst': findWorst, 'findOtherSpecies': findOtherSpecies, 'excludeOtherSpecies': excludeOtherSpecies}
+
+
+def run_chatgpt(prompt):
+    return openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k-0613",
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}],
+        functions=[
+            {
+                "name": "findImages",
+                "description": "Get a constrained list of images.",
+                "parameters": {
+                    "type": "object",
+                    "properties": FUNCTION_PROPERTIES,
+                    "required": []
+                }
+            }
+        ],
+        function_call="auto",
+    )
+
+def changeNumberToFetch(sql):
+    try:
+        limit = int(re.search('SELECT TOP ([0-9]+) ', sql, re.IGNORECASE).group(1))
+        sql = re.sub('SELECT TOP [0-9]+ ', '', sql, re.IGNORECASE)
+        sql = 'SELECT TOP '+str(RETRIEVAL_LIMIT)+' '+sql
+        #print(limit)
+        #print(sql)
+        return limit, sql
+    except:
+        return -1, sql
+
+
+def getProp(props, key):
+    return key in props and props[key] == True
+
+def findByURL(url, results):
+    for r in results:
+        if r['url'] == url:
+            return r
+    return None
+
+
+def postprocess(results, limit, prompt, sql):
+    #print(results[0])
+    if len(results) == 0 or 'url' not in results[0] or not isinstance(sql, str):
+        return results
+        
+    deduped = []
+    urls = []
+    for r in results:
+        if r['url'] not in urls:
+            deduped.append(r)
+            urls.append(r['url'])
+    results = deduped
+
+    concepts = boundingboxes.find_concepts()
+    concepts = [c for c in concepts if sql.count(c) > 0]
+    concepts = set([d['concept'] for d in results if d['concept'] in concepts])
+    urls = set([d['url'] for d in results])
+    
+    print(concepts)
+    
+    data = []
+    for concept in concepts:
+        constraints = GeoImageConstraints(concept=concept)
+        imgs = images.find(constraints)
+        imgs = [d.to_dict() for d in imgs]
+        for d in imgs:
+            if d['url'] in urls:
+                data.append(d)
+    if len(data) == 0:
+        return results
+    
+
+    #print(prompt)
+    chatResponse = run_chatgpt(prompt)
+    props = json.loads(chatResponse.choices[0].message.function_call.arguments)
+    #print(props)
+    
+    data = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
+    
+    
+    #print(json.dumps(data[:5]))
+
+    urls = {d['url']: '' for d in data}
+    results = [findByURL(url, results) for url in urls]
+    results = [r for r in results if r is not None]
+
+    return results
