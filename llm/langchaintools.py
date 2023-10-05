@@ -65,7 +65,6 @@ def getTaxonomicRelatives(
     
     return json.dumps({'concept': scientificName, 'relatives': relatives})
 
-
 def getRelativesString(results):
     out = ''
     for result in results:
@@ -213,7 +212,8 @@ def GetSQLResult(query:str):
 def generateSQLQuery(
     prompt: str
 ) -> (bool, str):
-    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images."""
+    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
+    """
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -228,7 +228,7 @@ def generateSQLQuery(
 
                 There is no direct mapping between marine region and image data, use the latitude/longitude data to search in a region.
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
-                If the prompt is asking about multiple species draft the sql to query for a list of species. 
+                If the prompt is asking about multiple species draft the sql to query for a list of species.
                 If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
 
                 Output only the sql query. Prompt: """ + prompt)
@@ -288,7 +288,6 @@ def initLangchain(messages=[]):
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[]):
-    
     formattedMessage = []
     curResponseFormat = {
         "prompt": "",
@@ -298,7 +297,11 @@ def get_Response(prompt, messages=[]):
         if(message["role"] == 'user'):
             curResponseFormat["prompt"] = message["content"]
         elif(message["role"] == 'assistant'):
-            curResponseFormat["response"] = message["content"]
+            curResponseFormat["response"] = message["content"][:200]
+            if(len(message["content"])>200):
+
+                curResponseFormat["response"] += "...\n"
+
             formattedMessage.append(curResponseFormat.copy())
             curResponseFormat["prompt"] = ""
             curResponseFormat["response"] = ""
@@ -309,7 +312,7 @@ def get_Response(prompt, messages=[]):
         print(agent_chain)
 
 
-    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses. Output only the sql query or the JSON string. 
+    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses and add the context before passing the prompt to the tools. Output only the sql query or the JSON string. 
     If the result is sql, output it directly without converting it to JSON.
     Otherwise, add each result as a separate element in a JSON list.
 
@@ -321,6 +324,7 @@ def get_Response(prompt, messages=[]):
     All outputs must be converted to a string.
         
     Prompt: """+prompt)
+
 
     isSpeciesData = False
     limit = -1
@@ -341,23 +345,29 @@ def get_Response(prompt, messages=[]):
         except:
             print('postprocessing error')
             pass
-            
+
         if isinstance(result, list) and len(result) > 0 and 'url' in result[0]:
             print('is species data')
             isSpeciesData = True
 
         if isinstance(result, list) and limit != -1 and limit < len(result):
             result = result[:limit]
+        
+    modifiedMessages = []
+    for smessage in messages:
+        if(smessage["role"]=="assistant"):
+            if(len(smessage["content"])>200):
+                smessage["content"]=smessage["content"][:200]+"...\n"
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
         temperature=0,
-        messages=messages+[{"role": "system","content":"""
-                   
+        messages=modifiedMessages+[{"role": "system","content":"""
+        
         Based on the below details output a json in provided format. The response must be a json.
         
         {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the last user message and assistant message, use table when the data can be respresented as rows and column, use image if the 'output' contains 'url'
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
@@ -387,7 +397,7 @@ def get_Response(prompt, messages=[]):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
-        
+
     if(isSpeciesData):
         computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
@@ -440,6 +450,8 @@ def get_Response(prompt, messages=[]):
 #print(json.dumps(get_Response('Find me the best images of Aurelia aurita')))
 #print(json.dumps(get_Response('Find me images of creatures commonly found in the same images as Aurelia aurita in Monterey Bay')))
 #print(json.dumps(get_Response('Find me images of Aurelia aurita that don’t have other creatures in them')))
+
+#print(json.dumps(get_Response('Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters')))
 
 #print(json.dumps(get_Response('Find me images of Aurelia aurita sorted by depth')))
 #print(json.dumps(get_Response('Find me images of creatures that are types of octopus in random order')))
