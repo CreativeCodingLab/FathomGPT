@@ -1,5 +1,5 @@
-from utils import *
-from constants import *
+from .utils import *
+from .constants import *
 
 from fathomnet.api import images
 from fathomnet.dto import GeoImageConstraints
@@ -72,7 +72,7 @@ def findImages(concept=None, contributorsEmail=None, includeUnverified=None, inc
 
   data = filterByBodiesOfWater(data, bodiesOfWater)
   
-  data = filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOtherSpecies, excludeOtherSpecies)
+  data, metadata = filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOtherSpecies, excludeOtherSpecies)
 
   if orderedBy is not None:
     data = sort_images(data, orderedBy.lower(), isAscending, isDecending)
