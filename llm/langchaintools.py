@@ -1,5 +1,5 @@
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess
 
 import openai
 import json
@@ -13,6 +13,7 @@ import numpy as np
 from ast import literal_eval
 from openai.embeddings_utils import get_embedding, cosine_similarity
 import pymssql
+import re
 
 from langchain.tools.base import StructuredTool
 from langchain.chat_models import ChatOpenAI
@@ -50,14 +51,15 @@ def getTaxonomyTree(
     
     descendants = [{'name': d.name, 'rank': d.rank.lower(), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != scientificName.lower()]
     ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
+    ancestors.reverse()
     
     return json.dumps({'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
 
 
-def getRelatives(
+def getTaxonomicRelatives(
     scientificName: str
 ) -> list:
-    """Function to get the closest taxonomic relatives for a scientific name."""
+    """Function to get the taxonomic relatives for a scientific name."""
     relatives = findRelatives(scientificName)
     relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
     
@@ -214,6 +216,7 @@ def generateSQLQuery(
 
                 There is no direct mapping between marine region and image data, use the latitude/longitude data to search in a region.
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
+                If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
 
                 Output only the sql query. Prompt: """ + prompt)
     ])
@@ -221,23 +224,6 @@ def generateSQLQuery(
     return sqlQuery.content
 
 
-    
-# ==== Bounding box processing ====
-
-def getOtherCreaturesInImage(
-    boundingBoxes: str
-) -> list:
-    """Function to find other species in each image. You must first query the database for bounding boxes. The input must be in the format of a machine-readable JSON list of bounding box data."""
-    print(boundingBoxes)
-    return [{'name': 'Aegina rosea', 'frequency': 4}, {'name': 'Aegina citrea', 'frequency': 2}]
-    
-def getImageQualityScore(
-    images: str
-) -> list:
-    """Function to calculate the score for image quality, the higher the better. To get the best images, sort by this score. You must first query the database for images and bounding boxes. The input must be in the format of a machine-readable JSON string of image data containing bounding boxes."""
-    print(image)
-    return 0.5
-    
 
 # ==== Main Langchain functions ====
 
@@ -258,7 +244,7 @@ def initLangchain(messages=[]):
         genTool(generateSQLQuery),
         #genTool(GetSQLResult),
         genTool(getTaxonomyTree),
-        genTool(getRelatives),
+        genTool(getTaxonomicRelatives),
         #genTool(getOtherCreaturesInImage),
         #genTool(getImageQualityScore)
     ]
@@ -328,19 +314,30 @@ def get_Response(prompt, messages=[]):
 
 
     isSpeciesData = False
+    limit = -1
+    sql = result
     try:
         result = json.loads(result)
         if not isinstance(result, list):
             result = [result]
     except:
+        if result.strip().startswith('SELECT '):
+            limit, result = changeNumberToFetch(result)
         isSpeciesData, result = GetSQLResult(result)
 
+        try:
+            result = postprocess(result, limit, prompt, sql)
+        except:
+            pass
+
+        if limit != -1 and limit < len(result) and isinstance(result, list):
+            result = result[:limit]
+        
     modifiedMessages = []
     for smessage in messages:
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 smessage["content"]=smessage["content"][:200]+"...\n"
-
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
@@ -411,3 +408,10 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("What color are they", test_msgs))
 
 #print(json.loads(getTaxonomyTree('Asteroidea')))
+
+#print(json.dumps(get_Response('Find me the best images of Aurelia aurita')))
+#print(json.dumps(get_Response('Find me images of creatures commonly found in the same images as Aurelia aurita in Monterey Bay')))
+#print(json.dumps(get_Response('Find me images of Aurelia aurita that don’t have other creatures in them')))
+
+#print(json.dumps(get_Response('Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters')))
+
