@@ -367,9 +367,9 @@ def findByURL(url, results):
     return None
 
 
-def postprocess(results, limit, prompt):
+def postprocess(results, limit, prompt, sql):
     #print(results[0])
-    if len(results) == 0 or 'url' not in results[0]:
+    if len(results) == 0 or 'url' not in results[0] or not isinstance(sql, str):
         return results
         
     deduped = []
@@ -380,17 +380,23 @@ def postprocess(results, limit, prompt):
             urls.append(r['url'])
     results = deduped
 
-    concepts = set([d['concept'] for d in results])
+    concepts = boundingboxes.find_concepts()
+    concepts = [c for c in concepts if sql.count(c) > 0]
+    concepts = set([d['concept'] for d in results if d['concept'] in concepts])
     urls = set([d['url'] for d in results])
+    
+    print(concepts)
     
     data = []
     for concept in concepts:
-        constraints = GeoImageConstraints(concept='Aurelia aurita')
+        constraints = GeoImageConstraints(concept=concept)
         imgs = images.find(constraints)
         imgs = [d.to_dict() for d in imgs]
         for d in imgs:
             if d['url'] in urls:
                 data.append(d)
+    if len(data) == 0:
+        return results
     
 
     #print(prompt)
@@ -403,7 +409,7 @@ def postprocess(results, limit, prompt):
     
     #print(json.dumps(data[:5]))
 
-    urls = [d['url'] for d in data]
+    urls = {d['url']: '' for d in data}
     results = [findByURL(url, results) for url in urls]
     results = [r for r in results if r is not None]
 
