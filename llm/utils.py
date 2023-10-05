@@ -6,6 +6,7 @@ from urllib.request import urlopen
 from urllib.parse import quote
 import json
 import re
+import random
 
 from fathomnet.api import regions
 from fathomnet.api import taxa
@@ -168,18 +169,22 @@ def findAncestors(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
     return ancestors
 
 def findRelatives(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
-    parent = taxa.find_parent(taxaProviderName, concept)
-    relatives = filterUnavailableDescendants(findDescendants(parent.name, taxaProviderName, False))
-    relatives = [d for d in relatives if d.name.lower() != concept.lower() and d.name.lower() != parent.name.lower()]
-    if len(relatives) == 0:
-        concepts = boundingboxes.find_concepts()
-        while parent.name not in concepts:
-            try:
-                parent = taxa.find_parent(taxaProviderName, parent.name)
-            except:
-                break
-        return [parent]
-    return relatives
+    ancestors = findAncestors(concept, taxaProviderName)
+    descendants = taxa.find_taxa(taxaProviderName, concept)
+    descendants = [d for d in descendants if concept.lower() and d.name.lower()]
+    rank = 'Species'
+    if len(descendants) > 0:
+        rank = descendants[0].rank
+    
+    for a in ancestors:
+        relatives = filterUnavailableDescendants(findDescendants(a.name, taxaProviderName, False))
+        relatives = [d for d in relatives if d.name.lower() != concept.lower() and d.name.lower() != a.name.lower() and d.rank == rank]
+        if len(relatives) > 0:
+            return relatives
+    if len(ancestors) == 0:
+        return []
+    return [ancestors[0].name]
+
     
 def getParent(concept, taxaProviderName=DEFAULT_TAXA_PROVIDER):
     try:
@@ -252,6 +257,7 @@ def boundingBoxQualityScore(d, names):
   return score/(d['width']*d['height'])
 
 def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOtherSpecies, excludeOtherSpecies):
+  metadata = {}
   if findOtherSpecies:
     data = [d for d in data if containsOtherSpecies(d['boundingBoxes'], names)]
     otherSpecies = {}
@@ -264,6 +270,7 @@ def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOth
           otherSpecies[other] = 0
         otherSpecies[other] = otherSpecies[other] + 1
     print(otherSpecies)
+    metadata = {'others': otherSpecies}
     scores = {}
     for d in data:
       scores[d['uuid']] = boundingBoxQualityScore(d, otherSpecies.keys())
@@ -286,7 +293,7 @@ def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOth
     if findWorst:
       data.sort(key=lambda d: scores[d['uuid']])
 
-  return data
+  return data, metadata
 
 
 # Name ---------------------------
@@ -358,7 +365,9 @@ def changeNumberToFetch(sql):
 
 
 def getProp(props, key):
-    return key in props and props[key] == True
+    if key in props:
+        return props[key]
+    return False
 
 def findByURL(url, results):
     for r in results:
@@ -366,12 +375,17 @@ def findByURL(url, results):
             return r
     return None
 
+def noNulls(r):
+    for key in r:
+        if r[key] is None:
+            return False
+    return True
 
 def postprocess(results, limit, prompt, sql):
     #print(results[0])
-    if len(results) == 0 or 'url' not in results[0] or not isinstance(sql, str):
+    if not isinstance(results, list) or len(results) == 0 or 'url' not in results[0]:
         return results
-        
+    
     deduped = []
     urls = []
     for r in results:
@@ -380,37 +394,57 @@ def postprocess(results, limit, prompt, sql):
             urls.append(r['url'])
     results = deduped
 
-    concepts = boundingboxes.find_concepts()
-    concepts = [c for c in concepts if sql.count(c) > 0]
-    concepts = set([d['concept'] for d in results if d['concept'] in concepts])
-    urls = set([d['url'] for d in results])
-    
-    print(concepts)
-    
-    data = []
-    for concept in concepts:
-        constraints = GeoImageConstraints(concept=concept)
-        imgs = images.find(constraints)
-        imgs = [d.to_dict() for d in imgs]
-        for d in imgs:
-            if d['url'] in urls:
-                data.append(d)
-    if len(data) == 0:
-        return results
-    
+    results = [r for r in results if noNulls(r)]
 
-    #print(prompt)
-    chatResponse = run_chatgpt(prompt)
-    props = json.loads(chatResponse.choices[0].message.function_call.arguments)
-    #print(props)
-    
-    data = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
-    
-    
-    #print(json.dumps(data[:5]))
+    try:
+        concepts = boundingboxes.find_concepts()[1:]
+        concepts = [c for c in concepts if sql.count(c) > 0]
+        if 'concept' in results[0]:
+            concepts = set([d['concept'] for d in results if d['concept'] in concepts])
+        urls = {d['url']:'' for d in results}
+        
+        #print(concepts)
+        
+        data = []
+        for concept in concepts:
+            constraints = GeoImageConstraints(concept=concept)
+            imgs = images.find(constraints)
+            imgs = [d.to_dict() for d in imgs]
+            data.extend([findByURL(url, imgs) for url in urls])
+        data = [d for d in data if d is not None]
+        if len(data) == 0:
+            return results
+        
 
-    urls = {d['url']: '' for d in data}
-    results = [findByURL(url, results) for url in urls]
-    results = [r for r in results if r is not None]
+        #print(prompt)
+        chatResponse = run_chatgpt(prompt)
+        props = json.loads(chatResponse.choices[0].message.function_call.arguments)
+        #print(props)
+        
+        data, metadata = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
+        
+        
+        #print(json.dumps(data[:5]))
 
+        urls = {d['url']: '' for d in data}
+        results = [findByURL(url, results) for url in urls]
+        results = [r for r in results if r is not None]
+        
+        if getProp(props, 'findOtherSpecies') and 'others' in metadata:
+            for r in results:
+                d = findByURL(r['url'], data)
+                for b in d['boundingBoxes']:
+                    if b['concept'] in metadata['others']:
+                        r['concept'] = b['concept']
+                        break
+    except:
+        print('postprocessing error2')
+        pass
+    
+    if getProp(props, 'orderedBy') == 'random':
+        random.shuffle(results)
+
+    if limit == -1 and len(results) > 10:
+        return results[:10]
+        
     return results

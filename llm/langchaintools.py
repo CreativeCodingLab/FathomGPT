@@ -66,6 +66,19 @@ def getTaxonomicRelatives(
     return json.dumps({'concept': scientificName, 'relatives': relatives})
 
 
+def getRelativesString(results):
+    out = ''
+    for result in results:
+        relatives = result['relatives']
+        scientificName = result['concept']
+        if len(relatives) == 0:
+            out = out + 'There are no relatives of '+scientificName+'. '
+        elif len(relatives) == 1:
+            out = out + 'The closest relative of '+scientificName+' is: '+ relatives[0]+'. '
+        else:
+            out = out + 'The relatives of '+scientificName+' are: '+ ', '.join(relatives)+'. '
+    return out
+
 # ==== Scientific name mapping ====
 
 def getConceptCandidates(product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, pprint=False):
@@ -215,6 +228,7 @@ def generateSQLQuery(
 
                 There is no direct mapping between marine region and image data, use the latitude/longitude data to search in a region.
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
+                If the prompt is asking about multiple species draft the sql to query for a list of species. 
                 If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
 
                 Output only the sql query. Prompt: """ + prompt)
@@ -274,6 +288,7 @@ def initLangchain(messages=[]):
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[]):
+    
     formattedMessage = []
     curResponseFormat = {
         "prompt": "",
@@ -307,7 +322,6 @@ def get_Response(prompt, messages=[]):
         
     Prompt: """+prompt)
 
-
     isSpeciesData = False
     limit = -1
     sql = result
@@ -315,6 +329,8 @@ def get_Response(prompt, messages=[]):
         result = json.loads(result)
         if not isinstance(result, list):
             result = [result]
+        if len(result) > 0 and 'relatives' in result[0]:
+            result = [{'text': getRelativesString(result)}]
     except:
         if result.strip().startswith('SELECT '):
             limit, result = changeNumberToFetch(result)
@@ -323,12 +339,15 @@ def get_Response(prompt, messages=[]):
         try:
             result = postprocess(result, limit, prompt, sql)
         except:
+            print('postprocessing error')
             pass
+            
+        if isinstance(result, list) and len(result) > 0 and 'url' in result[0]:
+            print('is species data')
+            isSpeciesData = True
 
-        if limit != -1 and limit < len(result) and isinstance(result, list):
+        if isinstance(result, list) and limit != -1 and limit < len(result):
             result = result[:limit]
-        
-
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
@@ -338,21 +357,37 @@ def get_Response(prompt, messages=[]):
         Based on the below details output a json in provided format. The response must be a json.
         
         {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the last user message and assistant message, use table when the data can be respresented as rows and column, use image if the 'output' contains 'url'
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
         }
 
-        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
+        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result[:NUM_RESULTS_TO_SUMMARIZE]) + "\"}"}],
     )
 
-    summaryPromptResponse = json.loads(summerizerResponse["choices"][0]["message"]["content"])
-    output = {
-        "outputType": summaryPromptResponse["outputType"],
-        "responseText": summaryPromptResponse["summary"],
-        "vegaSchema": summaryPromptResponse["vegaSchema"],
-    }
+    try:
+        summaryPromptResponse = json.loads(summerizerResponse["choices"][0]["message"]["content"])
+        output = {
+            "outputType": summaryPromptResponse["outputType"],
+            "responseText": summaryPromptResponse["summary"],
+            "vegaSchema": summaryPromptResponse["vegaSchema"],
+        }
+    except:
+        print('summerizer failed')
+        summaryPromptResponse = {}
+        summaryPromptResponse["outputType"] = 'text'
+        if isSpeciesData:
+            summaryPromptResponse["outputType"] = 'image'
+        if len(result) > 0 and 'taxonomy' in result[0]:
+            summaryPromptResponse["outputType"] = 'taxonomy'
+
+        output = {
+            "outputType": summaryPromptResponse["outputType"],
+            "responseText": 'Here are the results',
+            "vegaSchema": '',
+        }
+        
     if(isSpeciesData):
         computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
@@ -394,6 +429,8 @@ def get_Response(prompt, messages=[]):
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
+#test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
+
 #test_msgs = [{"prompt": 'Find me images of Moon jellyfish', "response": json.dumps({'a': '123', 'b': '456'})}, {"prompt": 'What do they look like', "response": json.dumps({'responseText': 'They are pink and translucent'})}]
 #print(get_Response("Where can I find them", test_msgs))
 #print(get_Response("What color are they", test_msgs))
@@ -404,5 +441,8 @@ def get_Response(prompt, messages=[]):
 #print(json.dumps(get_Response('Find me images of creatures commonly found in the same images as Aurelia aurita in Monterey Bay')))
 #print(json.dumps(get_Response('Find me images of Aurelia aurita that don’t have other creatures in them')))
 
-#print(json.dumps(get_Response('Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters')))
+#print(json.dumps(get_Response('Find me images of Aurelia aurita sorted by depth')))
+#print(json.dumps(get_Response('Find me images of creatures that are types of octopus in random order')))
 
+
+#print(get_Response("Generate a heatmap of Aurelia aurita in Monterey Bay"))
