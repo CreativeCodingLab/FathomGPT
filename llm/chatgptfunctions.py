@@ -1,5 +1,5 @@
-from utils import *
-from constants import *
+from .utils import *
+from .constants import *
 
 from fathomnet.api import images
 from fathomnet.dto import GeoImageConstraints

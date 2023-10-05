@@ -1,5 +1,5 @@
-from chatgptfunctions import *
-from constants import *
+from .chatgptfunctions import *
+from .constants import *
 
 import openai
 import json
