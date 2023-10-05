@@ -20,7 +20,7 @@ GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
 FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
 LANGCHAIN_SEARCH_CONCEPTS_TOPN = 30
 LLM_TYPE = 'langchain'
-NUM_RESULTS_TO_SUMMARIZE = 10
+NUM_RESULTS_TO_SUMMARIZE = 1000
 
 NAMES_JSON = 'data/names_normalized.json'
 CONCEPTS_JSON = 'data/concepts.json'
