@@ -56,10 +56,10 @@ def getTaxonomyTree(
     return json.dumps({'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
 
 
-def getRelatives(
+def getTaxonomicRelatives(
     scientificName: str
 ) -> list:
-    """Function to get the closest taxonomic relatives for a scientific name."""
+    """Function to get the taxonomic relatives for a scientific name."""
     relatives = findRelatives(scientificName)
     relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
     
@@ -215,6 +215,7 @@ def generateSQLQuery(
 
                 There is no direct mapping between marine region and image data, use the latitude/longitude data to search in a region.
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
+                If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
 
                 Output only the sql query. Prompt: """ + prompt)
     ])
@@ -242,7 +243,7 @@ def initLangchain(messages=[]):
         genTool(generateSQLQuery),
         #genTool(GetSQLResult),
         genTool(getTaxonomyTree),
-        genTool(getRelatives),
+        genTool(getTaxonomicRelatives),
         #genTool(getOtherCreaturesInImage),
         #genTool(getImageQualityScore)
     ]
@@ -309,6 +310,7 @@ def get_Response(prompt, messages=[]):
 
     isSpeciesData = False
     limit = -1
+    sql = result
     try:
         result = json.loads(result)
         if not isinstance(result, list):
@@ -318,26 +320,16 @@ def get_Response(prompt, messages=[]):
             limit, result = changeNumberToFetch(result)
         isSpeciesData, result = GetSQLResult(result)
 
-    if isSpeciesData:
         try:
-            result = postprocess(result, limit, prompt)
+            result = postprocess(result, limit, prompt, sql)
         except:
             pass
+
         if limit != -1 and limit < len(result) and isinstance(result, list):
             result = result[:limit]
-
-    print(messages+[{"role": "system","content":"""
-                   
-        Based on the below details output a json in provided format. The response must be a json.
         
-        {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input'
-            "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
-            "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
-            }
-        }
 
-        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}])
+
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
         temperature=0,
@@ -407,3 +399,10 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("What color are they", test_msgs))
 
 #print(json.loads(getTaxonomyTree('Asteroidea')))
+
+#print(json.dumps(get_Response('Find me the best images of Aurelia aurita')))
+#print(json.dumps(get_Response('Find me images of creatures commonly found in the same images as Aurelia aurita in Monterey Bay')))
+#print(json.dumps(get_Response('Find me images of Aurelia aurita that don’t have other creatures in them')))
+
+#print(json.dumps(get_Response('Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters')))
+
