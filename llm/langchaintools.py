@@ -367,13 +367,13 @@ def get_Response(prompt, messages=[]):
         Based on the below details output a json in provided format. The response must be a json.
         
         {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column and when it can be listed out
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
         }
 
-        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result[:NUM_RESULTS_TO_SUMMARIZE]) + "\"}"}],
+        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
 
     try:
@@ -399,7 +399,7 @@ def get_Response(prompt, messages=[]):
         }
 
     if(isSpeciesData):
-        computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
+        #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
         #    for specimen in result:
         #        if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
@@ -416,6 +416,8 @@ def get_Response(prompt, messages=[]):
         output["outputType"] = "species"
     elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
+        
+
 
     return output
 
