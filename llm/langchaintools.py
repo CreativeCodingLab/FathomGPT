@@ -198,7 +198,8 @@ def GetSQLResult(query:str):
 def generateSQLQuery(
     prompt: str
 ) -> (bool, str):
-    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images."""
+    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
+    """
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -297,7 +298,11 @@ def get_Response(prompt, messages=[]):
         if(message["role"] == 'user'):
             curResponseFormat["prompt"] = message["content"]
         elif(message["role"] == 'assistant'):
-            curResponseFormat["response"] = message["content"]
+            curResponseFormat["response"] = message["content"][:200]
+            if(len(message["content"])>200):
+
+                curResponseFormat["response"] += "...\n"
+
             formattedMessage.append(curResponseFormat.copy())
             curResponseFormat["prompt"] = ""
             curResponseFormat["response"] = ""
@@ -308,7 +313,7 @@ def get_Response(prompt, messages=[]):
         print(agent_chain)
 
 
-    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses. Output only the sql query or the JSON string. 
+    result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses and add the context before passing the prompt to the tools. Output only the sql query or the JSON string. 
     If the result is sql, output it directly without converting it to JSON.
     Otherwise, add each result as a separate element in a JSON list.
 
@@ -330,23 +335,18 @@ def get_Response(prompt, messages=[]):
     except:
         isSpeciesData, result = GetSQLResult(result)
 
-    print(messages+[{"role": "system","content":"""
-                   
-        Based on the below details output a json in provided format. The response must be a json.
-        
-        {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input'
-            "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
-            "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
-            }
-        }
+    modifiedMessages = []
+    for smessage in messages:
+        if(smessage["role"]=="assistant"):
+            if(len(smessage["content"])>200):
+                smessage["content"]=smessage["content"][:200]+"...\n"
 
-        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}])
+
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-4-0613",
         temperature=0,
-        messages=messages+[{"role": "system","content":"""
-                   
+        messages=modifiedMessages+[{"role": "system","content":"""
+        
         Based on the below details output a json in provided format. The response must be a json.
         
         {
