@@ -386,28 +386,28 @@ def get_Response(prompt, messages=[]):
                     break
                 else:
                     modifiedMessages.append({"role":"function","content":result,"name": function_name})
-                    #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
-                    #response2 = openai.ChatCompletion.create(
-                    #    model="gpt-3.5-turbo-0613",
-                    #    messages=modifiedMessages,
-                    #    temperature=0,
-                    #)
-                    #print(response2["choices"][0]["message"]["content"])
-                    #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
-                    #    modifiedMessages = modifiedMessages[:-2] 
-                    #    break
-                    #else:
-                    #modifiedMessages = modifiedMessages[:-1] 
+                    modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
+                    response2 = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo-0613",
+                        messages=modifiedMessages,
+                        temperature=0,
+                    )
+                    if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
+                        modifiedMessages = modifiedMessages[:-2] 
+                        break
+                    else:
+                        modifiedMessages = modifiedMessages[:-1] 
             else:
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
             break
 
     summerizerResponse = openai.ChatCompletion.create(
-        model="gpt-4-0613",
+        model="gpt-3.5-turbo-0613",
         temperature=0,
         messages=[{"role": "system","content":"""
-        Based on the below details output a json in provided format. The response must be a json. The output json must be valid
+        Based on the below details output a json in provided format. The response must be a json. The output json must be valid.
+                   If the output is vegaLite, you must generate the schema
         
         {
             "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column and when it can be listed out
@@ -589,11 +589,11 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita categorizing salinity levels from 30 to 38 with each level of width 1"))
 #print(get_Response("Generate a heatmap of 20 species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
-#print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
+print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
-print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
+#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
