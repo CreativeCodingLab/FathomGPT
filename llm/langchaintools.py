@@ -119,7 +119,7 @@ def filterScientificNames(
     ])
     chain = chat_prompt | ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
     data = chain.invoke({"description": description, "names": names})
-    return data
+    return data.content
 
 
 def getScientificNamesFromDescription(
@@ -133,9 +133,7 @@ def getScientificNamesFromDescription(
     candidates = getConceptCandidates(description)
     results.extend(candidates.values.tolist())
     results = list(dict.fromkeys(results))
-    print(results)
     results = filterScientificNames(description, results)
-    print(results)
     return results
 
 
@@ -211,7 +209,7 @@ def GetSQLResult(query:str):
 
 def generateSQLQuery(
     prompt: str
-) -> (bool, str):
+) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
 
@@ -285,31 +283,189 @@ def initLangchain(messages=[]):
         agent=agent, tools=tools, verbose=True, memory=memory
     )
 
+availableFunctions = [{
+    "name": "getScientificNamesFromDescription",
+    "description": "Function to get all scientific names that fits a common name or appearance. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "description": {
+                "type": "string",
+                "description": "The description of the species",
+            },
+        },
+        "required": ["description"],
+    },
+},{
+    "name": "generateSQLQuery",
+    "description": "Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "prompt": {
+                "type": "string",
+                "description": "The text prompt that can be used to generate the sql query. The prompt cannot have common name of any species",
+            },
+        },
+        "required": ["prompt"],
+    },
+},{
+    "name": "getTaxonomyTree",
+    "description": "Function to get the taxonomy tree contain the names and taxonomic ranks of the ancestors and descendants for a scientific name. ONLY return a machine-readable JSON object, and nothing more.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "scientificName": {
+                "type": "string",
+                "description": "Scientific name of the species",
+            },
+        },
+        "required": ["scientificName"],
+    },
+},{
+    "name": "getTaxonomicRelatives",
+    "description": "Function to get the taxonomic relatives for a scientific name.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "scientificName": {
+                "type": "string",
+                "description": "Scientific name of the species who taxonomic relative is to be found out",
+            },
+        },
+        "required": ["scientificName"],
+    },
+}
+]
+
+
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[]):
-    formattedMessage = []
-    curResponseFormat = {
-        "prompt": "",
-        "response": ""
-    }
-    for message in messages:
-        if(message["role"] == 'user'):
-            curResponseFormat["prompt"] = message["content"]
-        elif(message["role"] == 'assistant'):
-            curResponseFormat["response"] = message["content"][:200]
-            if(len(message["content"])>200):
+    modifiedMessages = []
+    for smessage in modifiedMessages:
+        if(smessage["role"]=="assistant"):
+            if(len(smessage["content"])>200):
+                modifiedMessages["content"]=smessage["content"][:200]+"...\n"
+    modifiedMessages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
+    isSpeciesData = False
+    result = None
+    curLoopCount = 0
+    while curLoopCount < 4:
+        curLoopCount+=1
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0613",
+            messages=modifiedMessages,
+            functions=availableFunctions,
+            function_call="auto",
+            temperature=0,
 
-                curResponseFormat["response"] += "...\n"
+        )
+        response_message = response["choices"][0]["message"]
+        print(response_message)
+        if(response_message.get("function_call")):
+            function_name = response_message["function_call"]["name"]
+            args = json.loads(response_message.function_call.get('arguments'))
 
-            formattedMessage.append(curResponseFormat.copy())
-            curResponseFormat["prompt"] = ""
-            curResponseFormat["response"] = ""
-    
-    agent_chain = initLangchain(formattedMessage)
-    
-    if DEBUG_LEVEL >= 3:
-        print(agent_chain)
+            for key, value in args.items():
+                if isinstance(value, str):
+                    if value == "True":
+                        args[key] = True
+                    elif value == "False":
+                        args[key] = False
+                    else:
+                        try:
+                            args[key] = float(value) if '.' in value else int(value)
+                        except ValueError:
+                            pass
+            function_to_call = globals().get(function_name)
+            if function_to_call:
+                result = function_to_call(**args)
+                if(function_name=="generateSQLQuery"):
+                    isSpeciesData, result = GetSQLResult(result)
+                    break
+                else:
+                    modifiedMessages.append({"role":"function","content":result,"name": function_name})
+                    #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
+                    #response2 = openai.ChatCompletion.create(
+                    #    model="gpt-3.5-turbo-0613",
+                    #    messages=modifiedMessages,
+                    #    temperature=0,
+                    #)
+                    #print(response2["choices"][0]["message"]["content"])
+                    #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
+                    #    modifiedMessages = modifiedMessages[:-2] 
+                    #    break
+                    #else:
+                    #modifiedMessages = modifiedMessages[:-1] 
+            else:
+                raise ValueError("No function named '{function_name}' in the global scope")
+        else:
+            break
+
+    summerizerResponse = openai.ChatCompletion.create(
+        model="gpt-4-0613",
+        temperature=0,
+        messages=[{"role": "system","content":"""
+        Based on the below details output a json in provided format. The response must be a json. The output json must be valid
+        
+        {
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column and when it can be listed out
+            "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
+            "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
+            }
+        }
+
+        """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
+    )
+    try:
+        print(summerizerResponse["choices"][0]["message"]["content"])
+        summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
+        output = {
+            "outputType": summaryPromptResponse["outputType"],
+            "responseText": summaryPromptResponse["summary"],
+        }
+        if("vegaSchema" in summaryPromptResponse):
+            output["vegaSchema"] = summaryPromptResponse["vegaSchema"]
+
+    except:
+        print('summerizer failed')
+        summaryPromptResponse = {}
+        summaryPromptResponse["outputType"] = 'text'
+        if isSpeciesData:
+            summaryPromptResponse["outputType"] = 'image'
+        if result!=None and len(result) > 0 and 'taxonomy' in result[0]:
+            summaryPromptResponse["outputType"] = 'taxonomy'
+
+        output = {
+            "outputType": summaryPromptResponse["outputType"],
+            "responseText": 'Here are the results',
+            "vegaSchema": '',
+        }
+
+    if(isSpeciesData):
+        #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
+        #if isinstance(result, dict) or isinstance(result, list):
+        #    for specimen in result:
+        #        if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
+        #            taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
+        #            specimen["rank"] = taxonomyResponse["rank"]
+        #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
+        #            computedTaxonomicConcepts.append(specimen["concept"])
+        output["species"] = result
+    elif(summaryPromptResponse["outputType"]=="taxonomy"):
+        if(isinstance(result, list)):
+            output["species"] = result
+        else:
+            output["species"] = [result]
+        output["outputType"] = "species"
+    elif(summaryPromptResponse["outputType"]!="vegaSchema"):
+        output["table"] = result
+        
+
+
+    return output
+            
 
 
     result = agent_chain.run(input="""Your function is to generate either sql or JSON for the prompt using the tools provided. You may also need to lookup the previous responses and add the context before passing the prompt to the tools. Output only the sql query or the JSON string. 
@@ -437,7 +593,7 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
-#print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
+print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
 #print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
 
