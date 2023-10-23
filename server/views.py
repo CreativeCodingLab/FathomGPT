@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, '..')
 from llm.main import run_prompt
 from django.views.decorators.csrf import csrf_exempt
+from django.http import StreamingHttpResponse
 
 class MainObjectViewSet(viewsets.ModelViewSet):
     queryset = MainObject.objects.all()
@@ -52,3 +53,34 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
 
         return Response({'guid': str(main_object.id), 'response': new_answer}, status=status.HTTP_200_OK)
+    
+
+def stream(request):
+    guid = request.data.get('guid')
+    new_question = request.data.get('question')
+
+    main_object = None
+    new_answer = None
+    messages = []
+    if(guid != None):
+        try:
+            main_object = MainObject.objects.get(id=guid)
+        except MainObject.DoesNotExist:
+            return Response({'status': 'GUID not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+        for interaction in main_object.interactions.all():
+            question = interaction.request
+            answer = interaction.response
+
+            messages.append({"role": "user", "content": question})
+            messages.append({"role": "assistant", "content": answer})
+    else:
+        main_object = MainObject.objects.create()
+
+    #Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
+
+    response = StreamingHttpResponse(run_prompt(new_question, messages, True), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'  # Important for streaming to work properly
+    return response
