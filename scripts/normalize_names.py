@@ -1,5 +1,6 @@
 import json
 import re
+import pandas as pd
 
 
 def get_singular(word):
@@ -16,6 +17,27 @@ def get_normalized(name):
 
 f = open('data/names_worms.json')
 names = json.load(f)
+
+input_datapath = "data/concepts_desc.csv" 
+df = pd.read_csv(input_datapath)
+df = df[["concepts", "names", "links", "description", "related"]]
+df = df.dropna()
+for index, row in df.iterrows():
+    cnames = []
+    if row['names'] != ' ':
+        cnames.extend(row['names'].split(', '))
+    if row['links'] != ' ':
+        cnames.extend(row['links'].split(', '))
+    concept = row['concepts']
+    for name in cnames:
+        if name in names:
+            if len(names[name]) > 30:
+                continue
+            if concept not in names[name]:
+                names[name].append(concept)
+        else:
+            names[name] = [concept]
+
 
 normalized_names = {}
 for n in names:
