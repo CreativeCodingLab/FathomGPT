@@ -7,6 +7,7 @@ from urllib.parse import quote
 import json
 import re
 import random
+from difflib import SequenceMatcher
 
 from fathomnet.api import regions
 from fathomnet.api import taxa
@@ -313,6 +314,9 @@ def isNameAvaliable(concept):
     concepts = boundingboxes.find_concepts()
     return concept in concepts
 
+def similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+    
 def getScientificNames(concept):
     f = open(NAMES_JSON)
     names = json.load(f)
@@ -322,8 +326,14 @@ def getScientificNames(concept):
         print('normalized name: '+concept_normalized)
     if concept_normalized in names:
         return names[concept_normalized]
+        
+    concepts = []
+    if len(concept_normalized) > 3:
+        for name in names:
+            if similarity(name, concept_normalized) > SCI_NAME_MATCH_SIMILARITY:
+                concepts.extend(names[name])
 
-    return []
+    return concepts
 
 
 # ==== post-processing langchain ====

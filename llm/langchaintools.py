@@ -123,19 +123,30 @@ def filterScientificNames(
 
 
 def getScientificNamesFromDescription(
-    description: str
+    name: str,
+    constraints: str,
+    description: str,
 ) -> list:
     """Function to get all scientific names that fits a common name or appearance.
     DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature"""
-    if isNameAvaliable(description):
-        return description
-    results = getScientificNames(description)
-    candidates = getConceptCandidates(description)
-    results.extend(candidates.values.tolist())
-    results = list(dict.fromkeys(results))
-    results = filterScientificNames(description, results)
-    return results
+    if len(name) > 0:
+        if isNameAvaliable(name):
+            return name
+        results = getScientificNames(name)
+        if len(results) > 0:
+            if len(results) > LANGCHAIN_SEARCH_CONCEPTS_TOPN:
+                results = results[:LANGCHAIN_SEARCH_CONCEPTS_TOPN]
+            print(results)
+            return ", ".join(results)
 
+        description = name+" "+description
+    
+    if len(description) > 0:
+        results = list(getConceptCandidates(description))
+        print(results)
+        return ", ".join(results)
+        
+    return "anything"
 
 def getSciNamesPrompt(concept):
     template = """ONLY return a comma-separated list, and nothing more."""
@@ -208,10 +219,18 @@ def GetSQLResult(query:str):
 
 
 def generateSQLQuery(
-    prompt: str
+    prompt: str,
+    scientificNames: str,
+    name: str,
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
+    
+    if len(name) > 1:
+        prompt = prompt.replace(name, scientificNames)
+    elif len(scientificNames) > 1:
+        prompt = prompt.rstrip(".")+" with names: "+scientificNames
+    print(prompt)
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -285,20 +304,28 @@ def initLangchain(messages=[]):
 
 availableFunctions = [{
     "name": "getScientificNamesFromDescription",
-    "description": "Function to get all scientific names that fits a common name or appearance. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature",
+    "description": "Function to get all scientific names that fits a common name or appearance. If there are no matches, return anything. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature",
     "parameters": {
         "type": "object",
         "properties": {
+            "name": {
+                "type": "string",
+                "description": "The name of the creature",
+            },
+            "constraints": {
+                "type": "string",
+                "description": "The location, depth, taxonomy, salinity, or temperature",
+            },
             "description": {
                 "type": "string",
-                "description": "The description of the species",
+                "description": "The description of the species, excluding location, depth, taxonomy, salinity, or temperature",
             },
         },
-        "required": ["description"],
+        "required": ["name", "constraints", "description"],
     },
 },{
     "name": "generateSQLQuery",
-    "description": "Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
+    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -306,8 +333,16 @@ availableFunctions = [{
                 "type": "string",
                 "description": "The text prompt that can be used to generate the sql query. The prompt cannot have common name of any species",
             },
+            "scientificNames": {
+                "type": "string",
+                "description": "The scientific names of all of the species",
+            },
+            "name": {
+                "type": "string",
+                "description": "The name of the species from the prompt",
+            },
         },
-        "required": ["prompt"],
+        "required": ["prompt", "scientificNames", "name"],
     },
 },{
     "name": "getTaxonomyTree",
@@ -347,7 +382,7 @@ def get_Response(prompt, messages=[]):
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 modifiedMessages["content"]=smessage["content"][:200]+"...\n"
-    modifiedMessages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
+    modifiedMessages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -589,13 +624,15 @@ def get_Response(prompt, messages=[]):
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita categorizing salinity levels from 30 to 38 with each level of width 1"))
 #print(get_Response("Generate a heatmap of 20 species in Monterey Bay"))
 #print(get_Response("Show me images of Aurelia Aurita from Monterey Bay"))
-print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
+#print(json.dumps(get_Response("Find me 3 images of moon jellyfish in Monterey bay and depth less than 5k meters")))
 #print(get_Response("What is the total number of images of Startfish in the database?"))
 #print(get_Response("What is the the most found species in the database and what is it's location?"))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae and Aurelia aurita")))
 #print(json.dumps(get_Response("Show me the taxonomy tree of Euryalidae")))
 #print(json.dumps(get_Response("Find me 3 images of creatures in Monterey Bay")))
-#print(json.dumps(get_Response("Find me 3 images of creatures with tentacles")))
+#print(json.dumps(get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters.")))
+#print(json.dumps(get_Response("Find me images of moon jelliefish in Monterey bay and depth less than 5k meters")))
+print(json.dumps(get_Response("Find me images of rattails in Monterey bay and depth less than 5k meters")))
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
 
