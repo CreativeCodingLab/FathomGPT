@@ -356,7 +356,7 @@ availableFunctions = [{
 
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
-def get_Response(prompt, messages=[]):
+def get_Response(prompt, messages=[], isEventStream=False):
     modifiedMessages = []
     for smessage in modifiedMessages:
         if(smessage["role"]=="assistant"):
@@ -366,6 +366,14 @@ def get_Response(prompt, messages=[]):
     isSpeciesData = False
     result = None
     curLoopCount = 0
+
+    if isEventStream:
+        event_data = {
+            "message": "Evaluating Prompt"
+        }
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        yield sse_data
+
     while curLoopCount < 4:
         curLoopCount+=1
         response = openai.ChatCompletion.create(
@@ -377,7 +385,6 @@ def get_Response(prompt, messages=[]):
 
         )
         response_message = response["choices"][0]["message"]
-        print(response_message)
         if(response_message.get("function_call")):
             function_name = response_message["function_call"]["name"]
             args = json.loads(response_message.function_call.get('arguments'))
@@ -395,8 +402,20 @@ def get_Response(prompt, messages=[]):
                             pass
             function_to_call = globals().get(function_name)
             if function_to_call:
+                if isEventStream:
+                    event_data = {
+                        "message": "Running "+function_name
+                    }
+                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                    yield sse_data
                 result = function_to_call(**args)
                 if(function_name=="generateSQLQuery"):
+                    if isEventStream:
+                        event_data = {
+                            "message": "Querying database"
+                        }
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
                     isSpeciesData, result = GetSQLResult(result)
                     break
                 else:
@@ -416,6 +435,13 @@ def get_Response(prompt, messages=[]):
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
             break
+
+    if isEventStream:
+        event_data = {
+            "message": "Formatting response"
+        }
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        yield sse_data
 
     summerizerResponse = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-0613",
@@ -477,7 +503,12 @@ def get_Response(prompt, messages=[]):
     elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         output["table"] = result
         
-
+    if isEventStream:
+        event_data = {
+            "result": output
+        }
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        yield sse_data
 
     return output
             
