@@ -148,26 +148,6 @@ def getScientificNamesFromDescription(
         
     return "anything"
 
-def getSciNamesPrompt(concept):
-    template = """ONLY return a comma-separated list, and nothing more."""
-    human_template = "Get me scientific names of "+concept+"."
-    
-    chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", template),
-        ("human", human_template),
-    ])
-    return chat_prompt
-
-def getScientificNamesLangchain(concept):
-    agent_chain = initLangchain()
-    data = agent_chain(getSciNamesPrompt(concept))
-    data = data['output']
-    if DEBUG_LEVEL >= 1:
-        print('Fetched scientific names from Langchain:')
-        print(data)
-    data = data.strip().split(', ')
-    return data
-    
 
 # ==== SQL database query ====
 
@@ -617,8 +597,6 @@ def get_Response(prompt, messages=[]):
 
 
 #DEBUG_LEVEL = 5
-#print(agent_chain(getSciNamesPrompt('fused carapace'))['output'])
-#print(getScientificNamesLangchain('rattail'))
 
 #print(get_Response("Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean zones."))
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita categorizing salinity levels from 30 to 38 with each level of width 1"))
