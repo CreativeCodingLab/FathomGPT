@@ -9,6 +9,9 @@ sys.path.insert(0, '..')
 from llm.main import run_prompt
 from django.views.decorators.csrf import csrf_exempt
 from django.http import StreamingHttpResponse
+import time
+import json
+from django.views import View
 
 class MainObjectViewSet(viewsets.ModelViewSet):
     queryset = MainObject.objects.all()
@@ -55,32 +58,43 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         return Response({'guid': str(main_object.id), 'response': new_answer}, status=status.HTTP_200_OK)
     
 
-def stream(request):
-    guid = request.data.get('guid')
-    new_question = request.data.get('question')
+def event_stream(new_question, messages, isEventStream):
+    while True:
+        yield from run_prompt(new_question, messages, isEventStream=isEventStream)
+        time.sleep(10)
 
-    main_object = None
-    new_answer = None
-    messages = []
-    if(guid != None):
-        try:
-            main_object = MainObject.objects.get(id=guid)
-        except MainObject.DoesNotExist:
-            return Response({'status': 'GUID not found'}, status=status.HTTP_404_NOT_FOUND)
+class PostStreamView(View):
+
+    def get(self, request):
+        guid = request.GET.get('guid')
+        new_question = request.GET.get('question')
 
 
+        main_object = None
+        new_answer = None
+        messages = []
+        if(guid != None):
+            try:
+                main_object = MainObject.objects.get(id=guid)
+            except MainObject.DoesNotExist:
+                return Response({'status': 'GUID not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        for interaction in main_object.interactions.all():
-            question = interaction.request
-            answer = interaction.response
 
-            messages.append({"role": "user", "content": question})
-            messages.append({"role": "assistant", "content": answer})
-    else:
-        main_object = MainObject.objects.create()
 
-    #Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
+            for interaction in main_object.interactions.all():
+                question = interaction.request
+                answer = interaction.response
 
-    response = StreamingHttpResponse(run_prompt(new_question, messages, True), content_type='text/event-stream')
-    response['Cache-Control'] = 'no-cache'  # Important for streaming to work properly
-    return response
+                messages.append({"role": "user", "content": question})
+                messages.append({"role": "assistant", "content": answer})
+        else:
+            main_object = MainObject.objects.create()
+
+        #Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
+
+        print("generating response")
+        response = StreamingHttpResponse(event_stream(new_question, messages, True))#
+        response['Cache-Control'] = 'no-cache'
+        response['Content-Type'] = 'text/event-stream'
+        return response
+

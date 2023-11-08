@@ -42,8 +42,6 @@ INSTALLED_APPS = [
     'server',
     'sslserver',
     'corsheaders',
-    'channels',
-    'django_eventstream',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +53,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'django_grip.GripMiddleware',
 ]
 
 ROOT_URLCONF = 'serverProj.urls'
@@ -140,5 +137,3 @@ CORS_ORIGIN_ALLOW_ALL = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static/")]
 
-
-ASGI_APPLICATION = "serverProj.asgi.application"
