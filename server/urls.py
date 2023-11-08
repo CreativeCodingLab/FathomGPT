@@ -4,7 +4,7 @@ from . import views
 
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import stream
+from .views import PostStreamView
 
 router = DefaultRouter()
 router.register(r'main_objects', views.MainObjectViewSet)
@@ -15,5 +15,5 @@ urlpatterns = [
         'post': 'create_with_question_answer',
         'put': 'update_with_question_answer'
     })),
-    path('event-stream/', stream, name='event_stream'),
+    path('event-stream', PostStreamView.as_view(), name='stream'),
 ]
