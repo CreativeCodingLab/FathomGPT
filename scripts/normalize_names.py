@@ -3,6 +3,9 @@ import re
 import pandas as pd
 
 
+f = open('data/concept_sizes.json')
+sizes = json.load(f)
+
 def get_singular(word):
     word = re.sub('es$', '', word)
     word = re.sub('s$', '', word)
@@ -14,6 +17,11 @@ def get_normalized(name):
     words = name.split(' ')
     return ''.join([get_singular(w) for w in words])
     
+def getSize(concept):
+    if concept in sizes:
+        return sizes[concept]
+    return 0
+        
 
 f = open('data/names_worms.json')
 names = json.load(f)
@@ -38,6 +46,17 @@ for index, row in df.iterrows():
         else:
             names[name] = [concept]
 
+keywords = names.keys()
+for index, row in df.iterrows():
+    desc = row['description']
+    concept = row['concepts']
+    for kw in keywords:
+        if kw in desc:
+            names[kw].append(concept)
+
+with open("names_combined.json", "w") as outfile:
+    json.dump(names, outfile)
+    
 
 normalized_names = {}
 for n in names:
@@ -47,8 +66,10 @@ for n in names:
         normalized_names[normalized] = []
     normalized_names[normalized].extend(names[n])
 
+
 for n in normalized_names:
-    normalized_names[n] = list(set(normalized_names[n]))
+    normalized_names[n] = sorted(list(set(normalized_names[n])), key=lambda concept: getSize(concept), reverse=True)
+    
 
 
 with open("names_normalized.json", "w") as outfile:
