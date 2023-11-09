@@ -2,7 +2,7 @@ import csv
 import json
 
 # Open the TSV file and read its contents
-with open('sql-query-and-response.txt', mode='r', newline='', encoding='utf-8') as file:
+with open('sql-query-and-response2.tsv', mode='r', newline='', encoding='utf-8') as file:
     # Create a CSV reader for a tab-separated values file
     reader = csv.DictReader(file, delimiter='\t')
     
@@ -12,8 +12,14 @@ with open('sql-query-and-response.txt', mode='r', newline='', encoding='utf-8') 
         # Iterate through the rows and write each row as a JSON object on a new line in the output file
         for row in reader:
             messages = [{
-                "role": "system", "content": "You are a text-to-sql generator. You have a database of marine species. The sql should be generated in a way such that the response from sql is a json. "
-            },
+                "role": "system", "content": """You are a text-to-sql generator. You have a database of marine species. The sql should be generated in a way such that the response from sql is a json. You must generate the response in this json format
+                {
+                    "sqlQuery": "",//sql query used to retreive the data from the database
+                    "outputType": "",//enum(images, text, species, vegalite, table, heatmap)
+                    "responseText": ""//summary of the generated response
+                    "vegaSchema": ""//optional vega schema used to generate charts using Vegalite. Important: It should not be used when generating heatmap
+                }
+                """},
             {
                 "role": "user","content": """
                 The database has the following structure.
@@ -303,13 +309,12 @@ with open('sql-query-and-response.txt', mode='r', newline='', encoding='utf-8') 
                     dbo.bounding_boxes b ON b.image_id = i.id
                 ;
 
-                First generate the observation from the prompt and how will you generate thq query, then only generate the prompt. Make sure the sql query is inside ```
-                If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
+                First generate the observation from the prompt and how will you generate thq query, then only generate the json. Make sure the json is inside ```
 
                 Prompt: """ + row["Prompt1"]
             },
             {
-                "role": "assistant", "content": "Observation:"+row["Observation"]+"\nSql Query:```"+row["Sql query"]+"```"
+                "role": "assistant", "content": "Observation:"+row["Observation"]+"\nJSON:```"+row["Sql query"]+"```"
             }]
             filtered_row = {
                 "messages": messages
