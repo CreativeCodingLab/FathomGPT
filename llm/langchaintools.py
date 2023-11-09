@@ -366,7 +366,15 @@ availableFunctions = [{
 }
 ]
 
-
+availableFunctionsDescription = {
+    "getScientificNamesFromDescription": "Generating scientific name from description",
+    
+    "generateSQLQuery": "Generating SQL Query",
+    
+    "getTaxonomyTree": "Getting the taxonomy tree",
+    
+    "getTaxonomicRelatives": "Getting taxonomic relatives",
+}
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[], isEventStream=False):
@@ -417,7 +425,7 @@ def get_Response(prompt, messages=[], isEventStream=False):
             if function_to_call:
                 if isEventStream:
                     event_data = {
-                        "message": "Running "+function_name
+                        "message": availableFunctionsDescription[function_name]
                     }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
