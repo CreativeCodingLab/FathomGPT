@@ -62,6 +62,7 @@ def event_stream(new_question, messages, isEventStream):
     while True:
         yield from run_prompt(new_question, messages, isEventStream=isEventStream)
         time.sleep(10)
+        break
 
 class PostStreamView(View):
 
