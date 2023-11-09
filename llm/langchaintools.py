@@ -14,6 +14,7 @@ from ast import literal_eval
 from openai.embeddings_utils import get_embedding, cosine_similarity
 import pymssql
 import re
+import time
 
 from langchain.tools.base import StructuredTool
 from langchain.chat_models import ChatOpenAI
@@ -378,6 +379,7 @@ availableFunctionsDescription = {
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[], isEventStream=False):
+    start_time = time.time()
     modifiedMessages = []
     for smessage in modifiedMessages:
         if(smessage["role"]=="assistant"):
@@ -530,6 +532,12 @@ def get_Response(prompt, messages=[], isEventStream=False):
         }
         sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
+    end_time = time.time()
+
+    time_taken = end_time - start_time
+
+    formatted_time = "{:.2f}".format(time_taken)
+    print(f"Time taken: {formatted_time} seconds")
 
     return output
 
