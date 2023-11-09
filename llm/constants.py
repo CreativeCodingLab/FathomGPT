@@ -24,6 +24,7 @@ NUM_RESULTS_TO_SUMMARIZE = 1000
 SCI_NAME_MATCH_SIMILARITY = 0.8
 
 NAMES_JSON = 'data/names_normalized.json'
+SEMANTIC_MATCHES_JSON = 'data/semantic_matches.json'
 CONCEPTS_JSON = 'data/concepts.json'
 CONCEPTS_EMBEDDING = "data/concepts_names_desc_embeddings.csv"
 
