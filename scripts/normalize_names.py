@@ -1,10 +1,12 @@
 import json
 import re
 import pandas as pd
+import numpy as np
 
 
 f = open('data/concept_sizes.json')
 sizes = json.load(f)
+semantic_scores = {}
 
 def get_singular(word):
     word = re.sub('es$', '', word)
@@ -17,11 +19,14 @@ def get_normalized(name):
     words = name.split(' ')
     return ''.join([get_singular(w) for w in words])
     
-def getSize(concept):
+def getScore(concept, kw):
+    if kw in semantic_scores:
+        if concept in semantic_scores[kw]:
+            return semantic_scores[kw][concept]
     if concept in sizes:
-        return sizes[concept]
+        return sizes[concept] * 0.000001
     return 0
-        
+
 
 f = open('data/names_worms.json')
 names = json.load(f)
@@ -34,8 +39,8 @@ for index, row in df.iterrows():
     cnames = []
     if row['names'] != ' ':
         cnames.extend(row['names'].split(', '))
-    if row['links'] != ' ':
-        cnames.extend(row['links'].split(', '))
+    #if row['links'] != ' ':
+    #    cnames.extend(row['links'].split(', '))
     concept = row['concepts']
     for name in cnames:
         if name in names:
@@ -46,7 +51,7 @@ for index, row in df.iterrows():
         else:
             names[name] = [concept]
 
-keywords = names.keys()
+keywords = list(names.keys())
 for index, row in df.iterrows():
     desc = row['description']
     concept = row['concepts']
@@ -61,14 +66,14 @@ with open("names_combined.json", "w") as outfile:
 normalized_names = {}
 for n in names:
     normalized = get_normalized(n)
-    print(n+' -> '+normalized)
+    #print(n+' -> '+normalized)
     if normalized not in normalized_names:
         normalized_names[normalized] = []
     normalized_names[normalized].extend(names[n])
 
 
 for n in normalized_names:
-    normalized_names[n] = sorted(list(set(normalized_names[n])), key=lambda concept: getSize(concept), reverse=True)
+    normalized_names[n] = sorted(list(set(normalized_names[n])), key=lambda concept: getScore(concept, n), reverse=True)
     
 
 

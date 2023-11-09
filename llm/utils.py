@@ -317,20 +317,30 @@ def isNameAvaliable(concept):
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
     
-def getScientificNames(concept):
-    f = open(NAMES_JSON)
+def getScientificNames(concept, should_normalize=True, filename=NAMES_JSON, is_dict=False):
+    f = open(filename)
     names = json.load(f)
 
-    concept_normalized = get_normalized(concept)
+    if should_normalize:
+        concept = get_normalized(concept)
+
     if DEBUG_LEVEL >= 2:
-        print('normalized name: '+concept_normalized)
-    if concept_normalized in names:
-        return names[concept_normalized]
+        print('normalized name: '+concept)
+    if concept in names:
+        if is_dict:
+            return list(names[concept].keys())
+        return names[concept]
         
     concepts = []
-    if len(concept_normalized) > 3:
+    if len(concept) > 3:
         for name in names:
-            if similarity(name, concept_normalized) > SCI_NAME_MATCH_SIMILARITY:
+            if similarity(name, concept) > SCI_NAME_MATCH_SIMILARITY:
+                if is_dict:
+                    concepts.extend(list(names[name].keys()))
+                else:
+                    concepts.extend(names[name])
+                    
+            if not should_normalize and concept in name.split(' '):
                 concepts.extend(names[name])
 
     return concepts
