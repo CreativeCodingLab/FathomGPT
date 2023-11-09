@@ -155,7 +155,7 @@ def getScientificNamesFromDescription(
     if len(results) > 0:
         if len(results) > LANGCHAIN_SEARCH_CONCEPTS_TOPN:
             results = results[:LANGCHAIN_SEARCH_CONCEPTS_TOPN]
-        results = list(set(results))
+        results = list(dict.fromkeys(results))
         print(results)
         return ", ".join(results)
     
@@ -553,7 +553,7 @@ def get_Response(prompt, messages=[], isEventStream=False):
 
 #for v in get_Response("Find me images of starfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
-#for v in get_Response("Find me images containing tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
+#for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
 for v in get_Response("Find me images of Aurelia Aurita", isEventStream=True):
     print(v)
