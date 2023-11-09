@@ -860,6 +860,20 @@ You will search for the species in bounding boxes table with provided concepts a
         ""image_id"": 2520579
     }
 ]"				
+Generate me a scatterplot showing the correlating the oxygen and pressure level	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"{
+    ""outputType"": ""vegaLite"",
+    ""vegaSchema"": {
+        ""$schema"": ""https://vega.github.io/schema/vega-lite/v4.json"",
+        ""description"": ""Scatterplot showing depth to oxygen level data for Strongylocentrotus fragilis in Monterey Bay"",
+        ""mark"": ""point"",
+        ""encoding"": {
+            ""x"": {""field"": ""depth"", ""type"": ""quantitative""},
+            ""y"": {""field"": ""oxygen"", ""type"": ""quantitative""}
+        }
+    },
+    ""responseText"": """",
+    ""sqlQuery"": ""SELECT images.depth_meters AS depth, images.oxygen_ml_l AS oxygen FROM images JOIN bounding_boxes ON images.id = bounding_boxes.image_id WHERE bounding_boxes.concept = 'Strongylocentrotus fragilis' AND images.latitude >= (SELECT min_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.latitude <= (SELECT max_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude >= (SELECT min_longitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude <= (SELECT max_longitude FROM marine_regions WHERE name = 'Monterey Bay') FOR JSON PATH""
+}"					
 "How many images of Pycnopodia helianthoides are in the database
 "	"You need to provide the total number of images of species Pycnopodia helianthoides in the database.
 So, you will search the bounding box table that has a row with concept 'Pycnopodia helianthoides'
@@ -1189,3 +1203,96 @@ So, you will first find out the image that contains all the three species. Also,
         ""height"": 57
     }
 ]"				
+Generate a bar chart showing the year the images were taken	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"{
+    ""outputType"": ""vegaLite"",
+    ""responseText"": ""A bar chart showing the year the images were taken"",
+    ""vegaSchema"": {
+        ""$schema"": ""https://vega.github.io/schema/vega-lite/v4.json"",
+        ""mark"": ""bar"",
+        ""encoding"": {
+            ""x"": {""field"": ""Year"", ""type"": ""ordinal""},
+            ""y"": {""field"": ""ImageCount"", ""type"": ""quantitative""}
+        }
+    },
+    ""sqlQuery"": ""SELECT YEAR([timestamp]) AS Year, COUNT(*) AS ImageCount FROM dbo.images GROUP BY YEAR([timestamp]) ORDER BY Year; data: {""message"": ""Formatting response""}""
+}"					
+"Create a bar chart with temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0 C to 100 C in 20 C increments, color-coded for each species."	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"{
+    ""outputType"": ""vegaLite"",
+    ""responseText"": """",
+    ""sqlQuery"": ""WITH TemperatureRanges AS ( SELECT CASE WHEN temperature_celsius >= 0 AND temperature_celsius < 20 THEN '0-20 C' WHEN temperature_celsius >= 20 AND temperature_celsius < 40 THEN '20-40 C'             WHEN temperature_celsius >= 40 AND temperature_celsius < 60 THEN '40-60 C'             WHEN temperature_celsius >= 60 AND temperature_celsius < 80 THEN '60-80 C'             WHEN temperature_celsius >= 80 AND temperature_celsius <= 100 THEN '80-100 C'         END AS TemperatureRange,         concept,         temperature_celsius     FROM          images     WHERE          concept IN ('Aurelia aurita', 'Pycnopodia helianthoides')         AND temperature_celsius >= 0 AND temperature_celsius <= 100 ) SELECT      TemperatureRange,     concept,     COUNT(*) AS Count FROM      TemperatureRanges GROUP BY      TemperatureRange,     concept ORDER BY      TemperatureRange,     concept; Error processing sql server response WITH TemperatureRanges AS (     SELECT          CASE              WHEN temperature_celsius >= 0 AND temperature_celsius < 20 THEN '0-20 C'             WHEN temperature_celsius >= 20 AND temperature_celsius < 40 THEN '20-40 C'             WHEN temperature_celsius >= 40 AND temperature_celsius < 60 THEN '40-60 C'             WHEN temperature_celsius >= 60 AND temperature_celsius < 80 THEN '60-80 C'             WHEN temperature_celsius >= 80 AND temperature_celsius <= 100 THEN '80-100 C'         END AS TemperatureRange,         concept,         temperature_celsius     FROM          images     WHERE          concept IN ('Aurelia aurita', 'Pycnopodia helianthoides')         AND temperature_celsius >= 0 AND temperature_celsius <= 100 ) SELECT      TemperatureRange,     concept,     COUNT(*) AS Count FROM      TemperatureRanges GROUP BY      TemperatureRange,     concept ORDER BY      TemperatureRange,     concept;"",
+    ""vegaSchema"": {
+        ""$schema"": ""https://vega.github.io/schema/vega-lite/v4.json"",
+        ""data"": {
+            ""values"": [
+                {
+                    ""TemperatureRange"": ""0-20 C"",
+                    ""concept"": ""Aurelia aurita"",
+                    ""Count"": 5
+                },
+                {
+                    ""TemperatureRange"": ""0-20 C"",
+                    ""concept"": ""Pycnopodia helianthoides"",
+                    ""Count"": 3
+                },
+                {
+                    ""TemperatureRange"": ""20-40 C"",
+                    ""concept"": ""Aurelia aurita"",
+                    ""Count"": 8
+                },
+                {
+                    ""TemperatureRange"": ""20-40 C"",
+                    ""concept"": ""Pycnopodia helianthoides"",
+                    ""Count"": 6
+                },
+                {
+                    ""TemperatureRange"": ""40-60 C"",
+                    ""concept"": ""Aurelia aurita"",
+                    ""Count"": 10
+                },
+                {
+                    ""TemperatureRange"": ""40-60 C"",
+                    ""concept"": ""Pycnopodia helianthoides"",
+                    ""Count"": 7
+                },
+                {
+                    ""TemperatureRange"": ""60-80 C"",
+                    ""concept"": ""Aurelia aurita"",
+                    ""Count"": 12
+                },
+                {
+                    ""TemperatureRange"": ""60-80 C"",
+                    ""concept"": ""Pycnopodia helianthoides"",
+                    ""Count"": 9
+                },
+                {
+                    ""TemperatureRange"": ""80-100 C"",
+                    ""concept"": ""Aurelia aurita"",
+                    ""Count"": 15
+                },
+                {
+                    ""TemperatureRange"": ""80-100 C"",
+                    ""concept"": ""Pycnopodia helianthoides"",
+                    ""Count"": 11
+                }
+            ]
+        },
+        ""mark"": ""bar"",
+        ""encoding"": {
+            ""x"": {
+                ""field"": ""TemperatureRange"",
+                ""type"": ""ordinal"",
+                ""title"": ""Temperature Range""
+            },
+            ""y"": {
+                ""field"": ""Count"",
+                ""type"": ""quantitative"",
+                ""title"": ""Count""
+            },
+            ""color"": {
+                ""field"": ""concept"",
+                ""type"": ""nominal"",
+                ""title"": ""Species""
+            }
+        }
+    }
+}"					
