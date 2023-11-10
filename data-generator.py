@@ -12,13 +12,7 @@ with open('sql-query-and-response2.tsv', mode='r', newline='', encoding='utf-8')
         # Iterate through the rows and write each row as a JSON object on a new line in the output file
         for row in reader:
             messages = [{
-                "role": "system", "content": """You are a text-to-sql generator. You have a database of marine species. The sql should be generated in a way such that the response from sql is a json. You must generate the response in this json format
-                {
-                    "sqlQuery": "",//sql query used to retreive the data from the database
-                    "outputType": "",//enum(images, text, species, vegalite, table, heatmap)
-                    "responseText": ""//summary of the generated response
-                    "vegaSchema": ""//optional vega schema used to generate charts using Vegalite. Important: It should not be used when generating heatmap
-                }
+                "role": "system", "content": """You are a text-to-sql generator. You have a database of marine species. The sql should be generated in a way such that the response from sql is a json. You must generate the response in the instructed json format
                 """},
             {
                 "role": "user","content": """
@@ -309,12 +303,19 @@ with open('sql-query-and-response2.tsv', mode='r', newline='', encoding='utf-8')
                     dbo.bounding_boxes b ON b.image_id = i.id
                 ;
 
-                First generate the observation from the prompt and how will you generate thq query, then only generate the json. Make sure the json is inside ```
+                Output must be a json in given format
+                {
+                    "sqlQuery": "",//sql query used to retreive the data from the database
+                    "outputType": "",//enum(images, text, species, vegalite, table, heatmap)
+                    "responseText": ""//summary of the generated response
+                    "vegaSchema": ""//vega schema used to generate charts using Vegalite(optional). Important: It should not be used when generating heatmap
+                }
 
                 Prompt: """ + row["Prompt1"]
             },
             {
-                "role": "assistant", "content": "Observation:"+row["Observation"]+"\nJSON:```"+row["Sql query"]+"```"
+               # "role": "assistant", "content": "Observation:"+row["Observation"]+"\nJSON:```"+row["Sql query"]+"```"
+                "role": "assistant", "content": row["Sql query"]
             }]
             filtered_row = {
                 "messages": messages
