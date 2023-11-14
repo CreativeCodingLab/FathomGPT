@@ -16,7 +16,7 @@ from fathomnet.dto import GeoImageConstraints
 
 GOOD_BOUNDING_BOX_MIN_SIZE = 0 #0.05
 GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
-MIN_BLUR = 50
+MIN_SHARPNESS = 20
 TOPN = 20
 
 def getBorder(img):
@@ -27,47 +27,36 @@ def getBorder(img):
 def marginGood(margin_width, image_width):
     return margin_width / image_width > GOOD_BOUNDING_BOX_MIN_MARGINS
     
-def getBlurriness(d, b):
+def getImageProperties(d, b):
     img = Image.open(requests.get(d['url'], stream=True).raw)
     img = img.convert('RGB')
     
-    marginx = 0.01*d['width']
-    marginy = 0.01*d['height']
+    marginx = GOOD_BOUNDING_BOX_MIN_MARGINS * d['width']
+    marginy = GOOD_BOUNDING_BOX_MIN_MARGINS * d['height']
     
     ytop, ybtm, xleft, xright = getBorder(img)
-    allMargingGood = marginGood(b['x']-xleft, xright-xleft) and marginGood(xright-(b['x']+b['width']), xright-xleft) \
+    allMarginsGood = marginGood(b['x']-xleft, xright-xleft) and marginGood(xright-(b['x']+b['width']), xright-xleft) \
       and marginGood(b['y']-ytop, ybtm-ytop) and marginGood(ybtm-(b['y']+b['height']), ybtm-ytop)
     
-    fname = b['concept'].replace('"', '').replace('/', '').replace('.', '').replace(' ','_')+'_'+d['uuid']
-    img_saved = img.crop((xleft, ytop, xright, ybtm))
-    img_saved.save('data/imgs/'+fname+'.jpg')
+    fname = b['concept'].replace('"', '').replace('/', '').replace('.', '').replace(' ','_')+'_'+d['uuid']+'.jpg'
+    #img_saved = img.crop((xleft, ytop, xright, ybtm))
+    #img_saved.save('data/imgs/'+fname)
     
     
-    
-    if d['width'] - b['width'] < marginx*2 and d['height'] - b['height'] < marginy*2:
-        img_grey = cv2.cvtColor(numpy.array(img), cv2.COLOR_BGR2GRAY)
-        laplacian_image = cv2.Laplacian(img_grey, cv2.CV_64F)
-        img.save('data/imgs/'+fname+'-box.jpg')
-        return numpy.var(laplacian_image), fname, not allMargingGood
-    
-    box = img.crop((b['x'], b['y'], b['x']+b['width'], b['y']+b['height']))
-    
-    box_saved = img.crop((
+    box = img.crop((max(xleft, b['x']-marginx*2), b['y']+marginy, min(xright, b['x']+b['width']+marginx*2), b['y']+b['height']-marginy))
+    box_save = img.crop((
         max(xleft, b['x']-marginx), 
         max(ytop, b['y']-marginy), 
         min(xright, b['x']+b['width']+marginx), 
         min(ybtm, b['y']+b['height']+marginy),
     ))
-    box_saved.save('data/imgs/'+fname+'-box.jpg')
+    box_save.save('data/imgs/'+fname)
+
+    img_grey = cv2.cvtColor(numpy.array(box), cv2.COLOR_BGR2GRAY)
+    laplacian_image = cv2.Laplacian(img_grey, cv2.CV_64F)
+    variance = numpy.var(laplacian_image)
     
-    side = img.crop((b['x']-marginx*2, b['y'], b['x']-marginx, b['y']+b['height']))
-            
-    #side.save('data/imgs/'+fname+'-side.jpg')
-    
-    box = cv2.cvtColor(numpy.array(box), cv2.COLOR_BGR2GRAY)
-    side = cv2.cvtColor(numpy.array(side), cv2.COLOR_BGR2GRAY)
-    
-    return abs(box.mean() - side.mean()), fname, not allMargingGood
+    return variance, fname, not allMarginsGood
 
 
 def boundingBoxQualityScore(d, names):
@@ -110,13 +99,11 @@ def filterByBoundingBoxes(data, names):
             if b['uuid'] == scores[d['uuid']]['box_id']:
                 box = b
                 break
-        blurriness, fname, cutoff = getBlurriness(d, box)
-        scores[d['uuid']]['blurriness'] = blurriness
+        sharpness, fname, cutoff = getImageProperties(d, box)
+        scores[d['uuid']]['sharpness'] = sharpness
         scores[d['uuid']]['fname'] = fname
         scores[d['uuid']]['cutoff'] = cutoff
         
-
-    #data = [d for d in data if blurriness[d['uuid']] > MIN_BLUR]
     
     return data, scores
   
@@ -147,7 +134,7 @@ for concept in concepts:
         img['h'] = d['height']
         img['score'] = scores[d['uuid']]['score']
         img['cutoff'] = scores[d['uuid']]['cutoff']
-        img['blurriness'] = scores[d['uuid']]['blurriness']
+        img['sharpness'] = scores[d['uuid']]['sharpness']
         img['filename'] = scores[d['uuid']]['fname']
         for b in d['boundingBoxes']:
             if b['uuid'] == scores[d['uuid']]['box_id']:
