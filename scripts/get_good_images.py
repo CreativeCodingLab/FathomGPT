@@ -43,7 +43,10 @@ def getImageProperties(d, b):
     #img_saved.save('data/imgs/'+fname)
     
     
-    box = img.crop((max(xleft, b['x']-marginx*2), b['y']+marginy, min(xright, b['x']+b['width']+marginx*2), b['y']+b['height']-marginy))
+    if b['y']+marginy < b['y']+b['height']-marginy:
+        box = img.crop((max(xleft, b['x']-marginx*2), b['y']+marginy, min(xright, b['x']+b['width']+marginx*2), b['y']+b['height']-marginy))
+    else:
+        box = img.crop((max(xleft, b['x']-marginx*2), b['y'], min(xright, b['x']+b['width']+marginx*2), b['y']+b['height']))
     box_save = img.crop((
         max(xleft, b['x']-marginx), 
         max(ytop, b['y']-marginy), 
@@ -114,36 +117,45 @@ concepts = boundingboxes.find_concepts()[1:]
 f = open('data/good_images.json')
 good_imgs = {} 
 good_imgs = json.load(f)
+
+f = open('data/good_images_errors.json')
+errors = json.load(f)
+
 for concept in concepts:
     if concept in good_imgs:
         continue
         
     print(concept)
-    constraints = GeoImageConstraints(
-        concept=concept, 
-      )
-    data = images.find(constraints)
-    data = [d.to_dict() for d in data]
-    data, scores = filterByBoundingBoxes(data, [concept])
-    imgs = []
-    for d in data:
-        img = {}
-        img['id'] = d['uuid']
-        img['url'] = d['url']
-        img['w'] = d['width']
-        img['h'] = d['height']
-        img['score'] = scores[d['uuid']]['score']
-        img['cutoff'] = scores[d['uuid']]['cutoff']
-        img['sharpness'] = scores[d['uuid']]['sharpness']
-        img['filename'] = scores[d['uuid']]['fname']
-        for b in d['boundingBoxes']:
-            if b['uuid'] == scores[d['uuid']]['box_id']:
-                img['box'] = {'x': b['x'], 'y': b['y'], 'w': b['width'], 'h': b['height']}
-                break
-        if 'box' in img:
-            imgs.append(img)
-        
-    good_imgs[concept] = imgs
+    try:
+        constraints = GeoImageConstraints(
+            concept=concept, 
+          )
+        data = images.find(constraints)
+        data = [d.to_dict() for d in data]
+        data, scores = filterByBoundingBoxes(data, [concept])
+        imgs = []
+        for d in data:
+            img = {}
+            img['id'] = d['uuid']
+            img['url'] = d['url']
+            img['w'] = d['width']
+            img['h'] = d['height']
+            img['score'] = scores[d['uuid']]['score']
+            img['cutoff'] = scores[d['uuid']]['cutoff']
+            img['sharpness'] = scores[d['uuid']]['sharpness']
+            img['filename'] = scores[d['uuid']]['fname']
+            for b in d['boundingBoxes']:
+                if b['uuid'] == scores[d['uuid']]['box_id']:
+                    img['box'] = {'x': b['x'], 'y': b['y'], 'w': b['width'], 'h': b['height']}
+                    break
+            if 'box' in img:
+                imgs.append(img)
+            
+        good_imgs[concept] = imgs
 
-    with open("data/good_images.json", "w") as outfile:
-        json.dump(good_imgs, outfile)
+        with open("data/good_images.json", "w") as outfile:
+            json.dump(good_imgs, outfile)
+    except:
+        errors.append(concept)
+        with open("data/good_images_errors.json", "w") as outfile:
+            json.dump(errors, outfile)
