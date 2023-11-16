@@ -404,7 +404,7 @@ def noNulls(r):
 def postprocess(results, limit, prompt, sql):
     #print(results[0])
     if not isinstance(results, list) or len(results) == 0 or 'url' not in results[0]:
-        return results
+        return results, False
     
     deduped = []
     urls = []
@@ -432,7 +432,7 @@ def postprocess(results, limit, prompt, sql):
         data.extend([findByURL(url, imgs) for url in urls])
     data = [d for d in data if d is not None]
     if len(data) == 0:
-        return results
+        return results, False
     
 
     #print(prompt)
@@ -461,6 +461,6 @@ def postprocess(results, limit, prompt, sql):
         random.shuffle(results)
 
     if limit == -1 and len(results) > 10:
-        return results[:10]
+        return results[:10], True
         
-    return results
+    return results, True
