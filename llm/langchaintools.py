@@ -187,11 +187,12 @@ def GetSQLResult(query:str):
         content = ''.join(str(row[0]) for row in rows)
         print(content)
 
+
         if content:
             try:
                 # Try to load the content string as JSON
+
                 decoded = json.loads(content)
-                print(decoded)
                 # Check if decoded is a JSON structure (dict or list)
                 if isinstance(decoded, (dict, list)):
                     output = decoded
@@ -244,6 +245,7 @@ def generateSQLQuery(
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
                 If the prompt is asking about multiple species draft the sql to query for a list of species.
                 If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
+                If you are outputing individual images, it must be a json
 
                 Output only the sql query. Prompt: """ + prompt)
     ])
@@ -508,7 +510,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
-    
     if(isSpeciesData):
         #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
