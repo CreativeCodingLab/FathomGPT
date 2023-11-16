@@ -335,7 +335,7 @@ availableFunctions = [{
     },
 },{
     "name": "generateSQLQuery",
-    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. If the prompt refers to something above using words like their, its,etc. you must generate prompt with the context of species",
+    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -415,7 +415,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 smessage["content"]=smessage["content"][:200]+"...\n"
-    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
+    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. The tools do not have previous memory. So do not use words like their, its in the input to the tools. Prompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -545,13 +545,15 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             summaryPromptResponse["outputType"] = 'image'
         if result!=None and len(result) > 0 and 'taxonomy' in result[0]:
             summaryPromptResponse["outputType"] = 'taxonomy'
-
+  
         output = {
             "outputType": summaryPromptResponse["outputType"],
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
-    
+    if summaryPromptResponse["outputType"] == 'image' and result == None:
+        output["outputType"] = 'text' 
+        output["responseText"] = 'No data found in the database' 
     if(isSpeciesData):
         #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
@@ -562,6 +564,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
         #            computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
+
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
             output["species"] = result
