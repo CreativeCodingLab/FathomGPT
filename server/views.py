@@ -60,7 +60,7 @@ class MainObjectViewSet(viewsets.ModelViewSet):
 
 def event_stream(new_question, messages, isEventStream, db_obj):
     while True:
-        yield from run_prompt(new_question, messages, isEventStream=isEventStream, db_ob = db_obj)
+        yield from run_prompt(new_question, messages, isEventStream=isEventStream, db_obj = db_obj)
         time.sleep(10)
         break
 
