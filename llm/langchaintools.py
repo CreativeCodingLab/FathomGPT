@@ -322,7 +322,7 @@ availableFunctions = [{
     },
 },{
     "name": "generateSQLQuery",
-    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
+    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. If the prompt refers to something above using words like their, its,etc. you must generate prompt with the context of species",
     "parameters": {
         "type": "object",
         "properties": {
@@ -383,14 +383,11 @@ availableFunctionsDescription = {
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
-    modifiedMessages = []
     for smessage in messages:
-        if type(modifiedMessages["content"]) is not str:
-            modifiedMessages["content"] = str(modifiedMessages["content"])
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
-                modifiedMessages["content"]=smessage["content"][:200]+"...\n"
-    modifiedMessages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
+                smessage["content"]=smessage["content"][:200]+"...\n"
+    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. Prompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -406,7 +403,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         curLoopCount+=1
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-0613",
-            messages=modifiedMessages,
+            messages=messages,
             functions=availableFunctions,
             function_call="auto",
             temperature=0,
@@ -460,7 +457,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                         result = result[:limit]
                     break
                 else:
-                    modifiedMessages.append({"role":"function","content":result,"name": function_name})
+                    messages.append({"role":"function","content":result,"name": function_name})
                     #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
                     #response2 = openai.ChatCompletion.create(
                     #    model="gpt-3.5-turbo-0613",
@@ -546,7 +543,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         
     if isEventStream:
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-
+        output['guid']=str(db_obj.id)
         event_data = {
             "result": output
         }
