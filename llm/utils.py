@@ -312,7 +312,8 @@ def get_normalized(name):
     
 def isNameAvaliable(concept):
     concepts = boundingboxes.find_concepts()
-    return concept in concepts
+    concepts = [c.lower() for c in concepts]
+    return concept.lower() in concepts
 
 def similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
