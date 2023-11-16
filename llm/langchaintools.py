@@ -221,7 +221,7 @@ def generateSQLQuery(
     scientificNames: str,
     name: str,
 ) -> str:
-    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
+    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. This tools has no memory of it's own so you must modify the prompt removing the indirect relaion like "its" with the subject name based on previous prompt
     """
     
     if len(name) > 1:
@@ -386,7 +386,8 @@ availableFunctionsDescription = {
 def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
     modifiedMessages = []
-    for smessage in modifiedMessages:
+    print(modifiedMessages)
+    for smessage in messages:
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 modifiedMessages["content"]=smessage["content"][:200]+"...\n"
@@ -532,6 +533,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         
     if isEventStream:
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+        output['guid'] = str(db_obj.id)
 
         event_data = {
             "result": output
