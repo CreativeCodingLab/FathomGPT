@@ -63,22 +63,24 @@ for c in concepts:
     if c in taxonomy:
         continue
         
-    print(c)
-    descendants = filterUnavailableDescendants(findDescendants(c, species_only=False))
-    ancestors = findAncestors(c)
-    
-    rank = ""
-    for d in descendants:
-        if d.rank and d.name.lower() == c.lower():
-            rank = d.rank
-    
-    descendants = [{'name': d.name, 'rank': getRank(d.rank), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != c.lower()]
-    ancestors = [{'name': d.name, 'rank': getRank(d.rank)} for d in ancestors]
-    ancestors.reverse()
-    
-    taxonomy[c] = {'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}}
-    
+    try:
+        print(c, flush=True)
+        descendants = filterUnavailableDescendants(findDescendants(c, species_only=False))
+        ancestors = findAncestors(c)
+        
+        rank = ""
+        for d in descendants:
+            if d.rank and d.name.lower() == c.lower():
+                rank = d.rank
+        
+        descendants = [{'name': d.name, 'rank': getRank(d.rank), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != c.lower()]
+        ancestors = [{'name': d.name, 'rank': getRank(d.rank)} for d in ancestors]
+        ancestors.reverse()
+        
+        taxonomy[c] = {'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}}
+        
 
-    with open("data/taxonomy.json", "w") as outfile:
-        json.dump(taxonomy, outfile)
-
+        with open("data/taxonomy.json", "w") as outfile:
+            json.dump(taxonomy, outfile)
+    except:
+        print('error', flush=True)
