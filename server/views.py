@@ -58,9 +58,9 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         return Response({'guid': str(main_object.id), 'response': new_answer}, status=status.HTTP_200_OK)
     
 
-def event_stream(new_question, messages, isEventStream):
+def event_stream(new_question, messages, isEventStream, db_obj):
     while True:
-        yield from run_prompt(new_question, messages, isEventStream=isEventStream)
+        yield from run_prompt(new_question, messages, isEventStream=isEventStream, db_ob = db_obj)
         time.sleep(10)
         break
 
@@ -91,10 +91,10 @@ class PostStreamView(View):
         else:
             main_object = MainObject.objects.create()
 
-        #Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
+        #
 
         print("generating response")
-        response = StreamingHttpResponse(event_stream(new_question, messages, True))#
+        response = StreamingHttpResponse(event_stream(new_question, messages, True, main_object))#
         response['Cache-Control'] = 'no-cache'
         response['Content-Type'] = 'text/event-stream'
         return response
