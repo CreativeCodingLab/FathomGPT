@@ -6,8 +6,8 @@ import json
 def run_chatgpt(prompt, messages):
     return run_prompt_chatgpt(prompt, messages)
 
-def run_langchain(prompt, messages, isEventStream):
-    return get_Response(prompt, messages, isEventStream)
+def run_langchain(prompt, messages, isEventStream, db_obj):
+    return get_Response(prompt, messages, isEventStream, db_obj)
 
 def run_prompt(prompt, messages=[], llmtype=LLM_TYPE, isEventStream=False, db_obj=None):
     if llmtype == 'chatgpt':
