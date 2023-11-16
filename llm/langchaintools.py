@@ -15,6 +15,7 @@ from openai.embeddings_utils import get_embedding, cosine_similarity
 import pymssql
 import re
 import time
+from server.models import Interaction
 
 from langchain.tools.base import StructuredTool
 from langchain.chat_models import ChatOpenAI
@@ -177,18 +178,20 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
-        
+        print(query)
         cursor.execute(query)
 
         rows = cursor.fetchall()
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
+        print(content)
 
         if content:
             try:
                 # Try to load the content string as JSON
                 decoded = json.loads(content)
+                print(decoded)
                 # Check if decoded is a JSON structure (dict or list)
                 if isinstance(decoded, (dict, list)):
                     output = decoded
@@ -205,7 +208,7 @@ def GetSQLResult(query:str):
                     output = None
         else:
             output = None
-    except:
+    except Exception as e:
         print("Error processing sql server response")
         output = query
 
@@ -378,7 +381,7 @@ availableFunctionsDescription = {
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
-def get_Response(prompt, messages=[], isEventStream=False):
+def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
     modifiedMessages = []
     for smessage in modifiedMessages:
@@ -506,7 +509,7 @@ def get_Response(prompt, messages=[], isEventStream=False):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
-
+    
     if(isSpeciesData):
         #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
@@ -527,6 +530,8 @@ def get_Response(prompt, messages=[], isEventStream=False):
         output["table"] = result
         
     if isEventStream:
+        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+
         event_data = {
             "result": output
         }
@@ -563,8 +568,8 @@ def get_Response(prompt, messages=[], isEventStream=False):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
-for v in get_Response("Find me images of Aurelia Aurita", isEventStream=True):
-    print(v)
+#for v in get_Response("Find me images of moon jellyfish from Pacific Ocean", isEventStream=True):
+#    print(v)
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
 
