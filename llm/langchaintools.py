@@ -43,28 +43,22 @@ def getTaxonomyTree(
 ) -> list:
     """Function to get the taxonomy tree contain the names and taxonomic ranks of the ancestors and descendants for a scientific name. 
     ONLY return a machine-readable JSON object, and nothing more."""
-    descendants = filterUnavailableDescendants(findDescendants(scientificName, species_only=False))
-    ancestors = findAncestors(scientificName)
     
-    rank = ""
-    for d in descendants:
-        if d.name.lower() == scientificName.lower():
-            rank = d.rank
-    
-    descendants = [{'name': d.name, 'rank': d.rank.lower(), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != scientificName.lower()]
-    ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
-    ancestors.reverse()
-    
-    taxonomy = {'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}}
-    print(taxonomy)
-    
-    return json.dumps(taxonomy)
+    taxonomy = {}
+    with open("data/taxonomy.json") as f:
+        taxonomy = json.load(f)
+    if scientificName in taxonomy:
+        taxonomy = taxonomy[scientificName]
+        taxonomy['concept'] = scientificName
+        print(taxonomy)
+        return json.dumps(taxonomy)
+    return "{}"
 
 
 def getTaxonomicRelatives(
     scientificName: str
 ) -> list:
-    """Function to get the taxonomic relatives for a scientific name."""
+    """Function to get the taxonomic relatives for a scientific name."""  
     relatives = findRelatives(scientificName)
     relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
     
@@ -626,6 +620,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 #for v in get_Response("What is the total number of images of Startfish in Monterey bay in the database", isEventStream=True):
 #for v in get_Response("What are the ancestors of moon jelly", isEventStream=True):
 #for v in get_Response("What species belong to the genus Aurelia", isEventStream=True):
+#for v in get_Response("Show me the taxonomy of moon jelly", isEventStream=True):
 #    print(v)
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
