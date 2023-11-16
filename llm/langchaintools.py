@@ -52,7 +52,23 @@ def getTaxonomyTree(
         taxonomy['concept'] = scientificName
         #print(taxonomy)
         return json.dumps(taxonomy)
-    return "{}"
+    
+    descendants = filterUnavailableDescendants(findDescendants(scientificName, species_only=False))
+    ancestors = findAncestors(scientificName)
+
+    rank = ""
+    for d in descendants:
+        if d.name.lower() == scientificName.lower():
+            rank = d.rank
+
+    descendants = [{'name': d.name, 'rank': d.rank.lower(), 'parent': getParent(d.name)} for d in descendants if d.name.lower() != scientificName.lower()]
+    ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
+    ancestors.reverse()
+
+    taxonomy = {'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}}
+    print(taxonomy)
+
+    return json.dumps(taxonomy)
 
 
 def getTaxonomicRelatives(
