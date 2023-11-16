@@ -401,10 +401,10 @@ def noNulls(r):
             return False
     return True
 
-def postprocess(results, limit, prompt, sql):
+def postprocess(results, limit, prompt, sql, isSpeciesData):
     #print(results[0])
     if not isinstance(results, list) or len(results) == 0 or 'url' not in results[0]:
-        return results, False
+        return results, isSpeciesData
     
     deduped = []
     urls = []
@@ -432,7 +432,7 @@ def postprocess(results, limit, prompt, sql):
         data.extend([findByURL(url, imgs) for url in urls])
     data = [d for d in data if d is not None]
     if len(data) == 0:
-        return results, False
+        return results, isSpeciesData
     
 
     #print(prompt)
