@@ -60,6 +60,9 @@ with open("data/taxonomy.json") as outfile:
     taxonomy = json.load(outfile)
 
 for c in concepts:
+    if c in taxonomy:
+        continue
+        
     print(c)
     descendants = filterUnavailableDescendants(findDescendants(c, species_only=False))
     ancestors = findAncestors(c)
