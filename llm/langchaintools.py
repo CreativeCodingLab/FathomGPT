@@ -486,7 +486,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
     try:
-        print(summerizerResponse["choices"][0]["message"]["content"])
         summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
         output = {
             "outputType": summaryPromptResponse["outputType"],
@@ -520,6 +519,10 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
         #            computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
+        if(result==None):
+            output["outputType"] = "text"
+            output["responseText"] = "No data found in the database"
+        
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
             output["species"] = result
