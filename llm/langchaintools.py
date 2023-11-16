@@ -385,7 +385,9 @@ availableFunctionsDescription = {
 def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
     modifiedMessages = []
-    for smessage in modifiedMessages:
+    for smessage in messages:
+        if type(modifiedMessages["content"]) is not str:
+            modifiedMessages["content"] = str(modifiedMessages["content"])
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 modifiedMessages["content"]=smessage["content"][:200]+"...\n"
