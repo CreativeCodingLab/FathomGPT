@@ -185,14 +185,13 @@ def GetSQLResult(query:str):
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
-        print(content)
-
+        #print(content)
 
         if content:
             try:
                 # Try to load the content string as JSON
-
                 decoded = json.loads(content)
+                #print(decoded)
                 # Check if decoded is a JSON structure (dict or list)
                 if isinstance(decoded, (dict, list)):
                     output = decoded
@@ -221,7 +220,7 @@ def generateSQLQuery(
     scientificNames: str,
     name: str,
 ) -> str:
-    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. This tools has no memory of it's own so you must modify the prompt removing the indirect relaion like "its" with the subject name based on previous prompt
+    """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
     
     if len(name) > 1:
@@ -245,7 +244,6 @@ def generateSQLQuery(
                 If the prompt is asking about species or images of individual species, draft the sql in such a way that it generates json array containing the species data. Species data must contain species concept and bounding box id as id.
                 If the prompt is asking about multiple species draft the sql to query for a list of species.
                 If the prompt is asking about creatures found in the same image as a species, return sql to find images of the species instead.
-                If you are outputing individual images, it must be a json
 
                 Output only the sql query. Prompt: """ + prompt)
     ])
@@ -446,7 +444,20 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                         }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
+                    
+                    sql = result
+                    if result.strip().startswith('SELECT '):
+                        limit, result = changeNumberToFetch(result)
                     isSpeciesData, result = GetSQLResult(result)
+                    
+                    try:
+                        result = postprocess(result, limit, prompt, sql)
+                    except:
+                        print('postprocessing error')
+                        pass
+
+                    if limit != -1 and limit < len(result) and isinstance(result, list):
+                        result = result[:limit]
                     break
                 else:
                     modifiedMessages.append({"role":"function","content":result,"name": function_name})
@@ -490,6 +501,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
     try:
+        print(summerizerResponse["choices"][0]["message"]["content"])
         summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
         output = {
             "outputType": summaryPromptResponse["outputType"],
@@ -512,6 +524,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
+    
     if(isSpeciesData):
         #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
@@ -522,10 +535,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
         #            computedTaxonomicConcepts.append(specimen["concept"])
         output["species"] = result
-        if(result==None):
-            output["outputType"] = "text"
-            output["responseText"] = "No data found in the database"
-        
     elif(summaryPromptResponse["outputType"]=="taxonomy"):
         if(isinstance(result, list)):
             output["species"] = result
@@ -537,7 +546,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         
     if isEventStream:
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-        output['guid'] = str(db_obj.id)
 
         event_data = {
             "result": output
@@ -575,7 +583,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
-#for v in get_Response("Find me images of moon jellyfish from Pacific Ocean", isEventStream=True):
+#for v in get_Response("Find me images of moon jellyfish", isEventStream=True):
 #    print(v)
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]

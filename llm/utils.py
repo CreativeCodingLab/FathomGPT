@@ -416,50 +416,46 @@ def postprocess(results, limit, prompt, sql):
 
     results = [r for r in results if noNulls(r)]
 
-    try:
-        concepts = boundingboxes.find_concepts()[1:]
-        concepts = [c for c in concepts if sql.count(c) > 0]
-        if 'concept' in results[0]:
-            concepts = set([d['concept'] for d in results if d['concept'] in concepts])
-        urls = {d['url']:'' for d in results}
-        
-        #print(concepts)
-        
-        data = []
-        for concept in concepts:
-            constraints = GeoImageConstraints(concept=concept)
-            imgs = images.find(constraints)
-            imgs = [d.to_dict() for d in imgs]
-            data.extend([findByURL(url, imgs) for url in urls])
-        data = [d for d in data if d is not None]
-        if len(data) == 0:
-            return results
-        
+    concepts = boundingboxes.find_concepts()[1:]
+    concepts = [c for c in concepts if sql.count(c) > 0]
+    if 'concept' in results[0]:
+        concepts = set([d['concept'] for d in results if d['concept'] in concepts])
+    urls = {d['url']:'' for d in results}
+    
+    #print(concepts)
+    
+    data = []
+    for concept in concepts:
+        constraints = GeoImageConstraints(concept=concept)
+        imgs = images.find(constraints)
+        imgs = [d.to_dict() for d in imgs]
+        data.extend([findByURL(url, imgs) for url in urls])
+    data = [d for d in data if d is not None]
+    if len(data) == 0:
+        return results
+    
 
-        #print(prompt)
-        chatResponse = run_chatgpt(prompt)
-        props = json.loads(chatResponse.choices[0].message.function_call.arguments)
-        #print(props)
-        
-        data, metadata = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
-        
-        
-        #print(json.dumps(data[:5]))
+    #print(prompt)
+    chatResponse = run_chatgpt(prompt)
+    props = json.loads(chatResponse.choices[0].message.function_call.arguments)
+    #print(props)
+    
+    data, metadata = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
+    
+    
+    #print(json.dumps(data[:5]))
 
-        urls = {d['url']: '' for d in data}
-        results = [findByURL(url, results) for url in urls]
-        results = [r for r in results if r is not None]
-        
-        if getProp(props, 'findOtherSpecies') and 'others' in metadata:
-            for r in results:
-                d = findByURL(r['url'], data)
-                for b in d['boundingBoxes']:
-                    if b['concept'] in metadata['others']:
-                        r['concept'] = b['concept']
-                        break
-    except:
-        print('postprocessing error2')
-        pass
+    urls = {d['url']: '' for d in data}
+    results = [findByURL(url, results) for url in urls]
+    results = [r for r in results if r is not None]
+    
+    if getProp(props, 'findOtherSpecies') and 'others' in metadata:
+        for r in results:
+            d = findByURL(r['url'], data)
+            for b in d['boundingBoxes']:
+                if b['concept'] in metadata['others']:
+                    r['concept'] = b['concept']
+                    break
     
     if getProp(props, 'orderedBy') == 'random':
         random.shuffle(results)
