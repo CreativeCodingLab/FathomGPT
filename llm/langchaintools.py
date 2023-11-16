@@ -55,7 +55,10 @@ def getTaxonomyTree(
     ancestors = [{'name': d.name, 'rank': d.rank.lower()} for d in ancestors]
     ancestors.reverse()
     
-    return json.dumps({'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}})
+    taxonomy = {'concept': scientificName, 'rank': rank.lower(), 'taxonomy': {'descendants': descendants, 'ancestors': ancestors}}
+    print(taxonomy)
+    
+    return json.dumps(taxonomy)
 
 
 def getTaxonomicRelatives(
@@ -65,7 +68,11 @@ def getTaxonomicRelatives(
     relatives = findRelatives(scientificName)
     relatives = [d.name for d in relatives if d.name.lower() != scientificName.lower()]
     
-    return json.dumps({'concept': scientificName, 'relatives': relatives})
+    taxonomy = {'concept': scientificName, 'relatives': relatives}
+    print(taxonomy)
+    
+    return json.dumps(taxonomy)
+    
 
 def getRelativesString(results):
     out = ''
@@ -471,6 +478,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                         yield sse_data
                     
                     sql = result
+                    limit = -1
                     if result.strip().startswith('SELECT '):
                         limit, result = changeNumberToFetch(result)
                     isSpeciesData, result = GetSQLResult(result)
