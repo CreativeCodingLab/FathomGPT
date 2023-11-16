@@ -511,7 +511,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
-    print("species dataaaaaaaaaaaaaaaaaaaaaaaaaaaa",isSpeciesData)
     if(isSpeciesData):
         #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
         #if isinstance(result, dict) or isinstance(result, list):
