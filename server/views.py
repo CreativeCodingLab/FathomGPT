@@ -37,10 +37,12 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         guid = request.data.get('guid')
         new_question = request.data.get('question')
 
+        main_object=None
         try:
             main_object = MainObject.objects.get(id=guid)
         except MainObject.DoesNotExist:
             return Response({'status': 'GUID not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
         messages = []
 
@@ -72,7 +74,6 @@ class PostStreamView(View):
 
 
         main_object = None
-        new_answer = None
         messages = []
         if(guid != None):
             try:
