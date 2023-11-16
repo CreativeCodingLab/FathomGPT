@@ -389,7 +389,7 @@ availableFunctions = [{
     },
 },{
     "name": "getAnswer",
-    "description": "Function for questions about a species where the answer is a short string. DO NOT use this tool for fetching images, taxonomy or generating charts.",
+    "description": "This tool has general knowledge about the world. Use this tool for questions about a species. DO NOT use this tool for fetching images, taxonomy or generating charts.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -422,7 +422,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 smessage["content"]=smessage["content"][:200]+"...\n"
-    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. The tools do not have previous memory. So do not use words like their, its in the input to the tools. Prompt:"+prompt})
+    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. Prompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -482,7 +482,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                     if result.strip().startswith('SELECT '):
                         limit, result = changeNumberToFetch(result)
                     isSpeciesData, result = GetSQLResult(result)
-                    
+                    print("got data from db")
                     
                     try:
                         result, isSpeciesData = postprocess(result, limit, prompt, sql, isSpeciesData)
@@ -536,14 +536,14 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
     try:
-        print(summerizerResponse["choices"][0]["message"]["content"])
         summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
         output = {
             "outputType": summaryPromptResponse["outputType"],
             "responseText": summaryPromptResponse["summary"],
         }
-        if("vegaSchema" in summaryPromptResponse):
+        if(summaryPromptResponse["outputType"] == "vegaLite"):
             output["vegaSchema"] = summaryPromptResponse["vegaSchema"]
+            output["vegaSchema"]["data"]["values"] = result
 
     except:
         print('summerizer failed')
