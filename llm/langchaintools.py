@@ -141,15 +141,16 @@ def getScientificNamesFromDescription(
 
         if len(description) == 0:
             description = name
+    
+    if len(results) == 0:
+        desc = list(set(name.split(' ') + description.split(' ')))
+        if len(description) > 0:
+            desc.append(description)
+        desc = list(set([d for d in desc if len(d)>0]))
             
-    desc = list(set(name.split(' ') + description.split(' ')))
-    if len(description) > 0:
-        desc.append(description)
-    desc = list(set([d for d in desc if len(d)>0]))
-        
-    print(desc)
-    for d in desc:
-        results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
+        print(desc)
+        for d in desc:
+            results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
     
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))
@@ -163,6 +164,15 @@ def getScientificNamesFromDescription(
     
     return "anything"
 
+
+def getAnswer(
+    question: str,
+) -> list:
+    """Function for questions about the features of a species.
+    DO NOT use this tool for fetching images, taxonomy or generating charts"""
+    print("question: "+question)
+    return ""
+    
 
 # ==== SQL database query ====
 
@@ -273,8 +283,10 @@ def initLangchain(messages=[]):
         #genTool(GetSQLResult),
         genTool(getTaxonomyTree),
         genTool(getTaxonomicRelatives),
+        genTool(getAnswer),
         #genTool(getOtherCreaturesInImage),
-        #genTool(getImageQualityScore)
+        #genTool(getImageQualityScore),
+        
     ]
 
 
@@ -368,6 +380,19 @@ availableFunctions = [{
         },
         "required": ["scientificName"],
     },
+},{
+    "name": "getAnswer",
+    "description": "Function for questions about a species where the answer is a short string. DO NOT use this tool for fetching images, taxonomy or generating charts.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "question": {
+                "type": "string",
+                "description": "A question with a short and simple answer",
+            },
+        },
+        "required": ["question"],
+    },
 }
 ]
 
@@ -379,6 +404,8 @@ availableFunctionsDescription = {
     "getTaxonomyTree": "Getting the taxonomy tree",
     
     "getTaxonomicRelatives": "Getting taxonomic relatives",
+    
+    "getAnswer": "Getting answer.",
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
@@ -586,7 +613,11 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
-#for v in get_Response("Find me images of moon jelly from Pacific Ocean", isEventStream=True):
+#for v in get_Response("Find me images of moon jelly", isEventStream=True):
+#for v in get_Response("What color is moon jelly", isEventStream=True):
+#for v in get_Response("What is the total number of images of Startfish in Monterey bay in the database", isEventStream=True):
+#for v in get_Response("What are the ancestors of moon jelly", isEventStream=True):
+#for v in get_Response("What species belong to the genus Aurelia", isEventStream=True):
 #    print(v)
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
