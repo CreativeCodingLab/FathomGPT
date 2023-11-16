@@ -422,18 +422,22 @@ def postprocess(results, limit, prompt, sql, isSpeciesData):
         concepts = set([d['concept'] for d in results if d['concept'] in concepts])
     urls = {d['url']:'' for d in results}
     
-    #print(concepts)
-    
     data = []
     for concept in concepts:
-        constraints = GeoImageConstraints(concept=concept)
-        imgs = images.find(constraints)
-        imgs = [d.to_dict() for d in imgs]
-        data.extend([findByURL(url, imgs) for url in urls])
+        try:
+            with open("data/fathomnet/"+concept+".json") as f:
+                imgs = json.load(f)
+        except:
+            continue
+
+        for url in urls:
+            for r in imgs:
+                if r['url'] == url:
+                    data.append(r)
+                    
     data = [d for d in data if d is not None]
     if len(data) == 0:
         return results, isSpeciesData
-    
 
     #print(prompt)
     chatResponse = run_chatgpt(prompt)
@@ -441,7 +445,6 @@ def postprocess(results, limit, prompt, sql, isSpeciesData):
     #print(props)
     
     data, metadata = filterByBoundingBoxes(data, concepts, getProp(props, 'includeGood'), getProp(props, 'findBest'), getProp(props, 'findWorst'), getProp(props, 'findOtherSpecies'), getProp(props, 'excludeOtherSpecies'))
-    
     
     #print(json.dumps(data[:5]))
 
