@@ -521,7 +521,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                    If the output is vegaLite, you must generate the schema
         
         {
-            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, use table when the data can be respresented as rows and column and when it can be listed out
+            "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, must use "heatmap" as outputType when input says heatmap, use table when the data can be respresented as rows and column and when it can be listed out
             "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
             "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
             }
@@ -529,6 +529,8 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 
         """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
     )
+
+        
     try:
         summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
         output = {
@@ -553,6 +555,9 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             "responseText": 'Here are the results',
             "vegaSchema": '',
         }
+    if "heatmap" in prompt:
+        summaryPromptResponse["outputType"] = "heatmap"
+
     if summaryPromptResponse["outputType"] == 'image' and result == None:
         output["outputType"] = 'text' 
         output["responseText"] = 'No data found in the database' 
