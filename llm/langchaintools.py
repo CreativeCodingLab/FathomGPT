@@ -192,14 +192,15 @@ def getAnswer(
     DO NOT use this tool for fetching images, taxonomy or generating charts"""
     print("question: "+question)
 
-    response = openai.ChatCompletion.create(
+    """ response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-0613",
             messages=[{"role":"system","content":"answer the user's question"},{"role":"user","content":question}],
             function_call="auto",
             temperature=0,
 
         )
-    return response["choices"][0]["message"]
+    return response["choices"][0]["message"] """
+    return ""
     
 
 # ==== SQL database query ====
