@@ -1,0 +1,34 @@
+{
+	"outputType": "text",
+	"textResponse": "Certainly, here is a text repsponse.  I am now just typing for extra length to get a good sense of what text would like like wrapped on multiple lines.  Now I will type some nonsense for length: iuoifou auwdd oudhauwdhadhn owudjawud owdjouj ojo jojojrefj 00djoifj o joj oj eofjo f lorem ipsum would be easier",
+	"species": [
+        {
+            "id": 0,
+            "name": "species name",
+            "url": "image url",
+            "taxonomy": [],
+            "created_timestamp": "timestamp",
+            "depth_meters": "really deep",
+            "imaging_type": "drone camera",
+            "last_updated_timestamp": "recently",
+            "last_validation": "recently",
+            "latitude": "5",
+            "longitude": "10",
+            "media_type": "image",
+            "submitter": "me",
+            "timestamp": "now",
+            "valid": "yes",
+            "contributors_email": "tcluff@purdue.edu",
+            "altitude": "high",
+            "oxygen_ml_l": "lots of oxygen",
+            "pressure_dbar": "dense air",
+            "salinity": "salty",
+            "temperature_celsius": "room temp",
+            "x": 0,
+            "y": 0,
+            "width": 50,
+            "height": 100
+        }
+    ],
+	"table": []
+}
