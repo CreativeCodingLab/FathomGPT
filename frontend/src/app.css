@@ -1,0 +1,38 @@
+:root {
+	--background-dark: #28315A;
+	--accent-dark: #000000;
+	--mid: #6689DC;
+	--background-light: #89BAD1;
+	--accent-light: #C1DBE3;
+	--highlight: #37A8CE;
+}
+
+* {
+	margin: 0px;
+	padding: 0px;
+	box-sizing: border-box;
+	overscroll-behavior: none;
+	font-family: 'Roboto', sans-serif;
+}
+
+body {
+	background-color: var(--background-dark);
+}
+
+/* Styles the scrollbar itself */
+::-webkit-scrollbar {
+	width: 12px; /* Width of the vertical scrollbar */
+	height: 12px; /* Height of the horizontal scrollbar */
+}
+
+/* Styles the track (progress bar) of the scrollbar */
+::-webkit-scrollbar-track {
+	background: lightgrey; /* Color of the track */
+}
+
+/* Styles the handle (thumb) of the scrollbar */
+::-webkit-scrollbar-thumb {
+	background-color: darkgrey; /* Color of the thumb */
+	border-radius: 6px; /* Rounded corners on the thumb */
+	border: 3px solid lightgrey; /* Creates a border inside the track */
+}
