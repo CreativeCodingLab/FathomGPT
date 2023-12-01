@@ -191,7 +191,15 @@ def getAnswer(
     """Function for questions about the features of a species.
     DO NOT use this tool for fetching images, taxonomy or generating charts"""
     print("question: "+question)
-    return ""
+
+    response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0613",
+            messages=[{"role":"system","content":"answer the user's question"},{"role":"user","content":question}],
+            function_call="auto",
+            temperature=0,
+
+        )
+    return response["choices"][0]["message"]
     
 
 # ==== SQL database query ====
@@ -457,6 +465,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             temperature=0,
 
         )
+        sqlQuery=None
         response_message = response["choices"][0]["message"]
         if(response_message.get("function_call")):
             function_name = response_message["function_call"]["name"]
@@ -483,17 +492,13 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                     yield sse_data
                 result = function_to_call(**args)
                 if(function_name=="generateSQLQuery"):
-                    if isEventStream:
-                        event_data = {
-                            "message": "Querying database"
-                        }
-                        sse_data = f"data: {json.dumps(event_data)}\n\n"
-                        yield sse_data
+
                     
                     sql = result
                     limit = -1
                     if result.strip().startswith('SELECT '):
                         limit, result = changeNumberToFetch(result)
+                    sqlQuery = result
                     isSpeciesData, result = GetSQLResult(result)
                     print("got data from db")
                     
@@ -506,6 +511,13 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                     if result and limit != -1 and limit < len(result) and isinstance(result, list):
                         result = result[:limit]
                     print('isSpeciesData: '+str(isSpeciesData))
+
+                    if isEventStream:
+                        event_data = {
+                            "message": "Querying database...                             SQL Query:"+sqlQuery
+                        }
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
                     break
                 else:
                     messages.append({"role":"function","content":result,"name": function_name})
