@@ -20,9 +20,9 @@
 		const userInput = new UserInput({ target: container, props: { text: inputtedText } });
 		window.scrollTo(0, document.body.scrollHeight);
 
-		let request = `${URL}?question=${inputtedText}`
+		let request = `${URL}?question=${inputtedText}`;
 		if (guid !== null) {
-			request += `&guid=${guid}`
+			request += `&guid=${guid}`;
 		}
 		const eventSource = new EventSource(request);
 		eventSource.addEventListener('message', (event: MessageEvent) => {
@@ -44,13 +44,16 @@
 		
 		if(eventData.message != undefined || eventData.message != null) {
 			if(updateBox != null) {
+				//@ts-ignore
 				updateBox.$destroy();
 			}
+			//@ts-ignore
 			updateBox = handleText(container, eventData.message);
 		}
 		if(eventData.result != undefined) {
 			console.log(eventData.result)
 			guid = eventData.result.guid
+			//@ts-ignore
 			updateBox.$destroy();
 			console.log("Output type: ",eventData.result.outputType);
 			switch (eventData.result.outputType) {
