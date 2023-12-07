@@ -434,7 +434,7 @@ availableFunctionsDescription = {
     
     "getTaxonomicRelatives": "Getting taxonomic relatives",
     
-    "getAnswer": "Getting answer.",
+    "getAnswer": "Getting answer from ChatGPT.",
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
