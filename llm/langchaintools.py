@@ -35,7 +35,6 @@ os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
 
-
 # ==== Taxonomy ====
 
 def getTaxonomyTree(
@@ -434,7 +433,7 @@ availableFunctionsDescription = {
     
     "getTaxonomicRelatives": "Getting taxonomic relatives",
     
-    "getAnswer": "Getting answer.",
+    "getAnswer": "Getting answer from ChatGPT.",
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
@@ -448,6 +447,11 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     isSpeciesData = False
     result = None
     curLoopCount = 0
+    allResultsCsv = []
+    allResults = {}
+    if SAVE_INTERMEDIATE_RESULTS:
+        with open('data/intermediate_results.json') as f:
+            allResultsCsv = json.load(f)
 
     if isEventStream:
         event_data = {
@@ -485,13 +489,18 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                             pass
             function_to_call = globals().get(function_name)
             if function_to_call:
+                result = function_to_call(**args)
                 if isEventStream:
                     event_data = {
-                        "message": availableFunctionsDescription[function_name]
+                        "message": availableFunctionsDescription[function_name],
                     }
+                    if isinstance(result, str):
+                        event_data["message"] = event_data["message"]+":\n"+result
+                        allResults[function_name] = result
+                    print(event_data)
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
-                result = function_to_call(**args)
+                
                 if(function_name=="generateSQLQuery"):
 
                     
@@ -589,6 +598,9 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         }
     if "heatmap" in prompt:
         summaryPromptResponse["outputType"] = "heatmap"
+    
+    if "getScientificNamesFromDescription" in allResults and "getAnswer" not in allResults:
+        output["responseText"] = output["responseText"] + "\nScentific names: " + allResults["getScientificNamesFromDescription"]
 
     if summaryPromptResponse["outputType"] == 'image' and result == None:
         output["outputType"] = 'text' 
@@ -627,12 +639,24 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 
     formatted_time = "{:.2f}".format(time_taken)
     print(f"Time taken: {formatted_time} seconds")
+    
+    if SAVE_INTERMEDIATE_RESULTS:
+        with open("data/intermediate_results.json", "w") as outfile:
+            row = {'prompt': prompt}
+            i = 0
+            for f in allResults:
+                i = i + 1
+                row['function'+str(i)] = f
+                row['result'+str(i)] = allResults[f]
+            allResultsCsv.append(row)
+            json.dump(allResultsCsv, outfile)
 
     return output
 
 
 
 #DEBUG_LEVEL = 5
+SAVE_INTERMEDIATE_RESULTS = False
 
 #print(get_Response("Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean zones."))
 #print(get_Response("Display a pie chart that correlates salinity levels with the distribution of Aurelia aurita categorizing salinity levels from 30 to 38 with each level of width 1"))
@@ -653,8 +677,8 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jelly or Pycnopodia helianthoides", isEventStream=True):
-#for v in get_Response("What color is moon jelly", isEventStream=True):
-#for v in get_Response("What is the total number of images of Startfish in Monterey bay in the database", isEventStream=True):
+#for v in get_Response("What color is Aurelia aurita", isEventStream=True):
+#for v in get_Response("What is the total number of images of Aurelia aurita in Monterey bay in the database", isEventStream=True):
 #for v in get_Response("What are the ancestors of moon jelly", isEventStream=True):
 #for v in get_Response("What species belong to the genus Aurelia", isEventStream=True):
 #for v in get_Response("Show me the taxonomy of moon jelly", isEventStream=True):
