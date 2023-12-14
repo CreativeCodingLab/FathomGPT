@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	export const prerender = true;
 </script>
 
 <header>
@@ -15,6 +16,7 @@
 		grid-template-columns: 20% 80%;
 		min-height: 4rem;
 		background-color: var(--accent-light);
+
 	}
 
 	h1 {
