@@ -47,6 +47,9 @@
 				//@ts-ignore
 				updateBox.$destroy();
 			}
+			if(eventData.message.includes("Querying database")) {
+				handleText(container, eventData.message);
+			}
 			//@ts-ignore
 			updateBox = handleText(container, eventData.message);
 		}

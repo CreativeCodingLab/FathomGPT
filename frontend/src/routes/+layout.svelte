@@ -10,6 +10,7 @@
 
 <style>
 	header {
+		position: sticky;
 		width: 100%;
 		top: 0;
 		display: grid;
