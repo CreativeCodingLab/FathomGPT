@@ -2,6 +2,7 @@
 	import type { speciesData } from '$lib/types/responseType';
 
 	//export let speciesData: speciesData[];
+	export let concepts: string[];
 	export let imageArray: string[];
 	export let naturalTextResponse: string;
 </script>
@@ -10,11 +11,11 @@
 	<h3>Fathom said:</h3>
 	<blockquote>{naturalTextResponse}</blockquote>
 	<div>
-		{#each imageArray as entry}
+		{#each imageArray as entry, i}
 			<div>
 				<!-- svelte-ignore a11y-img-redundant-alt -->
 				<img src={entry} alt="image retrieved from fathomnet"/>
-				<!-- <h4>Name: {entry.concept}</h4> -->
+				<h4>Name: {concepts[i]}</h4>
 			</div>
 		{/each}
 	</div>
