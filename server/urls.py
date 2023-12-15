@@ -15,5 +15,8 @@ urlpatterns = [
         'post': 'create_with_question_answer',
         'put': 'update_with_question_answer'
     })),
+    path('species_detail', views.MainObjectViewSet.as_view({
+        'get': 'getSpeciesDetail'
+    })),
     path('event-stream', PostStreamView.as_view(), name='stream'),
 ]
