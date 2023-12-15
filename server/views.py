@@ -12,10 +12,18 @@ from django.http import StreamingHttpResponse
 import time
 import json
 from django.views import View
+import pymssql
+import os
+
+sqlServer = os.getenv("SQL_SERVER")
+database = os.getenv("DATABASE")
+dbUser = os.getenv("DB_USER")
+dbPwd = os.getenv("DB_PWD")
 
 class MainObjectViewSet(viewsets.ModelViewSet):
     queryset = MainObject.objects.all()
     serializer_class = MainObjectSerializer
+
 
     @csrf_exempt
     @action(detail=False, methods=['POST'])
@@ -58,6 +66,35 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         Interaction.objects.create(main_object=main_object, request=new_question, response=new_answer)
 
         return Response({'guid': str(main_object.id), 'response': new_answer}, status=status.HTTP_200_OK)
+    
+    @csrf_exempt
+    @action(detail=False, methods=['GET'])
+    def getSpeciesDetail(self, request):
+        species_id = request.GET.get('id')
+        if species_id is None or species_id == "":
+            return Response({},status=status.HTTP_400_BAD_REQUEST)
+
+        connection = pymssql.connect(
+            server=sqlServer,
+            user=dbUser,
+            password=dbPwd,
+            database=database
+        )
+        
+        cursor = connection.cursor()
+        cursor.execute("SELECT bb.*, img.* FROM dbo.bounding_boxes AS bb INNER JOIN dbo.images AS img ON bb.image_id = img.id WHERE bb.id = "+species_id+" FOR JSON AUTO;")
+
+        rows = cursor.fetchall()
+
+        content = ''.join(str(row[0]) for row in rows)
+        cursor.close()
+        connection.close()
+        print(type(content))
+
+        return Response(json.loads(content), status=status.HTTP_200_OK)
+
+
+
     
 
 def event_stream(new_question, messages, isEventStream, db_obj):
