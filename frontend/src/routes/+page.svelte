@@ -10,7 +10,7 @@
 
 	
 
-	const URL = 'http://128.46.81.243:8000/event-stream';
+	const URL = 'http://128.46.81.243:8000/';
 	//const URL = 'http://127.0.0.1:8000/event-stream';
 	
 
@@ -26,6 +26,7 @@
 	function responseReceived() {
 		promptBox.toggleLoading();
 	}
+
 </script>
 
 <main>

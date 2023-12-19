@@ -1,10 +1,23 @@
 <script lang="ts">
 	import type { speciesData } from '$lib/types/responseType';
+	import { createEventDispatcher } from 'svelte';
 
 	//export let speciesData: speciesData[];
 	export let concepts: string[];
 	export let imageArray: string[];
+	export let imageIDs: string[];
 	export let naturalTextResponse: string;
+
+	const dispatch = createEventDispatcher();
+
+	function handleImageSelection(selectedImg: HTMLImageElement, imageID: string) {
+		document.querySelectorAll('.selectedImage').forEach((img) => {
+			img.classList.remove('selectedImage');
+		});
+		selectedImg.classList.add('selectedImage');
+		console.log('image selected: ' + imageID);
+		dispatch('imageSelected', imageID);
+	}
 </script>
 
 <main>
@@ -14,7 +27,8 @@
 		{#each imageArray as entry, i}
 			<div>
 				<!-- svelte-ignore a11y-img-redundant-alt -->
-				<img src={entry} alt="image retrieved from fathomnet"/>
+				<img src={entry} alt="image retrieved from fathomnet"
+				on:click={handleImageSelection(this, imageIDs[i])}/>
 				<h4>Name: {concepts[i]}</h4>
 			</div>
 		{/each}
@@ -45,5 +59,16 @@
 		width: 100%;
 		height: 100%;
 		border-radius: 0.5rem;
+		transition-duration: 0.1s;
+	}
+
+	
+	img:hover {
+		transform: scale(1.05);
+	}
+
+	:global(img.selectedImage) {
+		transform: scale(1.05);
+		border: 0.2rem solid var(--accent);
 	}
 </style>
