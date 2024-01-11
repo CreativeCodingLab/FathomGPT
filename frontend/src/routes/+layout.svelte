@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	export const prerender = true;
+	import '@fortawesome/fontawesome-free/css/all.min.css'
 </script>
 
 <header>

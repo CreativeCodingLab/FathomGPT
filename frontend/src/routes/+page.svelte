@@ -7,11 +7,10 @@
 	import Info from '$lib/Info.svelte';
 	import Prompt from '$lib/Prompt.svelte';
 	import EventResponseContainer from '$lib/EventResponseContainer.svelte';
+	import ImageDetail from '$lib/ImageDetail.svelte';
+	import { serverBaseURL } from '$lib/Helpers/constants';
 
-	
-
-	const URL = 'http://128.46.81.243:8000/event-stream';
-	//const URL = 'http://127.0.0.1:8000/event-stream';
+	const URL = serverBaseURL+'/event-stream';
 	
 
 	let container: EventResponseContainer;
@@ -32,6 +31,7 @@
 	<Info on:submit={handleResponse}></Info>
 		<EventResponseContainer {URL} bind:this={container} on:responseReceived={responseReceived} />
 		<Prompt bind:this={promptBox} on:submit={handleResponse} />
+		<ImageDetail></ImageDetail>
 </main>
 
 <style>

@@ -1,22 +1,27 @@
 <script lang="ts">
 	import type { speciesData } from '$lib/types/responseType';
+	import { activeImageStore } from '../../store';
 
 	//export let speciesData: speciesData[];
-	export let concepts: string[];
-	export let imageArray: string[];
+	export let species: Array<speciesData>;
 	export let naturalTextResponse: string;
+	function openImageDetailModal(specimen: speciesData) {
+		activeImageStore.set({ isImageDetailsOpen: true, species: specimen });
+	}
 </script>
 
 <main>
 	<h3>Fathom said:</h3>
 	<blockquote>{naturalTextResponse}</blockquote>
 	<div>
-		{#each imageArray as entry, i}
-			<div>
+		{#each species as specimen, i}
+			<button class="imgOuterWrapper" on:click={()=>openImageDetailModal(specimen)}>
 				<!-- svelte-ignore a11y-img-redundant-alt -->
-				<img src={entry} alt="image retrieved from fathomnet"/>
-				<h4>Name: {concepts[i]}</h4>
-			</div>
+				<div class="imgWrapper">
+					<img src={specimen.url} alt="image retrieved from fathomnet"/>
+				</div>
+				<h4>Name: {specimen.concept}</h4>
+			</button>
 		{/each}
 	</div>
 </main>
@@ -44,6 +49,35 @@
 	img {
 		width: 100%;
 		height: 100%;
+		transition: 0.2s ease;
+		cursor: pointer;
+	}
+	.imgOuterWrapper:hover img{
+		transform: scale(1.1);
+	}
+	.imgWrapper{
+		overflow: hidden;
 		border-radius: 0.5rem;
+
+	}
+	.imgOuterWrapper{
+		border: 0;
+		width: unset;
+		height: unset;
+		background: transparent;
+		text-align: left;
+		color: white;
+	}
+	.imgOuterWrapper h4{
+		margin-top: 3px;
+	}
+
+	.imgOuterWrapper:hover h4{
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	.imgOuterWrapper:active{
+		opacity: 0.9;
 	}
 </style>

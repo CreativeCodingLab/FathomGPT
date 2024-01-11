@@ -14,6 +14,7 @@ import json
 from django.views import View
 import pymssql
 import os
+from llm.langchaintools import getTaxonomyTree
 
 sqlServer = os.getenv("SQL_SERVER")
 database = os.getenv("DATABASE")
@@ -82,16 +83,19 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         )
         
         cursor = connection.cursor()
-        cursor.execute("SELECT bb.*, img.* FROM dbo.bounding_boxes AS bb INNER JOIN dbo.images AS img ON bb.image_id = img.id WHERE bb.id = "+species_id+" FOR JSON AUTO;")
+        cursor.execute("SELECT bb.*, img.*, mr.name AS region_name FROM dbo.bounding_boxes AS bb INNER JOIN dbo.images AS img ON bb.image_id = img.id INNER JOIN dbo.marine_regions AS mr      ON (img.latitude BETWEEN mr.min_latitude AND mr.max_latitude)     AND (img.longitude BETWEEN mr.min_longitude AND mr.max_longitude) WHERE bb.id = "+species_id+" FOR JSON AUTO;")
 
         rows = cursor.fetchall()
 
         content = ''.join(str(row[0]) for row in rows)
         cursor.close()
         connection.close()
-        print(type(content))
+        parsed = json.loads(content)[0]
+        taxonomy=json.loads(getTaxonomyTree(parsed['concept']))
+        parsed['rank'] = taxonomy['rank']
+        parsed['taxonomy'] = taxonomy['taxonomy']
 
-        return Response(json.loads(content), status=status.HTTP_200_OK)
+        return Response(parsed, status=status.HTTP_200_OK)
 
 
 
