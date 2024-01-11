@@ -18,7 +18,7 @@ export interface speciesData {
 	concept: string; //species name
 	name?: string;
 	url?: string;
-	taxonomy: {
+	taxonomy?: {
 		ancestors: {
 			name: string;
 			rank: string;	
@@ -29,11 +29,12 @@ export interface speciesData {
 			rank: string;
 		}[]
 	};
-	created_timestamp?: string;
+	rank?: string;
+	created_timestamp?: Date;
 	depth_meters?: string;
 	imaging_type?: string;
-	last_updated_timestamp?: string;
-	last_validation?: string;
+	last_updated_timestamp?: Date;
+	last_validation?: Date;
 	latitude?: number;
 	longitude?: number;
 	media_type?: string;
@@ -46,6 +47,9 @@ export interface speciesData {
 	pressure_dbar?: string;
 	salinity?: string;
 	temperature_celsius: string;
+	mr?: {
+		region_name: string
+	}[];
 	x?: number; //x location on image
 	y?: number; //y location on image
 	width?: number; //width on image
