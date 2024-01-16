@@ -25,6 +25,7 @@
 	function responseReceived() {
 		promptBox.toggleLoading();
 	}
+
 </script>
 
 <main>
