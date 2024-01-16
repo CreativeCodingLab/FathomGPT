@@ -35,7 +35,7 @@
 		const userInput = new UserInput({ target: container, props: { text: inputtedText } });
 		window.scrollTo(0, document.body.scrollHeight);
 
-		let request = `${URL}event-stream?question=${inputtedText}`;
+		let request = `${URL}?question=${inputtedText}`;
 		if (guid !== null) {
 			request += `&guid=${guid}`;
 		}
