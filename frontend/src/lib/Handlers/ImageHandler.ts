@@ -1,6 +1,7 @@
 import type { apiResponse, speciesData } from '$lib/types/responseType';
 import Image from '$lib/Responses/Image.svelte';
 import _fakeRes from '$lib/samples/image.json';
+import getImageDetails from '$lib/EventResponseContainer.svelte';
 
 export default function handleImage(target: HTMLElement, res: apiResponse): Image {
 	//const fakeRes = _fakeRes as unknown as apiResponse;
@@ -12,4 +13,5 @@ export default function handleImage(target: HTMLElement, res: apiResponse): Imag
 			naturalTextResponse: res.responseText
 		}
 	});
+	  
 }

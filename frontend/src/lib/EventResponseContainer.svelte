@@ -14,13 +14,28 @@
 	export let URL: string;
 	export let guid: string | null = null;
 
+	export async function getImageDetails(id: string) {
+		let request = `${URL}species-detail?id=${id}`;
+		const eventSource = new EventSource(request);
+		eventSource.addEventListener('message', (event: MessageEvent) => {
+			let parsedData = JSON.parse(event.data);
+			console.log('Received message:', parsedData);
+			handleResponse(parsedData);
+			if(parsedData.result != undefined) {
+				console.log("Event Stream Closed");
+				eventSource.close();
+				dispatch( 'responseReceived');
+			}
+		});
+	}
+
 	export async function fetchResponse(inputtedText: string) {
 
 		//repeat user input into a user input text box component
 		const userInput = new UserInput({ target: container, props: { text: inputtedText } });
 		window.scrollTo(0, document.body.scrollHeight);
 
-		let request = `${URL}?question=${inputtedText}`;
+		let request = `${URL}event-stream?question=${inputtedText}`;
 		if (guid !== null) {
 			request += `&guid=${guid}`;
 		}
