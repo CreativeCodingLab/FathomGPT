@@ -122,6 +122,20 @@ def getConceptCandidates(product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, 
             print(r[:200])
             print()
     return results
+
+def modifyExistingChart(prompt: str, schema: str):
+    summerizerResponse = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-1106",
+            temperature=0,
+            messages=[{"role": "system","content":"""
+            Modify the vega lite chart schema based on the instruction provided. Output only the chartSchema
+
+            """},{"role":"user", "content": "{\"chartSchema\": \"" + json.dumps(schema) + "\", \"\ninstruction\":\"" + prompt+ "\"}"}],
+        )
+    
+
+    return summerizerResponse["choices"][0]["message"]["content"]
+
     
 def filterScientificNames(
     description: Optional[str] = None,
@@ -421,6 +435,20 @@ availableFunctions = [{
         },
         "required": ["question"],
     },
+},
+{
+    "name": "modifyExistingChart",
+    "description": "This tool that modifies the chart schema based on the provided schema. This tool only makes visual changes to the chart. If the data itself needs to be changed, do not use this tool",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "prompt": {
+                "type": "string",
+                "description": "Prompt that instructs what modification that needs to be done in the chart",
+            },
+        },
+        "required": ["prompt"],
+    },
 }
 ]
 
@@ -434,11 +462,17 @@ availableFunctionsDescription = {
     "getTaxonomicRelatives": "Getting taxonomic relatives",
     
     "getAnswer": "Getting answer from ChatGPT.",
+
+    "modifyExistingChart": "Modifying the chart."
+
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
+    startingMessage = None
+    if len(messages)!=0:
+        startingMessage = json.loads(json.dumps(messages[len(messages)-1]))
     for smessage in messages:
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
@@ -487,8 +521,36 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                             args[key] = float(value) if '.' in value else int(value)
                         except ValueError:
                             pass
+            
             function_to_call = globals().get(function_name)
-            if function_to_call:
+            if(function_name=="modifyExistingChart"):
+                if isEventStream:
+                    event_data = {
+                        "message": "Modifying the chart"
+                    }
+                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                    yield sse_data
+
+                evaluatedContent = eval(startingMessage['content'])
+                prvSchema = evaluatedContent['vegaSchema']
+                prvData = prvSchema['data']
+                prvSchema['data']=None
+                result = function_to_call(**args, schema=prvSchema)
+                prvSchema = json.loads(result)
+                prvSchema['data'] = prvData
+                evaluatedContent['vegaSchema'] = prvSchema
+                output = evaluatedContent
+
+                if isEventStream:
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+                    output['guid']=str(db_obj.id)
+                    event_data = {
+                        "result": output
+                    }
+                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                    yield sse_data
+                return
+            elif function_to_call:
                 result = function_to_call(**args)
                 if isEventStream:
                     event_data = {
@@ -502,8 +564,6 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                     yield sse_data
                 
                 if(function_name=="generateSQLQuery"):
-
-                    
                     sql = result
                     limit = -1
                     if result.strip().startswith('SELECT '):
@@ -529,6 +589,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
                     break
+
                 else:
                     messages.append({"role":"function","content":result,"name": function_name})
                     #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
@@ -542,6 +603,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
                     #    break
                     #else:
                     #    modifiedMessages = modifiedMessages[:-1] 
+                
             else:
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
@@ -559,7 +621,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         temperature=0,
         messages=[{"role": "system","content":"""
         Based on the below details output a json in provided format. The response must be a json. The output json must be valid.
-                   If the output is vegaLite, you must generate the schema
+                If the output is vegaLite, you must generate the schema
         
         {
             "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, must use "heatmap" as outputType when input says heatmap, use table when the data can be respresented as rows and column and when it can be listed out
@@ -590,7 +652,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
             summaryPromptResponse["outputType"] = 'image'
         if result!=None and len(result) > 0 and 'taxonomy' in result[0]:
             summaryPromptResponse["outputType"] = 'taxonomy'
-  
+
         output = {
             "outputType": summaryPromptResponse["outputType"],
             "responseText": 'Here are the results',
