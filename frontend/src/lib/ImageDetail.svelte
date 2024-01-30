@@ -61,6 +61,7 @@
 
 
     function closeModal() {
+        document.body.style.overflow = 'auto';
         activeImageStore.update(current => ({ ...current, isImageDetailsOpen: !current.isImageDetailsOpen }));
     }
 </script>
