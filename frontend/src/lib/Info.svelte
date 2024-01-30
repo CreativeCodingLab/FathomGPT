@@ -5,7 +5,7 @@
     const dispatch = createEventDispatcher();
 
     function insertPrompt(event: any) {
-        dispatch("submit", event.target.innerText);
+        dispatch("submit", {value:event.target.innerText});
     }
     let prompts = [
         "Find me images of Aurelia aurita",
@@ -28,42 +28,60 @@
         "Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in <2, 2 to 10, 10 to 100, 100 to 1000, >1000 pressure levels",
         "Find me any 3 species of starfish and get me their image count in the database",
     ]
+
+    function reload(){
+        window.location.reload()
+    }
 </script>
 <main>
-    <h2>Try Asking:</h2>
-    <hr>
-    <sub>Click on a prompt to insert it into the input box</sub>
-    <br>
-    <br>
-    <ul>
-        {#each prompts as prompt}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-            <li on:click={insertPrompt}>{prompt}</li>
-        {/each}
-    </ul>
+    <div class="sidebar">
+        <div class="stickyContainer">
+            <button class="button newBtn" on:click={reload}> <i class="fa-solid fa-plus"></i> New chat</button>
+            <h2>Try Asking:</h2>
+            <hr>
+            <sub>Click on a prompt to insert it into the input box</sub>
+        </div>
+        <ul>
+            {#each prompts as prompt}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                <li on:click={insertPrompt}>{prompt}</li>
+            {/each}
+        </ul>
+    </div>
 </main>
 
 <style>
     main {
         /*position this element to the top left corner of the page when scrolling down*/
-        position: fixed;
-        top: 5rem;
-        left: 0;
-        z-index: 1000;
         width: 25rem;
-        height: 70%;
-        background-color: rgba(0, 0, 0, 0.2);
-        margin: 1rem;
-        border-radius: 1rem;
-        padding: 0.5rem;
+        background-color: var(--color-white);
         overflow-y: scroll;
-        color: white;
+        color: black;
+        padding: 0px 30px 30px var(--page-horizontal-padding);
+		height: calc(100vh - var(--page-header-height));
+        position: sticky;
+        top: var(--page-header-height);
     }
+
+    sub{
+        color: var(--color-pelagic-gray);
+    }
+
+    .stickyContainer{
+        position: sticky;
+        top: 0px;
+        background-color: var(--color-white);
+        padding-top: 30px;
+        padding-bottom: 16px;
+        z-index: 10;
+        width: calc(100% + 10px);
+    }
+
     h2 {
         font-size: 1.5rem;
         font-weight: 400;
-        color: white;
+        padding-top: 20px;
     }
     ul {
         list-style: none;
@@ -72,19 +90,14 @@
         font-size: 1rem;
         font-weight: 300;
         padding: 0 0 1.2rem 0;
-        color: white;
         transition-duration: 0.1s;
         cursor: pointer;
     }
 
     li:hover {
-        color: var(--highlight);
+        color: var(--accent-color);
         transform: scale(1.05);
         transform: translate(0.5rem, 0);
-    }
-
-    ::-webkit-scrollbar-track {
-	    border-radius: 0rem 1rem 1rem 0rem; /* Rounded corners */
     }
 
 </style>

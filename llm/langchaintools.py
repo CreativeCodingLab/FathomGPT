@@ -29,11 +29,33 @@ from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA, LLMChain
 from langchain.prompts.chat import ChatPromptTemplate
+from torchvision import models, transforms
+import base64
+from PIL import Image
+import io
+import torch
 
 import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
+model = models.efficientnet_b7(pretrained=True)
+model.eval()
+
+preprocess = transforms.Compose([
+    transforms.Resize((224, 224)), 
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+def base64_to_pil_image(base64_string):
+    image_data = base64.b64decode(base64_string)
+    
+    image_buffer = io.BytesIO(image_data)
+    
+    pil_image = Image.open(image_buffer)
+    
+    return pil_image
 
 # ==== Taxonomy ====
 
@@ -230,14 +252,14 @@ def GetSQLResult(query:str):
         )
         
         cursor = connection.cursor()
-        #print(query)
+        print(query)
+        
         cursor.execute(query)
 
         rows = cursor.fetchall()
 
         # Concatenate all rows to form a single string
         content = ''.join(str(row[0]) for row in rows)
-        #print(content)
 
         if content:
             try:
@@ -261,7 +283,7 @@ def GetSQLResult(query:str):
         else:
             output = None
     except Exception as e:
-        print("Error processing sql server response")
+        print("Error processing sql server response", e)
         output = query
 
     #print(output)
@@ -280,7 +302,6 @@ def generateSQLQuery(
         prompt = prompt.replace(name, scientificNames)
     elif len(scientificNames) > 1:
         prompt = prompt.rstrip(".")+" with names: "+scientificNames
-    print(prompt)
 
     sql_generation_model = ChatOpenAI(model_name=SQL_FINE_TUNED_MODEL,temperature=0, openai_api_key = openai.api_key)
 
@@ -463,12 +484,12 @@ availableFunctionsDescription = {
     
     "getAnswer": "Getting answer from ChatGPT.",
 
-    "modifyExistingChart": "Modifying the chart."
+    "modifyExistingChart": "Modifying the chart.",
 
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
-def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
+def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=None):
     start_time = time.time()
     startingMessage = None
     if len(messages)!=0:
@@ -494,120 +515,204 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
 
-    while curLoopCount < 4:
-        curLoopCount+=1
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
-            messages=messages,
-            functions=availableFunctions,
-            function_call="auto",
-            temperature=0,
+    if imageData is not None and imageData!="":
+        pil_image=base64_to_pil_image(imageData)
+        if pil_image.mode != 'RGB':
+            pil_image = pil_image.convert('RGB')
+        tensor = preprocess(pil_image)
+        with torch.no_grad():
+            features = model(tensor.unsqueeze(0))
+        
+        features_squeezed = features.squeeze()
+        formatted_features = []
 
-        )
-        sqlQuery=None
-        response_message = response["choices"][0]["message"]
-        if(response_message.get("function_call")):
-            function_name = response_message["function_call"]["name"]
-            args = json.loads(response_message.function_call.get('arguments'))
+        for index, feature in enumerate(features_squeezed, start=1):
+            formatted_feature = f"({index}, {feature:.5f})"
+            formatted_features.append(formatted_feature)
 
-            for key, value in args.items():
-                if isinstance(value, str):
-                    if value == "True":
-                        args[key] = True
-                    elif value == "False":
-                        args[key] = False
-                    else:
-                        try:
-                            args[key] = float(value) if '.' in value else int(value)
-                        except ValueError:
-                            pass
+        result_string = ", ".join(formatted_features)
+        sql = f"""
+            IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL
+                DROP TABLE #InputFeatureVectors;
+            CREATE TABLE #InputFeatureVectors ( 
+                vector_index INT, 
+                vector_value DECIMAL(18,5) 
+            ); 
             
-            function_to_call = globals().get(function_name)
-            if(function_name=="modifyExistingChart"):
-                if isEventStream:
-                    event_data = {
-                        "message": "Modifying the chart"
-                    }
-                    sse_data = f"data: {json.dumps(event_data)}\n\n"
-                    yield sse_data
+            INSERT INTO #InputFeatureVectors (vector_index, vector_value) 
+            VALUES 
+            {result_string};
 
-                evaluatedContent = eval(startingMessage['content'])
-                prvSchema = evaluatedContent['vegaSchema']
-                prvData = prvSchema['data']
-                prvSchema['data']=None
-                result = function_to_call(**args, schema=prvSchema)
-                prvSchema = json.loads(result)
-                prvSchema['data'] = prvData
-                evaluatedContent['vegaSchema'] = prvSchema
-                output = evaluatedContent
+            WITH FeatureVectors AS ( 
+                SELECT 
+                    BBFV.bounding_box_id AS BoxID, 
+                    SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct 
+                FROM #InputFeatureVectors IFV 
+                INNER JOIN bounding_box_image_feature_vectors BBFV 
+                    ON IFV.vector_index = BBFV.vector_index 
+                GROUP BY BBFV.bounding_box_id
+            ),
+            Magnitude AS ( 
+                SELECT 
+                    id AS BoxID, 
+                    magnitude 
+                FROM bounding_boxes 
+            ), 
+            InputMagnitude AS ( 
+                SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude 
+                FROM #InputFeatureVectors 
+            ), 
+            SimilaritySearch AS ( 
+                SELECT TOP 10 
+                    FV.BoxID as id, 
+                    FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity 
+                FROM FeatureVectors FV 
+                CROSS JOIN InputMagnitude IM 
+                INNER JOIN Magnitude M 
+                    ON FV.BoxID = M.BoxID 
+                WHERE IM.magnitude IS NOT NULL 
+                AND M.magnitude IS NOT NULL 
+                AND IM.magnitude > 0 
+                AND M.magnitude > 0 
+                ORDER BY CosineSimilarity DESC 
+            ) 
+            SELECT 
+                SS.id AS id, 
+                BB.concept, 
+                IMG.url, 
+                SS.CosineSimilarity 
+            FROM SimilaritySearch SS 
+            INNER JOIN bounding_boxes BB 
+                ON BB.id = SS.id 
+            INNER JOIN images IMG 
+                ON BB.image_id = IMG.id 
+            FOR JSON PATH; 
+            
+            DROP TABLE #InputFeatureVectors;
+            
+        """
+        event_data = {
+                "message": "Querying database ...                             SQL Query:"+sql
+            }
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        yield sse_data
+        isSpeciesData, result = GetSQLResult(sql)
+        isSpeciesData = True
+    else:
+        while curLoopCount < 4:
+            curLoopCount+=1
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-0613",
+                messages=messages,
+                functions=availableFunctions,
+                function_call="auto",
+                temperature=0,
 
-                if isEventStream:
-                    Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-                    output['guid']=str(db_obj.id)
-                    event_data = {
-                        "result": output
-                    }
-                    sse_data = f"data: {json.dumps(event_data)}\n\n"
-                    yield sse_data
-                return
-            elif function_to_call:
-                result = function_to_call(**args)
-                if isEventStream:
-                    event_data = {
-                        "message": availableFunctionsDescription[function_name],
-                    }
-                    if isinstance(result, str):
-                        event_data["message"] = event_data["message"]+":\n"+result
-                        allResults[function_name] = result
-                    print(event_data)
-                    sse_data = f"data: {json.dumps(event_data)}\n\n"
-                    yield sse_data
-                
-                if(function_name=="generateSQLQuery"):
-                    sql = result
-                    limit = -1
-                    if result.strip().startswith('SELECT '):
-                        limit, result = changeNumberToFetch(result)
-                    sqlQuery = result
-                    isSpeciesData, result = GetSQLResult(result)
-                    print("got data from db")
-                    
-                    try:
-                        result, isSpeciesData = postprocess(result, limit, prompt, sql, isSpeciesData)
-                    except:
-                        print('postprocessing error')
-                        pass
+            )
+            sqlQuery=None
+            response_message = response["choices"][0]["message"]
+            if(response_message.get("function_call")):
+                function_name = response_message["function_call"]["name"]
+                args = json.loads(response_message.function_call.get('arguments'))
 
-                    if result and limit != -1 and limit < len(result) and isinstance(result, list):
-                        result = result[:limit]
-                    print('isSpeciesData: '+str(isSpeciesData))
-
+                for key, value in args.items():
+                    if isinstance(value, str):
+                        if value == "True":
+                            args[key] = True
+                        elif value == "False":
+                            args[key] = False
+                        else:
+                            try:
+                                args[key] = float(value) if '.' in value else int(value)
+                            except ValueError:
+                                pass
+                            
+                function_to_call = globals().get(function_name)
+                if(function_name=="modifyExistingChart"):
                     if isEventStream:
                         event_data = {
-                            "message": "Querying database...                             SQL Query:"+sqlQuery
+                            "message": "Modifying the chart"
                         }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                    break
+
+                    evaluatedContent = eval(startingMessage['content'])
+                    prvSchema = evaluatedContent['vegaSchema']
+                    prvData = prvSchema['data']
+                    prvSchema['data']=None
+                    result = function_to_call(**args, schema=prvSchema)
+                    prvSchema = json.loads(result)
+                    prvSchema['data'] = prvData
+                    evaluatedContent['vegaSchema'] = prvSchema
+                    output = evaluatedContent
+
+                    if isEventStream:
+                        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+                        output['guid']=str(db_obj.id)
+                        event_data = {
+                            "result": output
+                        }
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
+                    return
+                elif function_to_call:
+                    result = function_to_call(**args)
+                    if isEventStream:
+                        event_data = {
+                            "message": availableFunctionsDescription[function_name],
+                        }
+                        if isinstance(result, str):
+                            event_data["message"] = event_data["message"]
+                            allResults[function_name] = result
+                        print(event_data)
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
+
+                    if(function_name=="generateSQLQuery"):
+                        sql = result
+                        limit = -1
+                        if result.strip().startswith('SELECT '):
+                            limit, result = changeNumberToFetch(result)
+                        sqlQuery = result
+                        isSpeciesData, result = GetSQLResult(result)
+                        print("got data from db")
+
+                        try:
+                            result, isSpeciesData = postprocess(result, limit, prompt, sql, isSpeciesData)
+                        except:
+                            print('postprocessing error')
+                            pass
+
+                        if result and limit != -1 and limit < len(result) and isinstance(result, list):
+                            result = result[:limit]
+                        print('isSpeciesData: '+str(isSpeciesData))
+
+                        if isEventStream:
+                            event_data = {
+                                "message": "Querying database...                             SQL Query:"+sqlQuery
+                            }
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                        break
+
+                    else:
+                        messages.append({"role":"function","content":result,"name": function_name})
+                        #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
+                        #response2 = openai.ChatCompletion.create(
+                        #    model="gpt-3.5-turbo-0613",
+                        #    messages=modifiedMessages,
+                        #    temperature=0,
+                        #)
+                        #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
+                        #    modifiedMessages = modifiedMessages[:-2] 
+                        #    break
+                        #else:
+                        #    modifiedMessages = modifiedMessages[:-1] 
 
                 else:
-                    messages.append({"role":"function","content":result,"name": function_name})
-                    #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
-                    #response2 = openai.ChatCompletion.create(
-                    #    model="gpt-3.5-turbo-0613",
-                    #    messages=modifiedMessages,
-                    #    temperature=0,
-                    #)
-                    #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
-                    #    modifiedMessages = modifiedMessages[:-2] 
-                    #    break
-                    #else:
-                    #    modifiedMessages = modifiedMessages[:-1] 
-                
+                    raise ValueError("No function named '{function_name}' in the global scope")
             else:
-                raise ValueError("No function named '{function_name}' in the global scope")
-        else:
-            break
+                break
 
     if isEventStream:
         event_data = {
@@ -688,6 +793,7 @@ def get_Response(prompt, messages=[], isEventStream=False, db_obj=None):
         output["table"] = result
         
     if isEventStream:
+        print(output)
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
         output['guid']=str(db_obj.id)
         event_data = {

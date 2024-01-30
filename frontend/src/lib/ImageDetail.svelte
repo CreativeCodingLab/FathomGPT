@@ -137,6 +137,7 @@
         opacity: 0;
         pointer-events: none;
         transition: 0.2s;
+        backdrop-filter: blur(1px);
     }
     .imageDetailsOuterContainer.active{
         opacity: 1;

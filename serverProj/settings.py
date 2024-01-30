@@ -25,7 +25,7 @@ SECRET_KEY = '3c9qx8@x*%fm1q@^k)2)se5vcj39@d2o+)k)__brketys2k9=a'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['4.227.228.53', 'localhost', '127.0.0.1', 'fathom.navinate.com', 'frontend-one-one-drab.vercel.app', '128.46.81.243']
+ALLOWED_HOSTS = ['4.227.228.53', 'localhost', '127.0.0.1', 'fathom.navinate.com', 'frontend-one-one-drab.vercel.app', '128.46.81.243', 'localhost:5173']
 
 
 # Application definition
@@ -45,14 +45,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'serverProj.urls'
@@ -129,6 +129,10 @@ USE_TZ = True
 
 CORS_ORIGIN_ALLOW_ALL = True
 
+CORS_ALLOWED_ORIGINS=['http://4.227.228.53', 'http://localhost', 'http://127.0.0.1', 'http://fathom.navinate.com', 'http://frontend-one-one-drab.vercel.app', 'http://128.46.81.243', 'http://localhost:5173']
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:5173"
+]
 
 
 # Static files (CSS, JavaScript, Images)

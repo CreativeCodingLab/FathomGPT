@@ -10,9 +10,9 @@
 	}
 </script>
 
-<main>
-	<h3>Fathom said:</h3>
+<main class="fathomChatContainer">
 	<blockquote>{naturalTextResponse}</blockquote>
+	<br />
 	<div>
 		{#each species as specimen, i}
 			<button class="imgOuterWrapper" on:click={()=>openImageDetailModal(specimen)}>
@@ -27,16 +27,6 @@
 </main>
 
 <style>
-	main {
-		width: 100%;
-		border-radius: 0.5rem;
-		padding: 0.5rem;
-		background-color: var(--background-light);
-		min-height: 3rem;
-		color: white;
-		display: grid;
-		place-items: center start;
-	}
 	div {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));

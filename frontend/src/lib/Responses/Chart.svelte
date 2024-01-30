@@ -52,20 +52,6 @@ onMount(() => {
 });
 </script>
 
-<main>
-  <h3>Fathom said:</h3>
+<main class="fathomChatContainer">
   <canvas bind:this ={myChart} width="400" height="200"></canvas>
 </main>
-
-<style>
-    main {
-      width: 100%;
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-      background-color: var(--background-light);
-      min-height: 5rem;
-      color: white;
-      display: grid;
-      place-items: center start;
-    }
-</style>

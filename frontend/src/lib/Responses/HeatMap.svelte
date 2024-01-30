@@ -62,8 +62,7 @@
 	}
 </script>
 
-<main>
-	<h3>Fathom said:</h3>
+<main class="fathomChatContainer">
 	<p>{responseText}</p>
 	<br />
 	<p class="dev-note">Developer Note: background map image is NOT perfectly lined up with the plotted data YET</p>
@@ -72,16 +71,6 @@
 </main>
 
 <style>
-	main {
-		width: 100%;
-		border-radius: 0.5rem;
-		padding: 0.5rem;
-		background-color: var(--background-light);
-		min-height: 3rem;
-		color: white;
-		display: grid;
-		place-items: center start;
-	}
 
 	canvas {
 		border-radius: 0.25rem;
