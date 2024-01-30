@@ -5,18 +5,112 @@
 	--background-light: #89BAD1;
 	--accent-light: #C1DBE3;
 	--highlight: #37A8CE;
+	--accent-color: rgb(85, 122, 255);
+
+
+	--color-demersal-gray: #6d6c90;
+    --color-pelagic-gray: #aeaec2;
+    --color-salt-marsh-gray: #e8e8ed;
+    --color-sea-salt-gray: #f7f7f9;
+    --color-white: #fff;
+    --color-benthos-blue: #001252;
+    --color-ultramarine-blue: #557aff;
+    --color-bay-blue: #88a2ff;
+    --color-lagoon-blue: #bbcaff;
+    --color-littoral-blue: #f0f3ff;
+    --color-photic-green: #26bf9b;
+    --color-seafoam-green: #e4fff8;
+    --color-lobster-red: #f33f3f;
+    --color-snapper-red: #ff6464;
+    --color-coral-red: #fee9e9;
+    --color-hado-gray: #151928;
+    --color-abyss-gray: #212841;
+    --color-aphotic-blue: #5264a3;
+	--color-light-grey: #d1d1d1;
+    --transition-duration: 0.1s;
+
+
+	--font-preference-basis: 0.0625rem;
+    --screen-size-basis: 0.06944vw;
+    --font-size-basis: var(--font-preference-basis);
+    --font-size-80: calc(80*var(--font-size-basis));
+    --font-size-44: calc(44*var(--font-size-basis));
+    --font-size-32: calc(32*var(--font-size-basis));
+    --font-size-24: calc(24*var(--font-size-basis));
+    --font-size-18: calc(18*var(--font-size-basis));
+    --font-size-16: calc(16*var(--font-size-basis));
+    --font-size-14: calc(14*var(--font-size-basis));
+    --font-size-12: calc(12*var(--font-size-basis));
+    --font-size-10: calc(10*var(--font-size-basis));
+    --font-weight-bold: bold;
+    --font-weight-medium: 600;
+    --font-weight-regular: 500;
+    --font-weight-book: normal;
+    --vertical-rhythm: calc(19*var(--font-size-basis));
+    --line-height-1: 1.5;
+    --line-height-2: 1.5;
+    --line-height-3: 1.5;
+    --line-height-5: 1.5;
+    --line-height-base-12: calc(14*var(--font-size-basis));
+    --line-height-base-14: calc(14*var(--font-size-basis));
+    --line-height-base-17: calc(17*var(--font-size-basis));
+    --line-height-base: calc(19*var(--font-size-basis));
+    --line-height-1: calc(22*var(--font-size-basis));
+    --line-height-1-point-5: calc(29*var(--font-size-basis));
+    --line-height-2: calc(38*var(--font-size-basis));
+    --line-height-3: calc(53*var(--font-size-basis));
+    --line-height-5: calc(96*var(--font-size-basis));
+    --space-one-half: calc(16*var(--font-size-basis));
+    --space-two-thirds: calc(24*var(--font-size-basis));
+    --space-one-and-a-half: calc(48*var(--font-size-basis));
+    --space-1: calc(32*var(--font-size-basis));
+    --space-2: calc(64*var(--font-size-basis));
+    --space-3: calc(96*var(--font-size-basis));
+    --padding-1: calc(8*var(--font-size-basis));
+    --padding-2: calc(16*var(--font-size-basis));
+    --padding-3: calc(24*var(--font-size-basis));
+    --padding-4: calc(36*var(--font-size-basis));
+    --padding-5: calc(48*var(--font-size-basis));
+    --padding-6: calc(56*var(--font-size-basis));
+
+	--link-color: var(--color-ultramarine-blue);
+    --focus-outline-color: rgba(85,122,255,0.5);
+    --background-color: var(--color-white);
+    --text-color: var(--color-abyss-gray);
+    --field-border-color: var(--color-salt-marsh-gray);
+
+	--max-header-width: 1600px;
+	--page-horizontal-padding: 40px;
+	--page-header-height: 94px;
+	--chat-bubble-radius: 15px;
+	--chat-padding: 20px;
 }
+
+@font-face {
+	font-family: "RegolaPro";
+	src: url("RegolaProTrial-Bold.otf") format("opentype");
+	font-weight: bold;
+}
+  
+@font-face {
+	font-family: "RegolaPro";
+	src: url("RegolaProTrial-Book.otf") format("opentype");
+	font-weight: normal;
+}
+
 
 * {
 	margin: 0px;
 	padding: 0px;
 	box-sizing: border-box;
 	overscroll-behavior: none;
-	font-family: 'Roboto', sans-serif;
+	font-family: 'RegolaPro', sans-serif;
+	color: var(--text-color);
 }
+  
 
 body {
-	background-color: var(--background-dark);
+	background-color: var(--color-sea-salt-gray);
 }
 
 /* Styles the scrollbar itself */
@@ -35,4 +129,71 @@ body {
 	background-color: darkgrey; /* Color of the thumb */
 	border-radius: 6px; /* Rounded corners on the thumb */
 	border: 3px solid lightgrey; /* Creates a border inside the track */
+}
+
+
+.button{
+	text-decoration: none;
+    font-size: inherit;
+    font-family: inherit;
+    line-height: inherit;
+    cursor: pointer;
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-column-gap: calc(12*var(--font-size-basis));
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    border-width: 1px;
+    border-style: solid;
+    background-color: var(--color-white);
+    color: var(--color-benthos-blue);
+    border-color: var(--color-ultramarine-blue);
+    text-align: center;
+    font-size: var(--font-size-18);
+    line-height: var(--line-height-1);
+    font-weight: var(--font-weight-bold);
+    padding: calc(10*var(--font-size-basis)) calc(40*var(--font-size-basis));
+    --button-height: calc(56*var(--font-size-basis));
+    border-radius: calc(var(--button-height));
+    -webkit-transition-property: color,background-color,border-color;
+    transition-property: color,background-color,border-color;
+    -webkit-transition-duration: var(--transition-duration),var(--transition-duration),var(--transition-duration);
+    transition-duration: var(--transition-duration),var(--transition-duration),var(--transition-duration);
+}
+
+.button:hover{
+	background-color: var(--color-benthos-blue);
+    border-color: transparent;
+    color: var(--color-white);
+}
+
+.button:hover i{
+    color: var(--color-white);
+}
+
+
+.buttonCircled{
+	border-radius: 50%;
+	width: 30px;
+	height: 30px;
+	cursor: pointer;
+	padding: 19px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: none;
+	background-color: var(--color-white);
+}
+
+.buttonCircled i{
+	font-size: 21px;
+}
+
+.buttonCircled:hover{
+	background-color: var(--accent-color);
+}
+
+.buttonCircled:hover i{
+	color: white;
 }

@@ -4,10 +4,10 @@ from . import views
 
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import PostStreamView
 
 router = DefaultRouter()
 router.register(r'main_objects', views.MainObjectViewSet)
+router.register(r'stream', views.MainObjectViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -18,5 +18,8 @@ urlpatterns = [
     path('species_detail', views.MainObjectViewSet.as_view({
         'get': 'getSpeciesDetail'
     })),
-    path('event-stream', PostStreamView.as_view(), name='stream'),
+    path('upload_image', views.MainObjectViewSet.as_view({
+        'post':'upload_image'
+        })),
+    path('event-stream', views.PostStreamView.as_view(), name='stream'),
 ]

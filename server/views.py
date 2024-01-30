@@ -1,10 +1,13 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import MainObject, Interaction
+from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
+from django.http import JsonResponse
 import sys
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 sys.path.insert(0, '..')
 from llm.main import run_prompt
 from django.views.decorators.csrf import csrf_exempt
@@ -14,6 +17,9 @@ import json
 from django.views import View
 import pymssql
 import os
+import uuid
+from django.http import HttpResponse
+import base64
 from llm.langchaintools import getTaxonomyTree
 
 sqlServer = os.getenv("SQL_SERVER")
@@ -97,13 +103,31 @@ class MainObjectViewSet(viewsets.ModelViewSet):
 
         return Response(parsed, status=status.HTTP_200_OK)
 
+    @csrf_exempt
+    @action(detail=False, methods=['POST'])
+    def upload_image(self, request):
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            image_data = data['image']
+            format, imgstr = image_data.split(';base64,') 
+            ext = format.split('/')[-1] 
 
+            file_name = str(uuid.uuid4()) + '.' + ext
+            image_file = ContentFile(base64.b64decode(imgstr), name=file_name)
 
+            image_instance = Image.objects.create(
+                guid=uuid.uuid4(),
+                image=image_file
+            )
+            
+            return JsonResponse({'guid': str(image_instance.guid)})
+        else:
+            return JsonResponse({'error': 'Invalid request'}, status=400)
     
 
-def event_stream(new_question, messages, isEventStream, db_obj):
+def event_stream(new_question, image, messages, isEventStream, db_obj):
     while True:
-        yield from run_prompt(new_question, messages, isEventStream=isEventStream, db_obj = db_obj)
+        yield from run_prompt(new_question, image, messages, isEventStream=isEventStream, db_obj = db_obj)
         time.sleep(10)
         break
 
@@ -112,6 +136,27 @@ class PostStreamView(View):
     def get(self, request):
         guid = request.GET.get('guid')
         new_question = request.GET.get('question')
+        imageguid = request.GET.get('image')
+        base64_image = ''
+
+        if imageguid is not None:
+            try:
+                # Retrieve the image object from the database
+                image_obj = Image.objects.get(guid=imageguid)
+                
+                # Open the image file associated with the image object
+                with open(image_obj.image.path, "rb") as image_file:
+                    # Read the file content and encode it in Base64
+                    base64_encoded_image = base64.b64encode(image_file.read())
+                    # Decode the Base64 bytes object into a string
+                    base64_image = base64_encoded_image.decode('utf-8')
+                    
+            except Image.DoesNotExist:
+                # Handle the case where no image is found for the provided imageguid
+                return HttpResponse('Image not found', status=404)
+            except Exception as e:
+                # Handle other potential errors
+                return HttpResponse(str(e), status=500)
 
 
         main_object = None
@@ -121,8 +166,6 @@ class PostStreamView(View):
                 main_object = MainObject.objects.get(id=guid)
             except MainObject.DoesNotExist:
                 return Response({'status': 'GUID not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
 
             for interaction in main_object.interactions.all():
                 question = interaction.request
@@ -136,7 +179,7 @@ class PostStreamView(View):
         #
 
         print("generating response")
-        response = StreamingHttpResponse(event_stream(new_question, messages, True, main_object))#
+        response = StreamingHttpResponse(event_stream(new_question, base64_image, messages, True, main_object))#
         response['Cache-Control'] = 'no-cache'
         response['Content-Type'] = 'text/event-stream'
         return response

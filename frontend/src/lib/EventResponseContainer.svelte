@@ -8,9 +8,13 @@
 	import { createEventDispatcher } from 'svelte';
 	import { handleTable } from './Handlers/Tablehandler';
 	const dispatch = createEventDispatcher();
+	import { serverBaseURL } from './Helpers/constants'
+	import { onMount } from 'svelte';
+	import Loader from "./Loader.svelte"
 
 	let container: HTMLElement;
 	let updateBox: Text;
+	let curLoader: Loader| null;
 	export let URL: string;
 	export let guid: string | null = null;
 
@@ -29,50 +33,100 @@
 		});
 	}
 
-	export async function fetchResponse(inputtedText: string) {
+	export async function fetchResponse(inputtedText: string, inputtedImage: string) {
 
 		//repeat user input into a user input text box component
-		const userInput = new UserInput({ target: container, props: { text: inputtedText } });
+		const userInput = new UserInput({ target: container, props: { text: inputtedText, image: inputtedImage } });
 		window.scrollTo(0, document.body.scrollHeight);
 
 		let request = `${URL}?question=${inputtedText}`;
 		if (guid !== null) {
 			request += `&guid=${guid}`;
 		}
+		
+		if (inputtedImage != null) {
+			const payload = {
+				image: inputtedImage
+			};
+			const response = await fetch(`${serverBaseURL}upload_image`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok) {
+				// If the response is not ok, log the error
+				const errorData = await response.text();
+				throw new Error(`Server returned status code ${response.status}: ${errorData}`);
+			}
+
+			const data = await response.json();
+			if (data.guid) {
+				console.log('Image uploaded successfully! GUID:', data.guid);
+			} else {
+				console.error('Failed to upload image:', data.error);
+			}
+			request += `&image=${data.guid}`;
+		}
 		const eventSource = new EventSource(request);
 		eventSource.addEventListener('message', (event: MessageEvent) => {
-    		
+			
 			let parsedData = JSON.parse(event.data);
 			console.log('Received message:', parsedData);
-			handleResponse(parsedData);
+			try{
+				handleResponse(parsedData);
+			} catch (e) {
+				handleText(container, "<div style='color:red'>Error while sending the request or parsing the response</div>");
+			}
 			if(parsedData.result != undefined) {
 				console.log("Event Stream Closed");
 				eventSource.close();
 				dispatch( 'responseReceived');
 			}
 		});
-		
+
 			
-	}
+		}
+
 
 	function handleResponse(eventData: any) {
 		
 		if(eventData.message != undefined || eventData.message != null) {
-			if(updateBox != null) {
+			//if(updateBox != null) {
+			//	//@ts-ignore
+			//	updateBox.$destroy();
+			//}
+			//if(eventData.message.includes("Querying database")) {
+			//	handleText(container, eventData.message);
+			//}
+			////@ts-ignore
+			//updateBox = handleText(container, eventData.message);
+			
+			if(curLoader != null){
 				//@ts-ignore
-				updateBox.$destroy();
+				curLoader.addStep(eventData.message);
 			}
-			if(eventData.message.includes("Querying database")) {
-				handleText(container, eventData.message);
+			else{
+				curLoader = new Loader({
+					target: container,
+					props: {
+						items:[eventData.message],
+						progressStep: 0
+					}
+				})
 			}
-			//@ts-ignore
-			updateBox = handleText(container, eventData.message);
 		}
 		if(eventData.result != undefined) {
-			console.log(eventData.result)
+			if(curLoader!=null){
+				//@ts-ignore
+				curLoader.complete()
+				curLoader = null;
+			}
 			guid = eventData.result.guid
 			//@ts-ignore
-			updateBox.$destroy();
+			//updateBox.$destroy();
 			console.log("Output type: ",eventData.result.outputType);
 			switch (eventData.result.outputType) {
 				case 'text':
@@ -116,9 +170,20 @@
 		flex-flow: column;
 		justify-content: flex-end;
 		gap: 1rem;
-		margin: 1rem auto;
-		max-width: 900px;
+		align-self: center;
+		max-width: 1000px;
+		margin: 10px var(--page-horizontal-padding);
 		overflow: hidden;
 		overscroll-behavior: contain;
+		width: 100%;
+		padding-top: 10px;
+	}
+
+
+	main > :global(.fathomChatContainer){
+		border-radius: var(--chat-bubble-radius);
+		padding: var(--chat-padding);
+		width: 100%;
+		background-color: white;
 	}
 </style>
