@@ -31,7 +31,7 @@ CONCEPTS_EMBEDDING = "data/concepts_names_desc_embeddings.csv"
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
 
-SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'
+SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'#'ft:gpt-3.5-turbo-1106:forbeslab::8ozsHpQ5'
 
 #'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV' Without observation gpt-3.5-turbo-0613
 #'ft:gpt-3.5-turbo-0613:forbeslab::83TTzs4O' With observation gpt-3.5-turbo-0613

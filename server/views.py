@@ -77,7 +77,7 @@ class MainObjectViewSet(viewsets.ModelViewSet):
     @csrf_exempt
     @action(detail=False, methods=['GET'])
     def getSpeciesDetail(self, request):
-        species_id = request.GET.get('id')
+        species_id = request.GET.get('id') | request.GET.get('bounding_box_id')
         if species_id is None or species_id == "":
             return Response({},status=status.HTTP_400_BAD_REQUEST)
 
