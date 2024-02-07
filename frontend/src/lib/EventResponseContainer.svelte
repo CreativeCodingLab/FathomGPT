@@ -11,6 +11,7 @@
 	import { serverBaseURL } from './Helpers/constants'
 	import { onMount } from 'svelte';
 	import Loader from "./Loader.svelte"
+	import { handleVisualization } from './Handlers/HandlePlotly';
 
 	let container: HTMLElement;
 	let updateBox: Text;
@@ -132,8 +133,13 @@
 				case 'text':
 					handleText(container, eventData.result.responseText);
 					break;
-				case 'image':
-					handleImage(container, eventData.result);
+				case 'images':
+					if(eventData.result.species){
+						handleImage(container, eventData.result);
+					}
+					else{
+						handleText(container, "No such images found in the database.");
+					}
 					break;
 				case 'histogram':
 					console.log('histogram request');
@@ -149,6 +155,12 @@
 					break;
 				case 'table':
 					handleTable(container, eventData.result);
+					break;
+				case 'visualization':
+					handleVisualization(container, eventData.result);
+					break;
+				case 'error':
+					handleText(container, "<div style='color:red'>"+eventData.result.responseText+"</div>");
 					break;
 				default:
 					console.error('[TREY] Error: Invalid output type');

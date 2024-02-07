@@ -11,6 +11,7 @@ export interface apiResponse {
 		longitude: number;
 		count: number;
 	}[];
+	html?: string;
 }
 
 export interface speciesData {
