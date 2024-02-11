@@ -1,206 +1,92 @@
-from dotenv import load_dotenv
-import os
-import inspect
+import csv
+import json
+import random
 
-
-load_dotenv()
-KEYS = {
-    "openai": os.getenv("OPENAI_KEY"),
-    "SQL_server": os.getenv("SQL_SERVER"),
-    "Db": os.getenv("DATABASE"),
-    "Db_user": os.getenv("DB_USER"),
-    "Db_pwd": os.getenv("DB_PWD"),
+instructions = {
+    "text": "Make sure the response text is a templated string so that data can be formatted inside the text",
+    "images": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs",
+    "imagesWithInput": "The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs that you generated above to calculate the similarity search. You will suppose the similarity search is already done and you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt",
+    "visualization": "Generate sample data and corresponding Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code",
+    "table": "The response text can be templated so that it can hold the count of the data array from the sql query result.",
 }
 
-DEFAULT_LIMIT = 5
-RETRIEVAL_LIMIT = 1000
-DEFAULT_TAXA_PROVIDER = 'fathomnet'
-GOOD_BOUNDING_BOX_MIN_SIZE = 0.2
-GOOD_BOUNDING_BOX_MIN_MARGINS = 0.01
-FIND_DESCENDENTS_DEFAULT = True # always include descendents by default
-LANGCHAIN_SEARCH_CONCEPTS_TOPN = 10
-LLM_TYPE = 'langchain'
-NUM_RESULTS_TO_SUMMARIZE = 200
-SCI_NAME_MATCH_SIMILARITY = 0.8
+# Open the TSV file and read its contents
+with open('SQL Query and Response 2.txt', mode='r', newline='', encoding='utf-8') as file:
+    # Create a CSV reader for a tab-separated values file
+    reader = csv.DictReader(file, delimiter='\t')
 
-NAMES_JSON = 'data/names_normalized.json'
-SEMANTIC_MATCHES_JSON = 'data/semantic_matches.json'
-CONCEPTS_JSON = 'data/concepts.json'
-CONCEPTS_EMBEDDING = "data/concepts_names_desc_embeddings.csv"
+    data = []
+    for row in reader:
+        row["GPT Response"] = json.loads(row["GPT Response"])
+        data.append(row)
+    
+    # Open the output file in write mode
+    with open('output_with_plotly_and_image_features.jsonl', 'w', encoding='utf-8') as outfile:
+        
+        # Iterate through the rows and write each row as a JSON object on a new line in the output file
+        for index, row in enumerate(data):
+            curResponse = json.loads(json.dumps(row["GPT Response"]))
+            if row['InputImageAvailable'] != "TRUE":
+                continue
 
-EARTH_RADIUS=6378137 # Earth’s radius, sphere
-MILES_TO_METERS=1609.34
+            filteredRes = [x for x in data if x["GPT Response"]['outputType'] == curResponse['outputType'] and x["GPT Response"]['prompt'] != curResponse['prompt'] and x['InputImageAvailable'] == row['InputImageAvailable']]
 
-SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::8q54GZRV'#'ft:gpt-3.5-turbo-1106:forbeslab::8q4F8LLn'#'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'#'ft:gpt-3.5-turbo-1106:forbeslab::8ozsHpQ5'
+            oneShotPrompt = random.choice(filteredRes)
+            oneShotPromptResponse = json.loads(json.dumps(oneShotPrompt["GPT Response"]))
 
-# ft:gpt-3.5-turbo-1106:forbeslab::8q54GZRV last working model
+            oneShotPromptText = oneShotPromptResponse['prompt']
+            del oneShotPromptResponse['prompt']
+            del oneShotPromptResponse['outputType']
+            del oneShotPromptResponse['findings']
+            if 'plotlyCode' in oneShotPromptResponse:
+                oneShotPromptResponse['plotlyCode'] = oneShotPromptResponse['plotlyCode'].replace("    ","\t")
 
-SQL_IMAGE_SEARCH_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::8qkm3fbS'
-#'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV' Without observation gpt-3.5-turbo-0613
-#'ft:gpt-3.5-turbo-0613:forbeslab::83TTzs4O' With observation gpt-3.5-turbo-0613
-
-DEBUG_LEVEL = 0
-# only print debugging messages if the initial caller is debug.py
-def hideDebugMessagesInProd():
-    stack = inspect.stack()
-    if len(stack) == 0:
-        DEBUG_LEVEL = 0
-        return
-    file = stack[-1].filename
-    if not file.endswith('debug.py') and not file.endswith('langchaintools.py'):
-        DEBUG_LEVEL = 0
-hideDebugMessagesInProd()
-
-FUNCTION_PROPERTIES = {
-    "concept": {
-        "type": "string",
-        "description": "Specify a specific biological concept or category"
-    },
-    "contributorsEmail": {
-        "type": "string",
-        "description": "Contributors Email"
-    },
-
-    "includeUnverified": {
-        "type": "boolean",
-        "description": "Include verified species"
-    },
-
-    "includeVerified": {
-        "type": "boolean",
-        "description": "Include unverified species"
-    },
-
-    "limit": {
-        "type": "number",
-        "description": "Limit the number of images"
-    },
-
-    "maxDepth": {
-        "type": "number",
-        "description": "Maximum depth the species is found in"
-    },
-    "minDepth": {
-        "type": "number",
-        "description": "Minimum depth the species is found in"
-    },
-
-    # sorting
-    "orderedBy": {
-        "type": "string",
-        "description": "Sort the images"
-    },
-    "isDecending": {
-        "type": "boolean",
-        "description": "Sort in descending order"
-    },
-    "isAscending": {
-        "type": "boolean",
-        "description": "Sort in ascending order"
-    },
-
-    # location
-    "bodiesOfWater": {
-        "type": "string",
-        "description": "The bodies of water the species is found in"
-    },
-    "latitude": {
-        "type": "string",
-        "description": "Latitude the species is found in"
-    },
-    "longitude": {
-        "type": "string",
-        "description": "Longitude the species is found in"
-    },
-    "kilometersFrom": {
-        "type": "number",
-        "description": "Kilometers away from location"
-    },
-    "milesFrom": {
-        "type": "number",
-        "description": "Miles away from location"
-    },
-
-    # taxonomy
-    "findChildren": {
-        "type": "boolean",
-        "description": "Find descendants or children of the species"
-    },
-    "findSpeciesBelongingToTaxonomy": {
-        "type": "boolean",
-        "description": "Find all species belonging to a taxonomic level"
-    },
-    "findParent": {
-        "type": "boolean",
-        "description": "Find the ancestor or parent of the species"
-    },
-    "findClosestRelative": {
-        "type": "boolean",
-        "description": "Find the closest relative of the species"
-    },
-    "taxaProviderName": {
-        "type": "number",
-        "description": "The taxonomic provider name"
-    },
-
-    # image
-    "includeGood": {
-        "type": "boolean",
-        "description": "Include good images only"
-    },
-    "findBest": {
-        "type": "boolean",
-        "description": "Sort the images by highest quality"
-    },
-    "findWorst": {
-        "type": "boolean",
-        "description": "Sort the images by lowest quality"
-    },
-    "findOtherSpecies": {
-        "type": "boolean",
-        "description": "Find other species commonly found in the same image"
-    },
-    "excludeOtherSpecies": {
-        "type": "boolean",
-        "description": "Find images only containing the species, not containing other species"
-    },
+            curResPrompt = curResponse['prompt']
+            del curResponse['prompt']
+            outputType = curResponse['outputType']
+            del curResponse['outputType']
+            del curResponse['findings']
+            if 'plotlyCode' in curResponse:
+                curResponse['plotlyCode'] =  curResponse['plotlyCode'].replace("    ","\t")
+            #       "sampleData": "",
+            #        "plotlyCode": "",
+            #    sampleData: This is the sample data that you think should be generated when running the sql query. This is optional. It is only needed when the outputType is visualization
+            #    plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable. The data value will have the structur of the sampleData generated above. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function. This attribute is optional but must be generated only when the outputType is visualization.
+                 
+            messages = [{
+"role": "system", "content": """You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+The Generated SQL must be valid for Micorsoft sql server
+The JSON format and the attributes on the JSON are provided below
+{
+ "similarImageIDs": [],
+ "similarBoundingBoxIDs": [],
+ "similarImageSearch": true/false,
+ "sqlServerQuery": "",
+ "responseText": ""
 }
+similarImageIDs: these are the image id that will be provided by the user in the prompt on which image search needs to be done
+similarBoundingBoxIDs: these are the bounding_boxes id that will be provided by the user in the prompt on which bounding boxes search needs to be done
+similarImageSearch: this is a boolean field, that is true when the prompt says to find similar images, else it is false
+sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
+responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
-AVAILABLE_FUNCTIONS = [
-    {
-        "name": "findImages",
-        "description": "Get a constrained list of images.",
-        "parameters": {
-            "type": "object",
-            "properties": FUNCTION_PROPERTIES,
-            "required": []
-        }
-    },
-    {
-        "name": "count_all",
-        "description": "Get a count of all images.",
-        "parameters": {
-            "type": "object",
-            "properties": {}
-        }
-    },
-    {
-        "name": "count_by_submitter",
-        "description": "Get a count of images by contributor.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "contributors_email": {
-                    "type": "string",
-                    "description": "The contributor's email"
-                }
+"""+ (instructions['imagesWithInput'] if (oneShotPrompt['InputImageAvailable'] == "TRUE" or row['InputImageAvailable'] == "TRUE") else "") + "\n"+
+                instructions[outputType]
             },
-            "required": ["contributors_email"]
-        }
-    }
-]
+            #{
+            #    "role": "user","content": f"""
+            #    User Prompt: {oneShotPromptText}
+            #    Output type: {outputType}
+            #    InputImageDataAvailable: {oneShotPrompt['InputImageAvailable']}"""
+            #},
+            #{
+            #   # "role": "assistant", "content": "Observation:"+row["Observation"]+"\nJSON:```"+row["Sql query"]+"```"
+            #    "role": "assistant", "content": json.dumps(oneShotPromptResponse)
+            #},
+            {
+                "role": "user","content": f"""
+Microsoft SQL Server Database Structure:
 
-DB_STRUCTURE="""
 CREATE TABLE "dbo"."bounding_box_comments" ( "id" bigint NOT NULL, "bounding_box_uuid" uniqueidentifier NULL, "created_timestamp" datetime2(6) NULL, "email" varchar(254) NULL, "last_updated_timestamp" datetime2(6) NULL, "text" varchar(2048) NULL, "uuid" uniqueidentifier NOT NULL, "alternate_concept" varchar(255) NULL, "flagged" bit NULL, CONSTRAINT "PK__bounding__3213E83F71625CCD" PRIMARY KEY CLUSTERED("id")
 ON [PRIMARY]);
 CREATE TABLE "dbo"."bounding_boxes" ("id" bigint NOT NULL,"concept" varchar(255) NULL,"created_timestamp" datetime2(6) NULL,"group_of" bit NULL,"height" int NULL,"last_updated_timestamp" datetime2(6) NULL,"observer" varchar(256) NULL,"occluded" bit NULL,"truncated" bit NULL,"uuid" uniqueidentifier NOT NULL,"verification_timestamp" datetimeoffset(6) NULL,"verified" bit NULL,"verifier" varchar(256) NULL,"width" int NULL,"x" int NULL,"y" int NULL,"image_id" bigint NULL,"alt_concept" varchar(255) NULL,"user_defined_key" varchar(56) NULL, "magnitude" decimal(18,5) NULL, CONSTRAINT "PK__bounding__3213E83F3E4C2D08" PRIMARY KEY CLUSTERED("id")
@@ -236,4 +122,21 @@ CREATE VIEW "dbo"."boundingbox_extended_info" AS
 SELECT b.concept, b.alt_concept, b.observer, b.verified, b.verifier, b.verification_timestamp, b.user_defined_key, i.url, i.width, i.height, i.submitter, i.[timestamp], i.contributors_email AS image_contributors_email, u.contributors_email AS upload_contributors_email, dc.owner_institution_code, dc.institution_code, dc.rights_holder, dc.collection_code, dc.collection_id, dc.dataset_name
 FROM dbo.darwin_cores dc LEFT JOIN dbo.image_set_uploads u ON dc.id = u.darwincore_id LEFT JOIN dbo.image_uploads_join j ON j.imagesetupload_id = u.id LEFT JOIN dbo.images i ON j.image_id = i.id LEFT JOIN dbo.bounding_boxes b ON b.image_id = i.id;
 
-"""
+
+                User Prompt: {curResPrompt}
+                """
+            },
+            # 
+            {
+               # "role": "assistant", "content": "Observation:"+row["Observation"]+"\nJSON:```"+row["Sql query"]+"```"
+                "role": "assistant", "content": json.dumps(curResponse)
+            }]
+            filtered_row = {
+                "messages": messages
+            }
+            
+            # Convert the dictionary to a JSON string and write it to the file
+            json_str = json.dumps(filtered_row)
+            outfile.write(json_str + '\n')  # Add a newline character after each JSON object
+
+print('Conversion completed successfully!')

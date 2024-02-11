@@ -79,6 +79,7 @@
 			try{
 				handleResponse(parsedData);
 			} catch (e) {
+				console.log(e)
 				handleText(container, "<div style='color:red'>Error while sending the request or parsing the response</div>");
 			}
 			if(parsedData.result != undefined) {
@@ -146,8 +147,7 @@
 				case 'heatmap':
 					handleHeatMap(container, eventData.result);
 					break;
-				case 'species':
-					console.log(eventData.responseText);
+				case 'taxonomy':
 					handleTaxonomy(container, eventData.result);
 					break;
 				case 'vegaLite':

@@ -1,5 +1,6 @@
+from decimal import Decimal
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines
 
 import openai
 import json
@@ -230,17 +231,13 @@ def getAnswer(
 ) -> list:
     """Function for questions about the features of a species.
     DO NOT use this tool for fetching images, taxonomy or generating charts"""
-    print("question: "+question)
 
-    """ response = openai.ChatCompletion.create(
+    response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-0613",
             messages=[{"role":"system","content":"answer the user's question"},{"role":"user","content":question}],
-            function_call="auto",
             temperature=0,
-
         )
-    return response["choices"][0]["message"] """
-    return ""
+    return response["choices"][0]["message"]["content"]
     
 
 # ==== SQL database query ====
@@ -303,6 +300,9 @@ def GetSQLResult(query: str, isVisualization: bool = False):
                     elif isinstance(value, bytes):
                         # Fallback to decode bytes to string for other byte objects
                         value = value.decode('utf-8', errors='ignore')
+                    elif isinstance(value, Decimal):
+                        # Convert Decimal to float for numerical processing
+                        value = float(value)
                     row_data[columns[idx]] = value
                 output.append(row_data)
             isSpeciesData = True
@@ -324,7 +324,7 @@ oneShotData = {
             InputImageDataAvailable: False""",
         "assistant": """
         {
-            "sqlQuery": "SELECT TOP 10     i.url AS url,     b.concept AS concept,     b.id as id,     b.image_id as image_id FROM      dbo.bounding_boxes AS b JOIN      dbo.images AS i ON b.image_id = i.id WHERE      b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')",
+            "sqlServerQuery": "SELECT TOP 10     i.url AS url,     b.concept AS concept,     b.id as id,     b.image_id as image_id FROM      dbo.bounding_boxes AS b JOIN      dbo.images AS i ON b.image_id = i.id WHERE      b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')",
             "responseText": "Few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides are shown below."
         }""",
         "user2": """
@@ -333,7 +333,7 @@ oneShotData = {
             InputImageDataAvailable: False""",
         "assistant2": """
         {
-            "sqlQuery": "SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC",
+            "sqlServerQuery": "SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC",
             "responseText": "Here is an image of Aurelia aurita that you may find appealing."
         }""",
     },
@@ -344,7 +344,7 @@ oneShotData = {
             Output type: text
             InputImageDataAvailable: False""",
         "assistant": """{
-                "sqlQuery": "SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'",
+                "sqlServerQuery": "SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'",
                 "responseText": "There are {TotalImages} images of Pycnopodia helianthoides in the database."
             }""",
         "user2": f"""
@@ -352,53 +352,98 @@ oneShotData = {
             Output type: text
             InputImageDataAvailable: False""",
         "assistant2": """{
-                "sqlQuery": "SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;",
+                "sqlServerQuery": "SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;",
                 "responseText": "The species with bounding box id 2258729 us {concept}. It is living at pressure {pressure_dbar} dbar."
             }""",
     },
     "imagesWithInput": {
-        "instructions": "In the SQL query, there should be a specific spot where the feature vector of the input image can be inserted, denoted as '{imageFeatureVector}'. This allows the SQL query to use the data from the input image's features. If the data for the image isn't provided (InputImageDataAvailable is false), then the response text should clearly say that the input image data is missing.",
+        "instructions": """
+            You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+            The Generated SQL must be valid for Micorsoft sql server
+            The JSON format and the attributes on the JSON are provided below
+            {
+            "similarImageIDs": [],
+            "similarBoundingBoxIDs": [],
+            "similarImageSearch": true/false,
+            "sqlServerQuery": "",
+            "responseText": ""
+            }
+            similarImageIDs: these are the image id that will be provided by the user in the prompt on which image search needs to be done
+            similarBoundingBoxIDs: these are the bounding_boxes id that will be provided by the user in the prompt on which bounding boxes search needs to be done
+            similarImageSearch: this is a boolean field, that is true when the prompt says to find similar images, else it is false
+            sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
+            responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
+
+            The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs that you generated above to calculate the similarity search. You will suppose the similarity search is already done and you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt
+            """,
         "user": f"""
-            User Prompt: "Find me similar images of species that are not Bathochordaeus stygius"
-            Output type: "images"
-            InputImageDataAvailable: True""",
+            User Prompt: Find me similar images of species that are not Bathochordaeus stygius
+            """,
         "assistant": """"
         {
-            "sqlQuery": "IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors; CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector}; WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ), Magnitude AS ( SELECT BB.id AS BoxID, BB.magnitude FROM bounding_boxes BB WHERE concept = 'Bathochordaeus stygius' ), InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ), SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;",
+            "similarImageIDs": [],
+            "similarBoundingBoxIDs": [],
+            "similarImageSearch": true,
+            "sqlServerQuery": "SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept <> 'Bathochordaeus stygius' ORDER BY SS.CosineSimilarity DESC;",
             "responseText": "Here are the similar images of species that are not Bathochordaeus stygius."
         }""",
         "user2": f"""
-            User Prompt: "Find species simiar to the one found in image id 2553888"
-            Output type: "images"
-            InputImageDataAvailable: True""",
+            User Prompt: "Find me images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter"
+            """,
         "assistant2": """"
         {
-            "sqlQuery": "DECLARE @InputImageID INT; SET @InputImageID = 2553888; WITH BoundingBoxes AS ( SELECT id AS BoxID, image_id FROM bounding_boxes WHERE image_id = @InputImageID ), FeatureVectors AS ( SELECT BB.BoxID, BBFV.vector_index, BBFV.vector_value FROM BoundingBoxes BB INNER JOIN bounding_box_image_feature_vectors BBFV ON BB.BoxID = BBFV.bounding_box_id ), Magnitude AS ( SELECT BB.BoxID, SQRT(SUM(POWER(BBFV.vector_value, 2))) AS magnitude FROM BoundingBoxes BB INNER JOIN bounding_box_image_feature_vectors BBFV ON BB.BoxID = BBFV.bounding_box_id GROUP BY BB.BoxID ), SimilaritySearch AS ( SELECT FV1.BoxID AS BoxID1, FV2.BoxID AS BoxID2, SUM(FV1.vector_value * FV2.vector_value) / (M1.magnitude * M2.magnitude) AS CosineSimilarity FROM FeatureVectors FV1 INNER JOIN FeatureVectors FV2 ON FV1.vector_index = FV2.vector_index AND FV1.BoxID < FV2.BoxID INNER JOIN Magnitude M1 ON FV1.BoxID = M1.BoxID INNER JOIN Magnitude M2 ON FV2.BoxID = M2.BoxID GROUP BY FV1.BoxID, FV2.BoxID, M1.magnitude, M2.magnitude ), TopSimilarity AS ( SELECT TOP 10 SS.BoxID1, SS.BoxID2, SS.CosineSimilarity FROM SimilaritySearch SS ORDER BY SS.CosineSimilarity DESC ) SELECT TS.BoxID1, TS.BoxID2, BB1.concept AS Concept1, BB2.concept AS Concept2, IMG.url, TS.CosineSimilarity FROM TopSimilarity TS INNER JOIN bounding_boxes BB1 ON BB1.id = TS.BoxID1 INNER JOIN bounding_boxes BB2 ON BB2.id = TS.BoxID2 INNER JOIN images IMG ON BB1.image_id = IMG.id;",
-            "responseText": "Here are the images of species similar to the species found in image id 2553888."
+            "similarImageIDs": [],
+            "similarBoundingBoxIDs": [],
+            "similarImageSearch": true,
+            "sqlServerQuery": "SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.oxygen_ml_l BETWEEN 0.5 AND 1 ORDER BY SS.CosineSimilarity DESC;",
+            "responseText": "Below are images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter."
         }""",
     },
     "visualization": {
-        "instructions": "Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.",
+        "instructions": """
+            You are a very intelligent json generated that can generate highly efficient sql queries and plotly python code. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+                The Generated SQL must be valid
+                The JSON format and the attributes on the JSON are provided below
+                {
+                    
+                    "sampleData": "",
+                    "plotlyCode": "",
+                    "sqlServerQuery": "",
+                    "responseText": ""
+                }
+
+            Do all the data processing in the plotly code not on the sqlServerQuery. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
+
+            sampleData: This is the sample data that you think is needed for the plotly code. Sample data must not have attributes other than any column in the sql server database tables
+            plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function.
+            sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. The output from this sql query must match the structure of sampleData above
+            responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
+        
+            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. 
+            """,
         "user": f"""
-            User Prompt: "Create a network visualization showing the species co-occurence of species within an image."
+            SQL Server Database Structure: ${DB_STRUCTURE}
+            User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."
             Output type: visualization
             InputImageDataAvailable: False""",
         "assistant": """
         {
-            "sqlQuery": "SELECT bb1.concept AS Concept1, bb2.concept AS Concept2 FROM dbo.bounding_boxes bb1 JOIN dbo.bounding_boxes bb2 ON bb1.image_id = bb2.image_id AND bb1.concept <> bb2.concept;",
-            "sampleData": "{'Concept1':['Species 1', 'Species 2'], 'Concept2':['Species 3', Species 4']}",
-            "plotlyCode": "import pandas as pd\nimport plotly.graph_objs as go\nimport networkx as nx\ndef drawVisualization(data):\n\tdf = pd.DataFrame(data)\n\tG = nx.Graph()\n\tfor i, row in df.iterrows():\n\t\tG.add_edge(row['Concept1'], row['Concept2'])\n\tpos = nx.kamada_kawai_layout(G)\n\tedge_x = []\n\tedge_y = []\n\tfor edge in G.edges():\n\t\tx0, y0 = pos[edge[0]]\n\t\tx1, y1 = pos[edge[1]]\n\t\tedge_x.extend([x0, x1, None])\n\t\tedge_y.extend([y0, y1, None])\n\tedge_trace = go.Scatter(\n\t\tx=edge_x, y=edge_y,\n\t\tline=dict(width=0.5, color='#888'),\n\t\thoverinfo='none',\n\t\tmode='lines')\n\tnode_x = []\n\tnode_y = []\n\tfor node in G.nodes():\n\t\tx, y = pos[node]\n\t\tnode_x.append(x)\n\t\tnode_y.append(y)\n\tnode_trace = go.Scatter(\n\t\tx=node_x, y=node_y,\n\t\tmode='markers',\n\t\thoverinfo='text',\n\t\tmarker=dict(\n\t\t\tshowscale=True,\n\t\t\t\t  colorscale='YlGnBu',\n\t\t\tsize=[len(list(G.neighbors(node))) * 10 for node in G.nodes()],\n\t\t\tcolor=[len(list(G.neighbors(node))) for node in G.nodes()],\n\t\t\tcolorbar=dict(\n\t\t\t\tthickness=15,\n\t\t\t\ttitle='Node Connections',\n\t\t\t\txanchor='left',\n\t\t\t\ttitleside='right'\n\t\t\t),\n\t\t\tline_width=2))\n\tnode_trace.text = [f'{node} ({len(list(G.neighbors(node)))} connections)' for node in G.nodes()]\n\tfig = go.Figure(data=[edge_trace, node_trace],\n\t\t\t\tlayout=go.Layout(\n\t\t\t\t\ttitle='<br>Network graph of species co-occurrence',\n\t\t\t\t\ttitlefont_size=16,\n\t\t\t\t\tshowlegend=False,\n\t\t\t\t\thovermode='closest',\n\t\t\t\t\tmargin=dict(b=20,l=5,r=5,t=40),\n\t\t\t\t\txaxis=dict(showgrid=False, zeroline=False, showticklabels=False),\n\t\t\t\t\tyaxis=dict(showgrid=False, zeroline=False, showticklabels=False))\n\t\t\t\t\t)\n\treturn fig",
-            "responseText": "Below is the network visualization showing the species co-occurence of species within an image."
+            "sampleData": "{'concept':['dolphin', 'shark'], 'depth_meters':[10, 20]}",
+            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    # Define depth zones based on meters\n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n\treturn fig",
+            "sqlServerQuery": "SELECT b.concept, i.depth_meters FROM dbo.bounding_boxes b JOIN dbo.images i ON b.image_id = i.id  INNER JOIN marine_regions MR ON i.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND i.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE i.depth_meters IS NOT NULL AND MR.name='Monterey Bay';",
+            "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."
         }""",
         "user2": f"""
+            SQL Server Database Structure: ${DB_STRUCTURE}
             User Prompt: "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year"
             Output type: visualization
             InputImageDataAvailable: False""",
         "assistant2": """
         {
-            "sqlQuery": "SELECT      bb.concept,     i.latitude,      i.longitude,      YEAR(i.timestamp) AS ObservationYear FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      i.latitude IS NOT NULL AND      i.longitude IS NOT NULL AND     i.timestamp IS NOT NULL ORDER BY      i.timestamp;",
             "sampleData": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
             "plotlyCode": "import plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n\tfig = go.Figure()\n\tfor year in sorted(set(data['ObservationYear'])):\n\t\tfig.add_trace(\n\t\t\tgo.Scattergeo(\n\t\t\t\tlon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\tlat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\ttext=[f\"{data['concept'][i]} ({year})\" for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],\n\t\t\t\tmode='markers',\n\t\t\t\tmarker=dict(\n\t\t\t\t\tsize=8,\n\t\t\t\t\tsymbol='circle',\n\t\t\t\t\tline=dict(width=1, color='rgba(102, 102, 102)')\n\t\t\t\t),\n\t\t\t\tname=f\"Year {year}\",\n\t\t\t\tvisible=(year == min(data['ObservationYear'])) \n\t\t\t)\n\t\t)\n\tsteps = []\n\tfor i, year in enumerate(sorted(set(data['ObservationYear']))):\n\t\tstep = dict(\n\t\t\tmethod='update',\n\t\t\targs=[{'visible': [False] * len(fig.data)},\n\t\t\t\t{'title': f\"Observations for Year: {year}\"}], \n\t\t)\n\t\tstep['args'][0]['visible'][i] = True   i'th trace to \"visible\"\n\t\tsteps.append(step)\n\tsliders = [dict(\n\t\tactive=10,\n\t\tcurrentvalue={\"prefix\": \"Year: \"},\n\t\tpad={\"t\": 50},\n\t\tsteps=steps\n\t)]\n\tfig.update_layout(\n\t\tsliders=sliders,\n\t\ttitle='Time-lapse Visualization of Species Observations',\n\t\tgeo=dict(\n\t\t\tscope='world',\n\t\t\tprojection_type='equirectangular',\n\t\t\tshowland=True,\n\t\t\tlandcolor='rgb(243, 243, 243)',\n\t\t\tcountrycolor='rgb(204, 204, 204)',\n\t\t),\n\t)\n\treturn fig",
+            "sqlServerQuery": "SELECT      bb.concept,     i.latitude,      i.longitude,      YEAR(i.timestamp) AS ObservationYear FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      i.latitude IS NOT NULL AND      i.longitude IS NOT NULL AND     i.timestamp IS NOT NULL ORDER BY      i.timestamp;",
             "responseText": "Below is an Interactive Time-lapse Map of Marine Species Observations Grouped by Year."
         }""",
     },
@@ -414,17 +459,17 @@ oneShotData = {
             InputImageDataAvailable: False""",
         "assistant": """
         {
-            "sqlQuery": "SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;",
+            "sqlServerQuery": "SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;",
             "responseText": "The table below lists all the species found in image with id 2256720."
         }""",
         "assistant2": """
         {
-            "sqlQuery": "SELECT b.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE i.depth_meters = 1000 GROUP BY b.concept ORDER BY frequency DESC;",
+            "sqlServerQuery": "SELECT b.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE i.depth_meters = 1000 GROUP BY b.concept ORDER BY frequency DESC;",
             "responseText": "Table shows the frequently found species at 1000m depth and their count."
         }""",
     },
 }
-def generateSQLQuery(
+def generatesqlServerQuery(
     prompt: str,
     scientificNames: str,
     name: str,
@@ -433,6 +478,7 @@ def generateSQLQuery(
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
+
     
     if len(name) > 1:
         prompt = prompt.replace(name, scientificNames)
@@ -441,51 +487,61 @@ def generateSQLQuery(
 
     print("------------------------prompt passed "+ prompt)
 
-    completion = openai.ChatCompletion.create(
-        model='gpt-4-turbo-preview', #if outputType == "visualization" else SQL_FINE_TUNED_MODEL,
-        messages=[
-            {"role": "system", "content": """You are a very intelligent json generated that can generate highly efficient sql queries and plotly python code. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+    needsGpt4 = outputType == "visualization"
+
+    messages = [{"role": "system", "content": oneShotData["imagesWithInput"]['instructions'] if inputImageDataAvailable else oneShotData["visualization"]['instructions'] if needsGpt4 else """You are a very intelligent json generated that can generate highly efficient sql queries and plotly python code. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
                 The Generated SQL must be valid
                 The JSON format and the attributes on the JSON are provided below
                 {
-                    "sqlQuery": "",
+                    "sqlServerQuery": "",
+                 """+ """
                     "sampleData": "",
                     "plotlyCode": "",
+                    """ if needsGpt4 else ""
+                    +
+                """
                     "responseText": ""
                 }
 
-                sqlQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
+                sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. sqlServerQuery must be generated when InputImageDataAvailable is True 
+                """+
+                ("""
                 sampleData: This is the sample data that you think should be generated when running the sql query. This is optional. It is only needed when the outputType is visualization
                 plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable, which is a python list. The data value will have the structur of the sampleData generated above. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function. This attribute is optional but must be generated only when the outputType is visualization.
-                responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
+                """ if needsGpt4 else "")
+                +"""responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
 
 
                 SQL Server Database Structure:
-             """+DB_STRUCTURE+"\n\n"+ (oneShotData['imagesWithInput']['instructions'] if (inputImageDataAvailable == True) else "") + "\n"+
+             """+DB_STRUCTURE+"\n\n"+
                 oneShotData[outputType]['instructions']
-            },
-            {
-                "role": "user","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['user']
-            },
-            {
-                "role": "assistant","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['assistant']
-            },
-            {
-                "role": "user","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['user2']
-            },
-            {
-                "role": "assistant","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['assistant2']
-            },
-            {
+            }]
+    messages.append({
+            "role": "user","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['user']
+        })
+    messages.append({
+            "role": "assistant","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['assistant']
+        })
+    messages.append({
+            "role": "user","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['user2']
+        })
+    messages.append({
+            "role": "assistant","content": oneShotData["imagesWithInput" if inputImageDataAvailable else outputType]['assistant2']
+        })
+
+    messages.append({
                 "role": "user","content": f"""
-                User Prompt: {prompt}
-                Output type: {outputType}
-                InputImageDataAvailable: {inputImageDataAvailable}"""
-            },
-        ],
+                User Prompt: {prompt}"""
+            })
+    print('gpt-3.5-turbo-0125' if needsGpt4 else SQL_IMAGE_SEARCH_FINE_TUNED_MODEL if inputImageDataAvailable else SQL_FINE_TUNED_MODEL)
+
+    completion = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo-0125' if needsGpt4 else SQL_IMAGE_SEARCH_FINE_TUNED_MODEL if inputImageDataAvailable else SQL_FINE_TUNED_MODEL,
+        messages=messages,
         temperature=0
     )
+
 
     result = completion.choices[0].message.content
     first_brace_position = result.find('{')
@@ -493,9 +549,117 @@ def generateSQLQuery(
         result = result[first_brace_position:]
     if result.endswith('```'):
         result = result[:-3]
+    result = fixTabsAndNewlines(result)
+    print("result",result)
     result = json.loads(result)
     result['outputType'] = outputType
+
     return result
+
+def addImageSearchQuery(imageData, generatedJSON):
+    imageIDs = generatedJSON['similarImageIDs'] if 'similarImageIDs' in generatedJSON else []
+    boundingBoxIDs = generatedJSON['similarBoundingBoxIDs'] if 'similarBoundingBoxIDs' in generatedJSON else []
+
+    sql = ""
+
+    if len(imageData)!=0:
+        sql += """
+            IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors;
+            IF OBJECT_ID('tempdb..#InputMagnitudes') IS NOT NULL DROP TABLE #InputMagnitudes;
+
+            CREATE TABLE #InputFeatureVectors (
+                image_id INT,
+                vector_index INT,
+                vector_value DECIMAL(18,5)
+            );
+        """
+        for singleImageData in imageData:
+            sql += "INSERT INTO #InputFeatureVectors (image_id, vector_index, vector_value) VALUES "+singleImageData+";\n"
+
+        sql+="""
+            CREATE TABLE #InputMagnitudes (
+                image_id INT,
+                magnitude DECIMAL(18,5)
+            );
+
+            INSERT INTO #InputMagnitudes (image_id, magnitude)
+            SELECT 
+                image_id,
+                SQRT(SUM(POWER(vector_value, 2))) AS magnitude
+            FROM #InputFeatureVectors
+            GROUP BY image_id;
+
+            WITH ImageSimialritySearch AS (
+                SELECT
+                    IFV.image_id AS bb1,
+                    BBFV.bounding_box_id AS bb2,
+                    SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude * BB.magnitude) AS CosineSimilarity
+                FROM #InputFeatureVectors IFV
+                INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index
+                INNER JOIN bounding_boxes BB ON BBFV.bounding_box_id = BB.id
+                INNER JOIN #InputMagnitudes IM ON IFV.image_id = IM.image_id
+                WHERE IM.magnitude > 0 AND BB.magnitude > 0
+                GROUP BY IFV.image_id, BBFV.bounding_box_id, IM.magnitude, BB.magnitude
+            )
+            """
+        
+    if(len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
+        sql+="""
+
+            DECLARE @BoundingBoxIDs TABLE (ID INT);
+        """
+        if(len(boundingBoxIDs)!=0):
+            sql+="\nINSERT INTO @BoundingBoxIDs VALUES "+", ".join(f"({num})" for num in boundingBoxIDs)+";"
+        if(len(imageIDs)!=0):
+            sql+="\nDECLARE @ImageIDs TABLE (ID INT);"
+            sql+="\nINSERT INTO @ImageIDs VALUES "+", ".join(f"({num})" for num in imageIDs)+";"
+            sql+="""
+                DECLARE @BoundingBoxIDs TABLE (ID INT);
+
+                INSERT INTO @BoundingBoxIDs (ID)
+                SELECT BB.id
+                FROM bounding_boxes BB
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM @ImageIDs I
+                    WHERE BB.image_id = I.ID
+                );
+
+                WITH InputFeatureVectors AS (
+                    SELECT
+                        BBI.ID AS InputBoxID,
+                        BBFV.vector_index,
+                        BBFV.vector_value
+                    FROM @BoundingBoxIDs BBI
+                    INNER JOIN bounding_box_image_feature_vectors BBFV ON BBI.ID = BBFV.bounding_box_id
+                ),
+                SimilaritySearch AS (
+                    SELECT
+                        IFV.InputBoxID AS bb1,
+                        BBFV.bounding_box_id AS bb2,
+                        SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude * TM.magnitude) AS CosineSimilarity
+                    FROM InputFeatureVectors IFV
+                    INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index
+                    INNER JOIN bounding_boxes IM ON IFV.InputBoxID = IM.id
+                    INNER JOIN bounding_boxes TM ON BBFV.bounding_box_id = TM.id
+                    WHERE IFV.InputBoxID != BBFV.bounding_box_id
+                    AND IM.magnitude > 0 AND TM.magnitude > 0
+                    GROUP BY IFV.InputBoxID, BBFV.bounding_box_id, IM.magnitude, TM.magnitude
+                )
+
+            """
+    if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
+        sql+="SELECT TOP 10 FROM (\n"
+    if len(imageData)!=0:
+        genSQLQuery = generatedJSON['sqlServerQuery'].replace('SimilaritySearch', 'ImageSimialritySearch')
+        sql+=genSQLQuery
+    if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
+        sql+="\nUNION ALL\n"
+    if len(imageIDs)!=0 or len(boundingBoxIDs)!=0:
+        sql+=genSQLQuery
+    if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
+        sql+=") ORDER BY CosineSimilarity DESC"
+    return sql
 
 
 
@@ -515,7 +679,7 @@ def initLangchain(messages=[]):
     chat = ChatOpenAI(model_name="gpt-4-0613",temperature=0, openai_api_key = openai.api_key)
     tools = [
         genTool(getScientificNamesFromDescription), 
-        genTool(generateSQLQuery),
+        genTool(generatesqlServerQuery),
         #genTool(GetSQLResult),
         genTool(getTaxonomyTree),
         genTool(getTaxonomicRelatives),
@@ -570,7 +734,7 @@ availableFunctions = [{
         "required": ["name", "constraints", "description"],
     },
 },{
-    "name": "generateSQLQuery",
+    "name": "generatesqlServerQuery",
     "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
     "parameters": {
         "type": "object",
@@ -589,8 +753,12 @@ availableFunctions = [{
             },
             "outputType": {
                 "type": "string",
-                "description": "enum of 'images', 'text', 'visualization','table'. The enum type must be deduced based on the prompt. If the prompt says find me number of images or name of the species, etc. or if the prompt can be answered in a single sentence without any images or chart or multi-dimensional data shown, outputType is a text. If the prompt says to generate or find image, outputType is image, if prompt says to generate any kind of visualization liek graph, plots,etc., the outputType is visualization. If nothing matches, it is a table"
-            }
+                "description": """enum of 'images', 'text', 'visualization','table'. The enum type must be deduced based on the prompt. 
+                If the prompt says to generate or find image, not the image count, outputType = images, 
+                else if prompt says to generate any kind of visualization like graph, plots,etc., outputType = visualization, 
+                else if the prompt asks about two or more type of species data or the output data might contain data of two or more type of species, or asks about image count or something numerical of more than one species, outputType = table, 
+                else outputType = text"""
+            },
         },
         "required": ["prompt", "scientificNames", "name", "outputType"],
     },
@@ -653,7 +821,7 @@ availableFunctions = [{
 availableFunctionsDescription = {
     "getScientificNamesFromDescription": "Generating scientific name from description",
     
-    "generateSQLQuery": "Generating SQL Query",
+    "generatesqlServerQuery": "Generating SQL Query",
     
     "getTaxonomyTree": "Getting the taxonomy tree",
     
@@ -732,7 +900,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         formatted_features = []
 
         for index, feature in enumerate(features_squeezed, start=1):
-            formatted_feature = f"({index}, {feature:.5f})"
+            formatted_feature = f"(-1, {index}, {feature:.5f})"
             formatted_features.append(formatted_feature)
 
         eval_image_feature_string = ", ".join(formatted_features)
@@ -747,7 +915,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             temperature=0,
 
         )
-        sqlQuery=None
+        sqlServerQuery=None
         response_message = response["choices"][0]["message"]
         if(response_message.get("function_call")):
             function_name = response_message["function_call"]["name"]
@@ -804,17 +972,19 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     print(event_data)
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
-                if(function_name=="generateSQLQuery"):
+                if(function_name=="generatesqlServerQuery"):
                     args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
                 result = function_to_call(**args)
                 
 
 
-                if(function_name=="generateSQLQuery"):
+                if(function_name=="generatesqlServerQuery"):
+                    if 'sqlQuery' in result:
+                        result['sqlServerQuery'] = result['sqlQuery']
                     if len(eval_image_feature_string) != 0:
-                        result['sqlQuery'] = result['sqlQuery'].replace("{imageFeatureVector}", eval_image_feature_string+";")
-                    
-                    sql = result['sqlQuery']
+                        result['sqlServerQuery'] = addImageSearchQuery([eval_image_feature_string], result)
+                        
+                    sql = result['sqlServerQuery']
                     limit = -1
                     if sql.strip().startswith('SELECT '):
                         limit, sql = changeNumberToFetch(sql)
@@ -859,13 +1029,15 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                     elif(result["outputType"]=="table"):
                         result["table"]=sqlResult
-                        result["responseText"]= result["responseText"].format(**sqlResult[0])
-                    elif(result["outputType"]=="text"):
-                        result["responseText"]= result["responseText"].format(**sqlResult[0])
-                    else:
-                        result["species"]=sqlResult
-                        result["responseText"]= result["responseText"].format(**sqlResult[0])
 
+                    elif(result["outputType"]=="images"):
+                        print("species, ", sqlResult)
+                        result["species"]=sqlResult
+
+                    try:
+                        result["responseText"]= result["responseText"].format(**sqlResult[0])
+                    except:
+                        print("Error formatting data to response text")
                     break
 
                 else:
@@ -887,13 +1059,35 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         else:
             break
 
-    output = {
-        "outputType": result["outputType"],
-        "responseText": result["responseText"] if result["responseText"] else "",
-        "species": result["species"] if "species" in result else "",
-        "html": result["html"] if "html" in result else "",
-        "table": result["table"] if "table" in result else "",
-    }
+    output = None
+    if(function_name=="getTaxonomyTree"):
+        parsedResult = json.loads(result)
+
+        taxonomyResponse = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0613",
+            messages=[{"role":"system","content":"Generate a short summary for this response for the prompt provided"},{"role":"user","content":"Prompt:"+prompt+"\nResponse+"+result}],
+            temperature=0,
+        )
+        output = {
+            "outputType": "taxonomy",
+            "responseText": taxonomyResponse["choices"][0]["message"]["content"],
+            "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
+        }
+    elif(function_name=="getAnswer"):
+        output = {
+            "outputType": "text",
+            "responseText": result
+        }
+    else:
+        output = {
+            "outputType": result["outputType"],
+            "responseText": result["responseText"] if "responseText" in result else "",
+            "species": result["species"] if "species" in result else "",
+            "html": result["html"] if "html" in result else "",
+            "table": result["table"] if "table" in result else "",
+        }
+
+
 
     #if isEventStream:
     #    event_data = {

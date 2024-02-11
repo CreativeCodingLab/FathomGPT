@@ -16,17 +16,17 @@
         "Find me best images of ray-finned creatures in Monterey bay and depth less than 5k meters",
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
-        "What color are moon jellyfsh",
+        //"What color are moon jellyfsh",
         "How large are moon jellyfish",
         "Generate an area chart showing the year the images were taken",
         "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones",
         "Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in <2, 2 to 10, 10 to 100, 100 to 1000, >1000 pressure levels",
         "What is the total number of Patiria miniata found in the database?",
         "Generate a heatmap of species in Monterey Bay",
-        "Generate me a scatterplot showing the correlation between oxygen and pressure level in Monetery bay",
+        "Generate a scatterplot between oxygen and pressure data in Monetery bay from the database",
         "Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1",
         "Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides colored coded for each species from 0°C to 20 in 5°C increments.",
-        "Find me any 3 species of starfish and get me their image count in the database",
+        "Find me any 3 species of starfish and get me their total image count in the database",
     ]
 
     function reload(){
