@@ -1,27 +1,27 @@
 <script lang="ts">
-	import type { speciesData } from "$lib/types/responseType";
-
 	export let responseText: string;
 	export let speciesArray: any[];
 
-	let indent = 20;
-	let descPadding = 0;
-	//let lastRank = speciesArray[0].taxonomy.descendants[0].rank;
+	console.log(speciesArray)
+
 </script>
 
 <main class="fathomChatContainer">
 		<p>{responseText}</p>
-		<br />
-		<!-- {#each speciesArray as s}
-			<h3>{s.concept}</h3>
-			<ul>
-				{#each s.taxonomy.ancestors as a, i}
-					<li style="padding-left: {s.taxonomy.ancestors.length*indent - i*indent}px;">{a.name} : {a.rank}</li>
-				{/each}
-				<h3>{s.concept}</h3>
-				{#each s.taxonomy.descendants as d, i}
-					<li style="padding-left: {d.rank !== lastRank ? descPadding +=indent : descPadding}px;">{d.name} : {d.rank}</li>
-				{/each}
-			</ul>
-		{/each} -->
+		<br/>
+		{#each speciesArray as species}
+		<h3>Taxonomy for <b>{species.concept}</b></h3>
+		{#if species != null}
+		<div class="innerTaxonomyContainer">
+			{#each species.taxonomy?.ancestors as ancestor, index}
+			<div class="taxonomyItem" style="{'margin-left:'+(index*12)+"px"}"><b>{ancestor.name}</b> ({ancestor.rank})</div>
+			{/each}
+			<div class="taxonomyItem" style="{'margin-left:'+(species.taxonomy?.ancestors.length*12)+"px"}"><b>{species.concept}</b> ({species.rank})</div>
+			{#each species.taxonomy?.descendants as descendant, index}
+			<div class="taxonomyItem" style="{'margin-left:'+((species.taxonomy?.ancestors.length+index)*12)+"px"}"><b>{descendant.name}</b> ({descendant.rank})</div>
+			{/each}
+		</div>
+		{/if}
+		{/each}
+
 </main>

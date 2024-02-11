@@ -1,0 +1,1982 @@
+Prompt1	Observation	Sql query	Sql Result	GPT Response	InputImageAvailable	Prompt in different language styles	
+Find me images of Aurelia aurita	"To find the images from the database you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Since the prompt does not specify number of images. Limit the query to top 10 images"	"SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+WHERE b.concept = 'Aurelia aurita'"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586151
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586152
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586153
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586154
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586155
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""image_id"": 2586149,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586156
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0199\/00_01_04_07.png"",
+        ""image_id"": 2586296,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586298
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/04_59_42_11.png"",
+        ""image_id"": 2587742,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2587744
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/0893\/06_13_15_15.png"",
+        ""image_id"": 2588036,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2588038
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2934\/05_23_41_12.png"",
+        ""image_id"": 2589496,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2589498
+    }
+]"	"{
+    ""prompt"": ""Find me images of Aurelia aurita"",
+    ""findings"": ""1. Since prompt asks to find images, I need to set the output type as image. 2. Image should be of specific species 'Aurlia Aurita' 3. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id FROM images i JOIN bounding_boxes b ON i.id = b.image_id WHERE b.concept = 'Aurelia aurita'"",
+    ""responseText"": ""Here are some images of Aurelia aurita:""
+}"	FALSE		
+"Create a bar chart with temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0 C to 100 C in 20 C increments, color-coded for each species."	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"WITH TemperatureRanges AS (
+    SELECT 0 AS Temperature
+    UNION ALL
+    SELECT Temperature + 5
+    FROM TemperatureRanges
+    WHERE Temperature < 15
+)
+SELECT 
+    CASE 
+        WHEN i.temperature_celsius >= 0 AND i.temperature_celsius < 5 THEN '0-5 C'
+        WHEN i.temperature_celsius >= 5 AND i.temperature_celsius < 10 THEN '5-10 C'
+        WHEN i.temperature_celsius >= 10 AND i.temperature_celsius < 15 THEN '10-15 C'
+        WHEN i.temperature_celsius >= 15 AND i.temperature_celsius < 20 THEN '15-20 C'
+    END AS TemperatureRange,
+    COUNT(CASE WHEN b.concept = 'Aurelia aurita' THEN 1 END) AS AureliaAuritaCount,
+    COUNT(CASE WHEN b.concept = 'Pycnopodia helianthoides' THEN 1 END) AS PycnopodiaHelianthoidesCount
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    TemperatureRanges tr ON i.temperature_celsius >= tr.Temperature AND i.temperature_celsius < tr.Temperature + 20
+WHERE 
+    b.concept IN ('Aurelia aurita', 'Pycnopodia helianthoides')
+GROUP BY 
+    CASE 
+        WHEN i.temperature_celsius >= 0 AND i.temperature_celsius < 5 THEN '0-5 C'
+        WHEN i.temperature_celsius >= 5 AND i.temperature_celsius < 10 THEN '5-10 C'
+        WHEN i.temperature_celsius >= 10 AND i.temperature_celsius < 15 THEN '10-15 C'
+        WHEN i.temperature_celsius >= 15 AND i.temperature_celsius < 20 THEN '15-20 C'
+    END
+ORDER BY 
+    TemperatureRange;"		"{
+    ""prompt"": ""Create a bar chart with temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0 C to 20 C in 5 C increments, color-coded for each species."",
+    ""findings"": ""1. The prompt specifies to generate chart,  so the output type is a visualization since it is used to generate the chart. 2. Chart must show temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0 C to 20 C in 5 C increments. 3. The temperature levels can thus be 0-5, 5-10, 10-15, 15-20. 4. For each species the visualization must be color coded. 4. The response type is visualization, so sample data must be generated."",
+    ""outputType"": ""visualization"",
+    ""sqlServerQuery"": ""WITH TemperatureRanges AS ( SELECT 0 AS Temperature UNION ALL SELECT Temperature + 5 FROM TemperatureRanges WHERE Temperature < 15 ) SELECT CASE WHEN i.temperature_celsius >= 0 AND i.temperature_celsius < 5 THEN '0-5 C' WHEN i.temperature_celsius >= 5 AND i.temperature_celsius < 10 THEN '5-10 C' WHEN i.temperature_celsius >= 10 AND i.temperature_celsius < 15 THEN '10-15 C' WHEN i.temperature_celsius >= 15 AND i.temperature_celsius < 20 THEN '15-20 C' END AS TemperatureRange, COUNT(CASE WHEN b.concept = 'Aurelia aurita' THEN 1 END) AS AureliaAuritaCount, COUNT(CASE WHEN b.concept = 'Pycnopodia helianthoides' THEN 1 END) AS PycnopodiaHelianthoidesCount FROM dbo.images i JOIN dbo.bounding_boxes b ON i.id = b.image_id JOIN TemperatureRanges tr ON i.temperature_celsius >= tr.Temperature AND i.temperature_celsius < tr.Temperature + 20 WHERE b.concept IN ('Aurelia aurita', 'Pycnopodia helianthoides') GROUP BY CASE WHEN i.temperature_celsius >= 0 AND i.temperature_celsius < 5 THEN '0-5 C' WHEN i.temperature_celsius >= 5 AND i.temperature_celsius < 10 THEN '5-10 C' WHEN i.temperature_celsius >= 10 AND i.temperature_celsius < 15 THEN '10-15 C' WHEN i.temperature_celsius >= 15 AND i.temperature_celsius < 20 THEN '15-20 C' END ORDER BY TemperatureRange;"",
+    ""sampleData"": ""{'TemperatureRange':['0-5','5-10','10-15','15-20'],'AureliaAuritaCount':[23,10,5,3],'PycnopodiaHelianthoidesCount':[2,55,7,3]}"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\ndef drawVisualization(data):\n\ttrace1 = go.Bar(\n\t\tx=data['TemperatureRange'],\n\t\ty=data['AureliaAuritaCount'],\n\t\tname='Aurelia Aurita',\n\t\tmarker=dict(color='rgb(55, 83, 109)')\n\t)\n\ttrace2 = go.Bar(\n\t\tx=data['TemperatureRange'],\n\t\ty=data['PycnopodiaHelianthoidesCount'],\n\t\tname='Pycnopodia helianthoides',\n\t\tmarker=dict(color='rgb(26, 118, 255)')\n\t)\n\tdata = [trace1, trace2]\n\tlayout = go.Layout(\n\t\ttitle='Temperature Range Counts for Aurelia Aurita and Pycnopodia helianthoides',\n\t\txaxis=dict(title='Temperature Range ( C)'),\n\t\tyaxis=dict(title='Count'),\n\t\tbarmode='group'\n\t)\n\tfig = go.Figure(data=data, layout=layout)\n\treturn fig"",
+    ""responseText"": ""Below is the bar chart with temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0 C to 20 C in 5 C increments""
+}"	FALSE		
+What is the maximum and minumum latitude and longitude of Atlantic Ocean	The prompt asks to find maximum and minumum latitude and longitude of Atlantic Ocean. It can be found based on the marine_regions table	"SELECT min_latitude, min_longitude, max_latitude, max_longitude
+From marine_regions WHERE name = 'Atlantic Ocean'"	"min_latitude min_longitude max_latitude max_longitude
+-60	-83.008056640625	68.62359619140625	20"	"{
+    ""prompt"": ""What is the maximum and minumum latitude and longitude of Atlantic Ocean"",
+    ""findings"": ""1. Need to find maximum and minimum latitude and longitude, which is number, so output is text. 2. The sql result should include the maximum and minimum latitude as a json. 3. The response text should be output so that maximum and minimum latitude and longitude result can be formatted into the text."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT min_latitude, min_longitude, max_latitude, max_longitude From marine_regions WHERE name = 'Atlantic Ocean'"",
+    ""responseText"": ""The maximum latitude and longitude for Atlantic Ocean are {max_latitude} and {max_longitude} respectively and the minimum latitude and longitude for Atlantic Ocean are {min_latitude} and {min_longitude} respectively""
+}
+
+"	FALSE		
+Find me images similar for species with bounding box id 2290084		"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL
+                DROP TABLE #InputFeatureVectors;
+            CREATE TABLE #InputFeatureVectors ( 
+                vector_index INT, 
+                vector_value DECIMAL(18,5) 
+            ); 
+            
+            INSERT INTO #InputFeatureVectors (vector_index, vector_value) 
+            VALUES 
+            {imageFeatureVector};
+
+            WITH FeatureVectors AS ( 
+                SELECT 
+                    BBFV.bounding_box_id AS BoxID, 
+                    SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct 
+                FROM #InputFeatureVectors IFV 
+                INNER JOIN bounding_box_image_feature_vectors BBFV 
+                    ON IFV.vector_index = BBFV.vector_index 
+                GROUP BY BBFV.bounding_box_id
+            ),
+            Magnitude AS ( 
+                SELECT 
+                    id AS BoxID, 
+                    magnitude 
+                FROM bounding_boxes 
+            ), 
+            InputMagnitude AS ( 
+                SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude 
+                FROM #InputFeatureVectors 
+            ), 
+            SimilaritySearch AS ( 
+                SELECT TOP 10 
+                    FV.BoxID as id, 
+                    FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity 
+                FROM FeatureVectors FV 
+                CROSS JOIN InputMagnitude IM 
+                INNER JOIN Magnitude M 
+                    ON FV.BoxID = M.BoxID 
+                WHERE IM.magnitude IS NOT NULL 
+                AND M.magnitude IS NOT NULL 
+                AND IM.magnitude > 0 
+                AND M.magnitude > 0 
+                ORDER BY CosineSimilarity DESC 
+            ) 
+            SELECT 
+                SS.id AS id, 
+                BB.concept, 
+                IMG.url, 
+                SS.CosineSimilarity 
+            FROM SimilaritySearch SS 
+            INNER JOIN bounding_boxes BB 
+                ON BB.id = SS.id 
+            INNER JOIN images IMG 
+                ON BB.image_id = IMG.id; 
+            
+            DROP TABLE #InputFeatureVectors;"	"""[
+    {
+        """"id"""": 2281439,
+        """"concept"""": """"Brachyura"""",
+        """"url"""": """",
+    }
+]"""	"{
+    ""prompt"": ""Find me images similar to image found in bounding box 2290084"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [2290084],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Here are the images similar to  image found in bounding box 2290084.""
+}"	TRUE		"DECLARE @InputBoundingBoxID INT; SET @InputBoundingBoxID = 2290084; WITH InputFeatureVectors AS ( SELECT vector_index, vector_value FROM bounding_box_image_feature_vectors WHERE bounding_box_id = @InputBoundingBoxID ), FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ), Magnitude AS ( SELECT id AS BoxID, magnitude FROM bounding_boxes ), InputMagnitude AS ( SELECT bounding_box_id AS BoxID, SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM bounding_box_image_feature_vectors WHERE bounding_box_id = @InputBoundingBoxID GROUP BY bounding_box_id ), SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV INNER JOIN InputMagnitude IM ON FV.BoxID = IM.BoxID INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id;"
+Generate a comparative box plot for environmental parameters for Anuropus and Eulimidae				"{
+    ""prompt"": ""Generate a comparative box plot for environmental parameters for Anuropus and Eulimidae"",
+    ""findings"": ""1. The prompt says to generate comparative box plot for environmental parameters for Anuropus and Eulimidae, so the output is a visualization.  2. The prompt only says Environmental Conditions, so using the database schema we can say that there are 4 environmental factors and they are Temperature, Salinity, Oxygen and Pressure. 3.Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT      bb.concept,     i.depth_meters,      i.temperature_celsius,      i.salinity,      i.oxygen_ml_l FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      bb.concept IN ('Anuropus', 'Eulimidae');"",
+    ""sampleData"": ""{    'concept': ['Anuropus', 'Anuropus', 'Eulimidae', 'Eulimidae'],    'depth_meters': [100, 200, 150, 250],    'temperature_celsius': [10, 15, 12, 16],    'salinity': [35, 36, 35, 37],    'oxygen_ml_l': [5, 6, 7, 8]}"",
+    ""plotlyCode"": ""import pandas as pd\nimport plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n\tdf = pd.DataFrame(data)\n\tfig = make_subplots(rows=2, cols=2, subplot_titles=('Depth', 'Temperature', 'Salinity', 'Oxygen'))\n\tfig.add_trace(go.Box(y=df['depth_meters'], x=df['concept'], name='Depth'), row=1, col=1)\n\tfig.add_trace(go.Box(y=df['temperature_celsius'], x=df['concept'], name='Temperature'), row=1, col=2)\n\tfig.add_trace(go.Box(y=df['salinity'], x=df['concept'], name='Salinity'), row=2, col=1)\n\tfig.add_trace(go.Box(y=df['oxygen_ml_l'], x=df['concept'], name='Oxygen'), row=2, col=2)\n\tfig.update_layout(\n\t\ttitle='Comparative Box Plot for Environmental Parameters for Anuropus and Eulimidae',\n\t\tshowlegend=False\n\t)\n\treturn fig"",
+    ""responseText"": ""Below is a comparative box plot for environmental parameters for Anuropus and Eulimidae""
+}
+
+
+
+"	FALSE		
+Find me images of Aurelia aurita in Monterey Bay	"To find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+The prompt is asking image for a particular region, so its better to add the latitude and longitude information to the species data too. Since you need to find the images of Aurelia aurita in Monterey Bay, use the marine_regions table to lookup the Monterey Bay min/max latitude/longitude values to search for images.
+Since the prompt does not specify number of images. Limit the query to top 10 images"	"SELECT i.urlSELECT TOP 10 i.url, i.id as image_id, b.concept, b.id, i.latitude, i.longitude
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND
+i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Monterey Bay'
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Pacific Ocean'"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590411,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590412,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590413,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590414,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590415,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590416,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590417,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590418,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590419,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590420,
+        ""latitude"": 3.669970800000000e+001,
+        ""longitude"": -1.220502030000000e+002
+    }
+]"	"{
+    ""prompt"": ""Find me images of Aurelia aurita in Monterey Bay"",
+    ""findings"": ""1. Since prompt asks to generate images, I need to generate image type response. 2. Image should be of specific species 'Aurlia Aurita' in Monterey Bay. 3. Image output must have id, concept of species and url of it's image. 4.Since the prompt asks images from place named Monterey Bay, I should also add the latitude and longitude detail."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id, i.latitude, i.longitude FROM images i JOIN bounding_boxes b ON i.id = b.image_id JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE b.concept = 'Aurelia aurita'     AND mr.name = 'Monterey Bay'"",
+    ""responseText"": ""Images of Aurelia aurita in Monterey Bay are provided below""
+}"	FALSE		
+Which location has the most Aurelia aurita	"The prompt asks for location that has the most Aurelia aurita. The prompt does not provide detail on what location would mean. So, use the marine_regions table and find the count of bounding boxes of Aurelia aurita in the regions, sort them from highest and smallest and output the top 15 results
+"	"SELECT TOP 10 r.name, COUNT(b.id) AS count
+FROM dbo.bounding_boxes b
+JOIN dbo.images i ON b.image_id = i.id
+JOIN dbo.marine_regions r ON i.latitude BETWEEN r.min_latitude AND r.max_latitude
+                  AND i.longitude BETWEEN r.min_longitude AND r.max_longitude
+WHERE b.concept = 'Aurelia aurita'
+GROUP BY r.name
+ORDER BY count DESC"	"name count
+Global	110
+California Current	110
+North America	110
+SeaVox Sea Areas	110
+United States Exclusive Economic Zone	110
+World	110
+World Oceans	110
+United States	109
+California Borderland	109
+Greater Monterey Bay	109
+Monterey Bay	108
+Monterey Bay Region	108
+Pacific Northwest	1
+Canadian Exclusive Economic Zone	1"	"{
+    ""prompt"": ""Which location has the most Aurelia aurita"",
+    ""findings"": ""1. The prompt asks the location of Aurelia Aurita, thus output should have name of places which can be shown in a table making the output type table. 2. The output data should have the location name and the species count."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""SELECT TOP 10 r.name, COUNT(b.id) AS count FROM dbo.bounding_boxes b JOIN dbo.images i ON b.image_id = i.id JOIN dbo.marine_regions r ON i.latitude BETWEEN r.min_latitude AND r.max_latitude                   AND i.longitude BETWEEN r.min_longitude AND r.max_longitude WHERE b.concept = 'Aurelia aurita' GROUP BY r.name ORDER BY count DESC"",
+    ""responseText"": ""The locations where Aurelia aurita are found and their count is shown in the table below""
+}"	FALSE		
+What species are frequently found near Aurelia aurita?	"The prompt asks for frequently found species near Aurelia aurita without providing detail what frequent means numerically. So, find the number of images that have Aurelia aurita and another species. Use the bounding_boxes table to find another species that is near Aurelia aurita and output the name and the frequency
+"	"SELECT b2.concept AS species, COUNT(*) AS frequency
+FROM dbo.bounding_boxes b1
+JOIN dbo.bounding_boxes b2 ON b1.image_id = b2.image_id
+WHERE b1.concept = 'Aurelia aurita' AND b2.concept <> 'Aurelia aurita'
+GROUP BY b2.concept
+ORDER BY frequency DESC;"	"species frequency
+Chrysaora fuscescens	211
+Siphonophorae	20
+Pyrosoma	4
+Chrysaora	2
+Mitrocomidae	1"	"{
+    ""prompt"": ""What species are frequently found near Aurelia aurita?"",
+    ""findings"": ""1. The prompt asks the species that are frequently found near Aurelia Aurita, thus output should have name of species which can be shown in a table making the output type table. 2. The output data should have the name of the species and their count. 3. When the output is sorted in descending order, it will easier to view the data."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""SELECT b2.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes b1 JOIN dbo.bounding_boxes b2 ON b1.image_id = b2.image_id WHERE b1.concept = 'Aurelia aurita' AND b2.concept <> 'Aurelia aurita' GROUP BY b2.concept ORDER BY frequency DESC;"",
+    ""responseText"": ""The table below shows the frequency of species frequently found near Aurelia aurita""
+}"	FALSE		
+Generate a bar chart showing the year the images were taken	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"{
+    ""outputType"": ""vegaLite"",
+    ""responseText"": ""A bar chart showing the year the images were taken"",
+    ""vegaSchema"": {
+        ""$schema"": ""https://vega.github.io/schema/vega-lite/v4.json"",
+        ""mark"": ""bar"",
+        ""encoding"": {
+            ""x"": {""field"": ""Year"", ""type"": ""ordinal""},
+            ""y"": {""field"": ""ImageCount"", ""type"": ""quantitative""}
+        }
+    },
+    ""sqlServerQuery"": ""SELECT YEAR([timestamp]) AS Year, COUNT(*) AS ImageCount FROM dbo.images GROUP BY YEAR([timestamp]) ORDER BY Year; data: {""message"": ""Formatting response""}""
+}"		"{
+    ""prompt"": ""Generate a bar chart showing the year the images were taken"",
+    ""findings"": ""1. The prompt specifies to generate bar chart, so the output type is a visualization. 2. Chart must show the year the images were taken. 3. The response type is visualization, so sampleData must be generated along with the plotlyCode."",
+    ""outputType"": ""visualization"",
+    ""sqlServerQuery"": ""SELECT YEAR([timestamp]) AS Year, COUNT(*) AS ImageCount FROM dbo.images GROUP BY YEAR([timestamp]) ORDER BY Year;"", 
+    ""sampleData"": ""{'Year': ['2024', '2023', '2022'], 'ImageCount':[10,12,5]}"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\ndef drawVisualization(data):\n\ttrace = go.Bar(\n\t\tx=data['Year'],\n\t\ty=data['ImageCount'],\n\t\tmarker=dict(color='rgb(158,202,225)', line=dict(color='rgb(8,48,107)', width=1.5))\n\t)\n\tdata = [trace]\n\tlayout = go.Layout(\n\t\ttitle='Image Count per Year',\n\t\txaxis=dict(title='Year'),\n\t\tyaxis=dict(title='Image Count')\n\t)\n\tfig = go.Figure(data=data, layout=layout)\n\treturn fig"",
+    ""responseText"": ""A bar chart below shows the year the images were taken""
+}"	FALSE		
+How often are Aurelia aurita found near other species?	"The prompt does not provide what often would mean numerically, so first find all distinct images in the database that has Aurelia aurita. Now, find the images that have Aurelia aurita and another species. Now output the total AureliaImages and images that have other species
+"	"WITH AureliaImages AS (
+  SELECT DISTINCT image_id
+  FROM dbo.bounding_boxes
+  WHERE concept = 'Aurelia aurita'
+),
+OtherSpeciesInAureliaImages AS (
+  SELECT DISTINCT bb1.image_id
+  FROM dbo.bounding_boxes AS bb1
+  JOIN dbo.bounding_boxes AS bb2 ON bb1.image_id = bb2.image_id
+  WHERE bb1.concept = 'Aurelia aurita' AND bb2.concept != 'Aurelia aurita'
+)
+SELECT 
+  COUNT(*) AS 'Frequency',
+  (SELECT COUNT(*) FROM AureliaImages) AS 'TotalAureliaImages'
+FROM OtherSpeciesInAureliaImages;"	"Frequency TotalAureliaImages
+9	45"	"{
+    ""prompt"": ""How often are Aurelia aurita found near other species?"",
+    ""findings"": ""1. The prompt asks the species that are frequently found near Aurelia Aurita, thus output should have frequency of other species which can be shown in a table making the output type table. 2. The prompt asks the fequency so it would be better to put the total images of Aurelia Aurita images along with the frquency of other distinct species."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""WITH AureliaImages AS (    SELECT DISTINCT image_id    FROM dbo.bounding_boxes    WHERE concept = 'Aurelia aurita'  ),  OtherSpeciesInAureliaImages AS (    SELECT DISTINCT bb1.image_id    FROM dbo.bounding_boxes AS bb1    JOIN dbo.bounding_boxes AS bb2 ON bb1.image_id = bb2.image_id    WHERE bb1.concept = 'Aurelia aurita' AND bb2.concept != 'Aurelia aurita'  )  SELECT     COUNT(*) AS 'Frequency',    (SELECT COUNT(*) FROM AureliaImages) AS 'TotalAureliaImages'  FROM OtherSpeciesInAureliaImages;"",
+    ""responseText"": ""The table below shows the frequency of other species found near Aurelia Aurita""
+}"	FALSE		
+Find me similar images of species that are found depth level of 5000m and lower				"{
+    ""prompt"": ""Find me similar images of species that are found depth level of 5000m and lower"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3. The bounding boxes have the feature vector for the image of species and images table has depth column, thus we need to find the bounding boxes using the images table as per the depth condition provided. 4.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.depth_meters < 5000 ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Here are the similar images of species that are found below depth level of 5000m and lower""
+}"	TRUE		"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors; CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector}; WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ), Magnitude AS ( SELECT id AS BoxID, magnitude FROM bounding_boxes ), InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ), SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;"
+Generate a cluster plot of Observations Based on Environmental Conditions				"{
+    ""prompt"": ""Generate a cluster plot of Observations Based on Environmental Conditions"",
+    ""findings"": ""1. The prompt says to create a cluster plot, so the output is a visualization.  2. The database has environment conditions specified in depth_meters, temperature_celsius, salinity and oxygen_ml_l. 3.Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT i.depth_meters, i.temperature_celsius, i.salinity, i.oxygen_ml_l FROM dbo.images i WHERE i.depth_meters IS NOT NULL AND i.temperature_celsius IS NOT NULL AND i.salinity IS NOT NULL AND i.oxygen_ml_l IS NOT NULL;"",
+    ""sampleData"": ""{ 'depth_meters': [100, 200, 300, 400], 'temperature_celsius': [10, 15, 20, 25], 'salinity': [35, 36, 37, 38], 'oxygen_ml_l': [6, 5, 4, 3]}"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\nfrom sklearn.cluster import KMeans\nimport numpy as np\ndef drawVisualization(data):\n\tX = np.column_stack((data['depth_meters'], data['temperature_celsius'], data['salinity'], data['oxygen_ml_l']))\n\tkmeans = KMeans(n_clusters=3)\n\tkmeans.fit(X)\n\tlabels = kmeans.predict(X)\n\ttrace = go.Scatter3d(\n\t\tx=data['depth_meters'],\n\t\ty=data['temperature_celsius'],\n\t\tz=data['salinity'],\n\t\tmode='markers',\n\t\tmarker=dict(\n\t\t\tsize=12,\n\t\t\tcolor=labels, \n\t\t\tcolorscale='Viridis',  \n\t\t\topacity=0.8\n\t\t)\n\t)\n\tdata = [trace]\n\tlayout = go.Layout(\n\t\ttitle='Cluster Analysis of Observations Based on Environmental Conditions',\n\t\tscene=dict(\n\t\t\txaxis=dict(title='Depth (meters)'),\n\t\t\tyaxis=dict(title='Temperature (Celsius)'),\n\t\t\tzaxis=dict(title='Salinity')\n\t\t),\n\t\tmargin=dict(l=0, r=0, b=0, t=0)\n\t)\n\tfig = go.Figure(data=data, layout=layout)\n\treturn fig"",
+    ""responseText"": ""Below is the cluster plot of Observations Based on depth level, temperature level, salinity level and oxygen level.""
+}"	FALSE		
+Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+The prompt asks for species at depth less than 5k, so add the depth data too.
+Use the bounding_boxes, images and marine_regions table to find the species images"	"SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id, i.depth_meters
+FROM images i
+JOIN bounding_boxes b ON i.id = b.image_id
+JOIN marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+WHERE b.concept = 'Aurelia aurita'
+    AND mr.name = 'Monterey bay'
+    AND i.depth_meters < 5000"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590411,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590412,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590413,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590414,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590415,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590416,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590417,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590418,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590419,
+        ""depth_meters"": 4.447999954223633e+001
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_04_55_15.png"",
+        ""image_id"": 2590409,
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590420,
+        ""depth_meters"": 4.447999954223633e+001
+    }
+]"	"
+{
+    ""prompt"": ""Find me images of species 'Aurelia aurita' in Monterey bay and depth less than 5k meters"",
+    ""findings"": ""1. Since prompt asks to generate images, I need to generate image type response. 2. Image should be of specific species 'Aurlia Aurita' 3. Images of the species should be from Monterey Bay. 4.The depth the species are should be less than 5000 meters. 5.Since the prompt asks images from place named Monterey Bay, I should also add the latitude and longitude detail."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10 i.url, i.id as image_id, b.concept, b.id FROM images i JOIN bounding_boxes b ON i.id = b.image_id WHERE b.concept = 'Aurelia aurita'"",
+    ""responseText"": ""Here are some images of Aurelia aurita in Monterey bay and depth less than 5k meters""
+}"	FALSE		
+Find me similar looking fish found in Atlantic Ocean				"{
+    ""prompt"": ""Find me similar looking fish found in Atlantic Ocean"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id INNER JOIN marine_regions MR ON IMG.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND IMG.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE MR.name = 'Atlantic Ocean' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are similar looking fish found in Atlantic Ocean.""
+}"	TRUE		
+Find me an image containing both Aurelia aurita and Siphonophorae	"The prompt asks for an image of individual species so, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id.
+Also since you are showing images that has more than one species, add the bounding box data x, y, width, height.
+Since you need to output data as species array, first you will get the image id that has both concepts. After that you can search the database using the image id to generate the data in json format with id, concept, url, image_id, x, y, width and height values
+"	"WITH ImageConcepts AS (
+SELECT TOP 1 i.id as image_id
+FROM dbo.images i
+WHERE 
+    EXISTS (
+        SELECT 1
+        FROM dbo.bounding_boxes b
+        WHERE b.image_id = i.id AND b.concept = 'Aurelia aurita'
+    )
+    AND EXISTS (
+        SELECT 1
+        FROM dbo.bounding_boxes b
+        WHERE b.image_id = i.id AND b.concept = 'Siphonophorae'
+    )
+GROUP BY i.id)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    ImageConcepts c ON c.image_id = i.id
+WHERE 
+    b.concept IN ('Aurelia aurita', 'Siphonophorae')"	"[
+    {
+        ""id"": 2600146,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1200,
+        ""y"": 686,
+        ""width"": 72,
+        ""height"": 96
+    },
+    {
+        ""id"": 2600148,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 170,
+        ""y"": 364,
+        ""width"": 72,
+        ""height"": 66
+    },
+    {
+        ""id"": 2600149,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1357,
+        ""y"": 118,
+        ""width"": 51,
+        ""height"": 57
+    },
+    {
+        ""id"": 2600150,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1434,
+        ""y"": 715,
+        ""width"": 50,
+        ""height"": 74
+    },
+    {
+        ""id"": 2600151,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 126,
+        ""y"": 863,
+        ""width"": 66,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600152,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 9,
+        ""y"": 805,
+        ""width"": 82,
+        ""height"": 76
+    },
+    {
+        ""id"": 2600153,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 831,
+        ""y"": 161,
+        ""width"": 41,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600158,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1598,
+        ""y"": 69,
+        ""width"": 77,
+        ""height"": 111
+    },
+    {
+        ""id"": 2600159,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1,
+        ""y"": 279,
+        ""width"": 41,
+        ""height"": 75
+    },
+    {
+        ""id"": 2600160,
+        ""concept"": ""Siphonophorae"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 928,
+        ""y"": 555,
+        ""width"": 192,
+        ""height"": 125
+    },
+    {
+        ""id"": 2600161,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1018,
+        ""y"": 372,
+        ""width"": 80,
+        ""height"": 82
+    },
+    {
+        ""id"": 2600162,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 728,
+        ""y"": 962,
+        ""width"": 57,
+        ""height"": 63
+    },
+    {
+        ""id"": 2600163,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 963,
+        ""y"": 65,
+        ""width"": 39,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600164,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 703,
+        ""y"": 136,
+        ""width"": 48,
+        ""height"": 65
+    },
+    {
+        ""id"": 2600165,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 796,
+        ""y"": 359,
+        ""width"": 57,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600167,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1777,
+        ""y"": 171,
+        ""width"": 53,
+        ""height"": 70
+    },
+    {
+        ""id"": 2600169,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1154,
+        ""y"": 583,
+        ""width"": 35,
+        ""height"": 48
+    },
+    {
+        ""id"": 2600171,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1527,
+        ""y"": 453,
+        ""width"": 42,
+        ""height"": 56
+    },
+    {
+        ""id"": 2600174,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1314,
+        ""y"": 183,
+        ""width"": 40,
+        ""height"": 62
+    },
+    {
+        ""id"": 2600175,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 392,
+        ""y"": 224,
+        ""width"": 56,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600176,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1389,
+        ""y"": 231,
+        ""width"": 42,
+        ""height"": 57
+    }
+]"	"{
+    ""prompt"": ""Find me an image containing both Aurelia aurita and Siphonophorae"",
+    ""findings"": ""1. Since prompt asks to generate images, the response type is image. 2. Image should be of specific species 'Aurlia Aurita' and 'Siphonophorae' 3. Images should contain both the species. 4. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""WITH ImageConcepts AS (    SELECT TOP 1 i.id as image_id    FROM dbo.images i    WHERE         EXISTS (            SELECT 1            FROM dbo.bounding_boxes b            WHERE b.image_id = i.id AND b.concept = 'Aurelia aurita'        )        AND EXISTS (            SELECT 1            FROM dbo.bounding_boxes b            WHERE b.image_id = i.id AND b.concept = 'Siphonophorae'        )    GROUP BY i.id)    SELECT         b.id,        b.concept,        i.url,        i.id as image_id,        b.x,        b.y,        b.width,        b.height    FROM         dbo.images i    JOIN         dbo.bounding_boxes b ON i.id = b.image_id    JOIN         ImageConcepts c ON c.image_id = i.id    WHERE         b.concept IN ('Aurelia aurita', 'Siphonophorae')  "",
+    ""responseText"": ""Here are some images containing both Aurelia aurita and Siphonophorae""
+}"	FALSE		
+What species are frequently found at 1000m depth?	"The prompt is asking the frequency of species found at depth of 1000m, so output freuqency data of species name with the frequency using the bounding_boxes and images table
+"	"SELECT b.concept AS species, COUNT(*) AS frequency
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE i.depth_meters = 1000
+GROUP BY b.concept
+ORDER BY frequency DESC;"	"species frequency
+Isosicyonis	24
+Sebastolobus	6
+Embassichthys bathybius	4
+Actiniaria	3
+Ceriantharia	2
+Chionoecetes tanneri	2
+Corallimorphus	2
+Eptatretus	2
+Microstomus pacificus	2
+Umbellula sp. 2	2"	"{
+    ""prompt"": ""What species are frequently found at 1000m depth?"",
+    ""findings"": ""1. Since prompt is asking the frequently found species at 1000m, the output would be the name of the species, which is best shown in a table so output type is a table. 2. Since the species are selected based on how frequent they are, it would be best to show the frequency of the species too."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""SELECT b.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE i.depth_meters = 1000 GROUP BY b.concept ORDER BY frequency DESC;"",
+    ""responseText"": ""Table shows the frequently found species at 1000m depth and their count.""
+}"	FALSE		
+Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year				"{
+    ""prompt"": ""Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year"",
+    ""findings"": ""1. The prompt says to generate an Interactive time-lapse map, so the output is a visualization.  2. For the visualization, concept, latitude, longitude and timestamp of every species is needed. 3.Since the output will contain all species data from the database and be very large, the timestamp that is None can be ignored. 4. Since mapbox can't be used, I will use plotly's Scattergeo. 5.Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT      bb.concept,     i.latitude,      i.longitude,      YEAR(i.timestamp) AS ObservationYear FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      i.latitude IS NOT NULL AND      i.longitude IS NOT NULL AND     i.timestamp IS NOT NULL ORDER BY      i.timestamp;"",
+    ""sampleData"": ""{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n\tfig = go.Figure()\n\tfor year in sorted(set(data['ObservationYear'])):\n\t\tfig.add_trace(\n\t\t\tgo.Scattergeo(\n\t\t\t\tlon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\tlat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\ttext=[f\""{data['concept'][i]} ({year})\"" for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],\n\t\t\t\tmode='markers',\n\t\t\t\tmarker=dict(\n\t\t\t\t\tsize=8,\n\t\t\t\t\tsymbol='circle',\n\t\t\t\t\tline=dict(width=1, color='rgba(102, 102, 102)')\n\t\t\t\t),\n\t\t\t\tname=f\""Year {year}\"",\n\t\t\t\tvisible=(year == min(data['ObservationYear'])) \n\t\t\t)\n\t\t)\n\tsteps = []\n\tfor i, year in enumerate(sorted(set(data['ObservationYear']))):\n\t\tstep = dict(\n\t\t\tmethod='update',\n\t\t\targs=[{'visible': [False] * len(fig.data)},\n\t\t\t\t{'title': f\""Observations for Year: {year}\""}], \n\t\t)\n\t\tstep['args'][0]['visible'][i] = True   i'th trace to \""visible\""\n\t\tsteps.append(step)\n\tsliders = [dict(\n\t\tactive=10,\n\t\tcurrentvalue={\""prefix\"": \""Year: \""},\n\t\tpad={\""t\"": 50},\n\t\tsteps=steps\n\t)]\n\tfig.update_layout(\n\t\tsliders=sliders,\n\t\ttitle='Time-lapse Visualization of Species Observations',\n\t\tgeo=dict(\n\t\t\tscope='world',\n\t\t\tprojection_type='equirectangular',\n\t\t\tshowland=True,\n\t\t\tlandcolor='rgb(243, 243, 243)',\n\t\t\tcountrycolor='rgb(204, 204, 204)',\n\t\t),\n\t)\n\treturn fig"",
+    ""responseText"": ""Below is an Interactive Time-lapse Map of Marine Species Observations Grouped by Year""
+}"	FALSE		
+How many distinct species are there at Monterey Bay?	"The species is asking for number of distinct species in Monterey Bay, so use the bounding_boxes and marine_regions table from database to find the number of species
+"	"SELECT COUNT(DISTINCT b.concept) as DistinctSpeciesCount
+FROM dbo.bounding_boxes b
+WHERE EXISTS (
+    SELECT 1
+    FROM dbo.images i
+    JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+                             AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+    WHERE mr.name = 'Monterey Bay'
+      AND i.id = b.image_id
+)"	"DistinctSpeciesCount
+711"	"{
+    ""prompt"": ""How many distinct species are there at Monterey Bay?"",
+    ""findings"": ""1. The prompt asks the number of distinct species in Monterey Bay, which would be a number, thus the output type is text. 2. The response text should be output so that the distinct species count result can be formatted into the text."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT COUNT(DISTINCT b.concept) as DistinctSpeciesCount FROM dbo.bounding_boxes b WHERE EXISTS (     SELECT 1     FROM dbo.images i     JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude                              AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude     WHERE mr.name = 'Monterey Bay'       AND i.id = b.image_id )"",
+    ""responseText"": ""There are {DistinctSpeciesCount} distinct species at Monterey Bay""
+}"	FALSE		
+Find me images of species that looks alike to the provided image and are found in Monterey Bay				"{
+    ""prompt"": ""Find me images of species that looks alike to the provided image and are found in Monterey Bay"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id INNER JOIN marine_regions MR ON IMG.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND IMG.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE MR.name = 'Monterey Bay' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are images of species that looks alike to the provided image and are found in Monterey Bay.""
+}"	TRUE		
+"Find me images of Aurelia aurita that looks good
+"	"The prompt asks for images of individual species so, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id.
+Since the prompt is asking for image that looks good without specifying what type of image would look good, find images that has highest bounding box width, height to image width, height ratio and show 10 top results
+"	"SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE b.concept = 'Aurelia aurita'
+ORDER BY (b.width * b.height) / (i.width * i.height) DESC"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/05_02_20_21.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2590274,
+        ""image_id"": 2590272
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2934\/05_23_41_12.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2589498,
+        ""image_id"": 2589496
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/0893\/06_13_15_15.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2588038,
+        ""image_id"": 2588036
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3082\/04_59_42_11.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2587744,
+        ""image_id"": 2587742
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0199\/00_01_04_07.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586298,
+        ""image_id"": 2586296
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586156,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586155,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586154,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586153,
+        ""image_id"": 2586149
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Tiburon\/images\/1111\/00_03_31_28.png"",
+        ""concept"": ""Aurelia aurita"",
+        ""id"": 2586152,
+        ""image_id"": 2586149
+    }
+]"	"{
+    ""prompt"": ""Find me images of Aurelia aurita that looks good"",
+    ""findings"": ""1. Since prompt asks to generate images that look good, I need to generate image type response. 2. The prompt does not specify what good means, I should try to find the image with species that has the highest bunding box size. 3. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC"",
+    ""responseText"": ""Here is an image of Aurelia aurita that you may find appealing.""
+}"	FALSE		
+Display me a heatmap of all species in Monterey Bay	"The prompt asks to give data of all species in Monterey Bay to show in a heatmap. So, You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id.
+Also since the data will be shown in a heatmap, location data is very important, so you will add the latitude, longitude and depth data of the species. "	"SELECT
+    b.concept,
+    b.id,
+    i.latitude,
+    i.longitude,
+    i.depth_meters
+FROM
+    dbo.bounding_boxes b
+    JOIN dbo.images i ON b.image_id = i.id
+    JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude
+        AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE
+    mr.name = 'Monterey Bay'"	"[
+    {
+        ""concept"": ""Beringraja rhina"",
+        ""id"": 2343675,
+        ""latitude"": 3.658101500000000e+001,
+        ""longitude"": -1.220103770000000e+002,
+        ""depth_meters"": 2.918299865722656e+002
+    },
+    {
+        ""concept"": ""Asteroidea"",
+        ""id"": 2416979,
+        ""latitude"": 3.658115600000000e+001,
+        ""longitude"": -1.220557880000000e+002,
+        ""depth_meters"": 9.054000244140625e+002
+    },
+    ...
+]"	"{
+    ""prompt"": ""Display me a heatmap of all species in Monterey Bay"",
+    ""findings"": ""1. The prompt says to generate heatmap of all species in Monterey Bay, so the output is a visualization. 2. Since map box cannot be used, I shall use open street maps for the visualization. 3.Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT     b.concept,     b.id,     i.latitude,     i.longitude,     i.depth_meters FROM     dbo.bounding_boxes b     JOIN dbo.images i ON b.image_id = i.id     JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude         AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE     mr.name = 'Monterey Bay'"",
+    ""sampleData"": ""{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],   'id': [1, 2, 3, 4],  'latitude': [36.6002, 36.8002, 36.7002, 36.6502],   'longitude': [-121.8947, -121.7947, -121.9947, -121.8447],   'depth_meters': [10, 20, 30, 40]  }"",
+    ""plotlyCode"": ""import pandas as pd\nimport plotly.express as px\ndef drawVisualization(data):\n\tdf = pd.DataFrame(data)\n\tfig = px.density_mapbox(df, lat='latitude', lon='longitude', z='depth_meters', radius=10,\n\t\t\t\t\t\t\tcenter=dict(lat=36.6002, lon=-121.8947), zoom=10,\n\t\t\t\t\t\t\tmapbox_style=\""open-street-map\"",\n\t\t\t\t\t\t\thover_data={'concept': True, 'depth_meters': False})  \n\tfig.update_layout(\n\t\ttitle='Heatmap of Species in Monterey Bay'\n\t)\n\treturn fig"",
+    ""responseText"": ""Below is a heatmap of all species in Monterey Bay""
+}"	FALSE		
+Find me a place where Aurelia aurita is found the most	"Since the prompt is asking about the place where Aurelia aurita is found the most without specifying any region, you can use the marine_regions table along with the bounding_boxes table to find out the number of that species in a region. After that you can sort the data and get the result.
+"	"SELECT TOP 1 mr.name as region_name, COUNT(bb.id) as count
+FROM dbo.bounding_boxes bb
+JOIN dbo.images i ON bb.image_id = i.id
+JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude
+WHERE bb.concept = 'Aurelia aurita'
+GROUP BY mr.name
+ORDER BY count DESC"	"region_name COUNT
+California Current	110"	"{
+    ""prompt"": ""Find me a place where Aurelia aurita is found the most"",
+    ""findings"": ""1. The result of the prompt would be the name of the place where Aurelia aurita is found the most since the prompt is asking for a single place, thus the output type is text. 2.The response text should have the most found region name as result and it should be be formatted into the text."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT TOP 1 mr.name as MostFoundRegionName, COUNT(bb.id) as count FROM dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE bb.concept = 'Aurelia aurita' GROUP BY mr.name ORDER BY count DESC"",
+    ""responseText"": ""The region where Aurelia Aurita is found the most is {MostFoundRegionName}.""
+}"	FALSE		
+Find me images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter				"{
+    ""prompt"": ""Find me images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.oxygen_ml_l BETWEEN 0.5 AND 1 ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter.""
+}"	TRUE		
+Provide the data that correlates salinity levels with the distribution of Aurelia aurita	"The prompt asks to find correlation between salinity levels with the distribution of Aurelia aurita. Since the prompt does not provide the salinity levels, use the salinity level normally used to understand ocean water salinity level. So, use levels <32, 32-33, 33-34, 34-35, 35-36, 36-37, >37
+Use these region to find out, the distribution of the species in these regions. Also, make sure you include the 0 values, which will help user better understand that some region donot have the species.
+"	"WITH SalinityLevels AS (
+    SELECT '<32' AS salinity_level
+    UNION ALL
+    SELECT '32-33'
+    UNION ALL
+    SELECT '33-34'
+    UNION ALL
+    SELECT '34-35'
+    UNION ALL
+    SELECT '35-36'
+    UNION ALL
+    SELECT '36-37'
+    UNION ALL
+    SELECT '>37'
+),
+AggregatedData AS (
+    SELECT 
+        CASE 
+            WHEN images.salinity < 32 THEN '<32'
+            WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'
+            WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'
+            WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'
+            WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'
+            WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'
+            WHEN images.salinity > 37 THEN '>37'
+        END AS salinity_level,
+        COUNT(bounding_boxes.concept) AS species_count
+    FROM 
+        dbo.images
+    JOIN 
+        dbo.bounding_boxes ON images.id = bounding_boxes.image_id
+    WHERE 
+        bounding_boxes.concept = 'Aurelia aurita'
+    AND 
+        images.salinity IS NOT NULL
+    GROUP BY 
+        CASE 
+            WHEN images.salinity < 32 THEN '<32'
+            WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'
+            WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'
+            WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'
+            WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'
+            WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'
+            WHEN images.salinity > 37 THEN '>37'
+        END
+)
+SELECT 
+    sl.salinity_level,
+    COALESCE(ad.species_count, 0) AS species_count
+FROM 
+    SalinityLevels sl
+LEFT JOIN 
+    AggregatedData ad ON sl.salinity_level = ad.salinity_level
+ORDER BY 
+    salinity_level;"	"salinity_level species_count
+<32	0
+>37	0
+32-33	1
+33-34	100
+34-35	9
+35-36	0
+36-37	0"	"{
+    ""prompt"": ""Provide the data that correlates salinity levels with the distribution of Aurelia aurita"",
+    ""findings"": ""1. The result of the prompt would be the salinity levels and the frequency of Aurelia aurita and the prompt says only to provide the data, the data can be provided in a table making the data type as table. 2. The prompt does not provide the salinity levels, so I should discretize the normal sea salinity levels which are from 32 to 37. 3. I shall take salinity levels of <32, 32-33, 33-34, 34-35, 35-36, 36-37, >37."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""WITH SalinityLevels AS (     SELECT '<32' AS salinity_level     UNION ALL     SELECT '32-33'     UNION ALL     SELECT '33-34'     UNION ALL     SELECT '34-35'     UNION ALL     SELECT '35-36'     UNION ALL     SELECT '36-37'     UNION ALL     SELECT '>37' ), AggregatedData AS (     SELECT          CASE              WHEN images.salinity < 32 THEN '<32'             WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'             WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'             WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'             WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'             WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'             WHEN images.salinity > 37 THEN '>37'         END AS salinity_level,         COUNT(bounding_boxes.concept) AS species_count     FROM          dbo.images     JOIN          dbo.bounding_boxes ON images.id = bounding_boxes.image_id     WHERE          bounding_boxes.concept = 'Aurelia aurita'     AND          images.salinity IS NOT NULL     GROUP BY          CASE              WHEN images.salinity < 32 THEN '<32'             WHEN images.salinity BETWEEN 32 AND 33 THEN '32-33'             WHEN images.salinity BETWEEN 33 AND 34 THEN '33-34'             WHEN images.salinity BETWEEN 34 AND 35 THEN '34-35'             WHEN images.salinity BETWEEN 35 AND 36 THEN '35-36'             WHEN images.salinity BETWEEN 36 AND 37 THEN '36-37'             WHEN images.salinity > 37 THEN '>37'         END ) SELECT      sl.salinity_level,     COALESCE(ad.species_count, 0) AS species_count FROM      SalinityLevels sl LEFT JOIN      AggregatedData ad ON sl.salinity_level = ad.salinity_level ORDER BY      salinity_level"",
+    ""responseText"": ""Data correlating the salinity levels with the distribution of Aurelia aurita is shown below""
+}"	FALSE		
+Generate me a scatterplot showing the correlating the oxygen and pressure level	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"SELECT images.depth_meters AS depth, images.oxygen_ml_l AS oxygen FROM images JOIN bounding_boxes ON images.id = bounding_boxes.image_id WHERE bounding_boxes.concept = 'Strongylocentrotus fragilis' AND images.latitude >= (SELECT min_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.latitude <= (SELECT max_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude >= (SELECT min_longitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude <= (SELECT max_longitude FROM marine_regions WHERE name = 'Monterey Bay')"		"{
+    ""prompt"": ""Generate me a scatterplot showing the correlating the oxygen and pressure level"",
+    ""findings"": ""1. The prompt specifies to generate scatterplot, so the output type is a visualization. 2. The data of oxygen level and pressure level should be shown in the chart. 3. Since the output is a visualization, the sample data and the plotlyCode needs to be generated"",
+    ""outputType"": ""visualization"",
+    ""sqlServerQuery"": ""SELECT images.depth_meters AS depth, images.oxygen_ml_l AS oxygen FROM images JOIN bounding_boxes ON images.id = bounding_boxes.image_id WHERE bounding_boxes.concept = 'Strongylocentrotus fragilis' AND images.latitude >= (SELECT min_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.latitude <= (SELECT max_latitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude >= (SELECT min_longitude FROM marine_regions WHERE name = 'Monterey Bay') AND images.longitude <= (SELECT max_longitude FROM marine_regions WHERE name = 'Monterey Bay');"",
+    ""sampleData"": ""{'depth':[500,400,800],'oxygen':[0.5, 0.3, 0.2]"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\ndef drawVisualization(data):\n\t trace = go.Scatter(\n\t\tx=data['depth'],\n\t\ty=data['oxygen'],\n\t\tmode='markers',\n\t\tmarker=dict(size=10, color='rgb(255, 182, 193)')\n\t)\n\tdata = [trace]\n\tlayout = go.Layout(\n\t\ttitle='Oxygen Level vs Pressure Level',\n\t\txaxis=dict(title='Pressure Level (Depth in meters)'),\n\t\tyaxis=dict(title='Oxygen Level (ml/l)'),\n\t\thovermode='closest'\n\t)\n\tfig = go.Figure(data=data, layout=layout)\n\treturn fig"",
+    ""responseText"": ""Below is the scatterplot between oxygen and pressure levels""
+}"	FALSE		
+"Provide the data that correlates depth with the distribution of Aurelia aurita
+"		"WITH DepthLevels AS (
+    SELECT 'Epipelagic (0-200m)' AS depth_level, 0 AS min_depth, 200 AS max_depth
+    UNION ALL
+    SELECT 'Mesopelagic (200-1000m)', 200, 1000
+    UNION ALL
+    SELECT 'Bathypelagic (1000-4000m)', 1000, 4000
+    UNION ALL
+    SELECT 'Abyssopelagic (4000-6000m)', 4000, 6000
+    UNION ALL
+    SELECT 'Hadalpelagic (>6000m)', 6001, 1000000 ),
+AggregatedData AS (
+    SELECT 
+        CASE 
+            WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'
+            WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'
+            WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'
+            WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'
+            WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'
+        END AS depth_level,
+        COUNT(bounding_boxes.id) AS distribution
+    FROM 
+        images 
+    JOIN 
+        bounding_boxes 
+    ON 
+        images.id = bounding_boxes.image_id
+    WHERE 
+        bounding_boxes.concept = 'Aurelia aurita'
+    AND 
+        images.depth_meters IS NOT NULL
+    GROUP BY 
+        CASE 
+            WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'
+            WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'
+            WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'
+            WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'
+            WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'
+        END
+)
+SELECT 
+    dl.depth_level, 
+    COALESCE(ad.distribution, 0) AS distribution
+FROM 
+    DepthLevels dl
+LEFT JOIN 
+    AggregatedData ad ON dl.depth_level = ad.depth_level
+ORDER BY 
+    dl.min_depth;"	"depth_level distribution
+Epipelagic (0-200m)	110
+Mesopelagic (200-1000m)	0
+Bathypelagic (1000-4000m)	0
+Abyssopelagic (4000-6000m)	0
+Hadalpelagic (>6000m)	0"	"{
+    ""prompt"": ""Provide the data that correlates depth with the distribution of Aurelia aurita"",
+    ""findings"": ""1. The result of the prompt would be the depth and the frequency of Aurelia aurita and the prompt says only to provide the data, the data can be provided in a table making the data type as table. 2. The prompt does not provide the depth, so I should discretize the normal sea depth levels which are from Epipelagic (0-200m), Mesopelagic (200-1000m), Bathypelagic (1000-4000m), Abyssopelagic (4000-6000m) and Hadalpelagic (>6000m)."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""WITH DepthLevels AS (     SELECT 'Epipelagic (0-200m)' AS depth_level, 0 AS min_depth, 200 AS max_depth     UNION ALL     SELECT 'Mesopelagic (200-1000m)', 200, 1000     UNION ALL     SELECT 'Bathypelagic (1000-4000m)', 1000, 4000     UNION ALL     SELECT 'Abyssopelagic (4000-6000m)', 4000, 6000     UNION ALL     SELECT 'Hadalpelagic (>6000m)', 6001, 1000000 ), AggregatedData AS (     SELECT          CASE              WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'             WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'             WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'             WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'             WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'         END AS depth_level,         COUNT(bounding_boxes.id) AS distribution     FROM          images      JOIN          bounding_boxes      ON          images.id = bounding_boxes.image_id     WHERE          bounding_boxes.concept = 'Aurelia aurita'     AND          images.depth_meters IS NOT NULL     GROUP BY          CASE              WHEN images.depth_meters BETWEEN 0 AND 200 THEN 'Epipelagic (0-200m)'             WHEN images.depth_meters BETWEEN 200 AND 1000 THEN 'Mesopelagic (200-1000m)'             WHEN images.depth_meters BETWEEN 1000 AND 4000 THEN 'Bathypelagic (1000-4000m)'             WHEN images.depth_meters BETWEEN 4000 AND 6000 THEN 'Abyssopelagic (4000-6000m)'             WHEN images.depth_meters > 6000 THEN 'Hadalpelagic (>6000m)'         END ) SELECT      dl.depth_level,      COALESCE(ad.distribution, 0) AS distribution FROM      DepthLevels dl LEFT JOIN      AggregatedData ad ON dl.depth_level = ad.depth_level ORDER BY      dl.min_depth"",
+    ""responseText"": ""Data correlating the depth levels with the distribution of Aurelia aurita is shown below""
+}"	FALSE		
+Find me images similar to the image provided		"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL
+                DROP TABLE #InputFeatureVectors;
+            CREATE TABLE #InputFeatureVectors ( 
+                vector_index INT, 
+                vector_value DECIMAL(18,5) 
+            ); 
+            
+            INSERT INTO #InputFeatureVectors (vector_index, vector_value) 
+            VALUES 
+            {imageFeatureVector};
+
+            WITH FeatureVectors AS ( 
+                SELECT 
+                    BBFV.bounding_box_id AS BoxID, 
+                    SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct 
+                FROM #InputFeatureVectors IFV 
+                INNER JOIN bounding_box_image_feature_vectors BBFV 
+                    ON IFV.vector_index = BBFV.vector_index 
+                GROUP BY BBFV.bounding_box_id
+            ),
+            Magnitude AS ( 
+                SELECT 
+                    id AS BoxID, 
+                    magnitude 
+                FROM bounding_boxes 
+            ), 
+            InputMagnitude AS ( 
+                SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude 
+                FROM #InputFeatureVectors 
+            ), 
+            SimilaritySearch AS ( 
+                SELECT TOP 10 
+                    FV.BoxID as id, 
+                    FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity 
+                FROM FeatureVectors FV 
+                CROSS JOIN InputMagnitude IM 
+                INNER JOIN Magnitude M 
+                    ON FV.BoxID = M.BoxID 
+                WHERE IM.magnitude IS NOT NULL 
+                AND M.magnitude IS NOT NULL 
+                AND IM.magnitude > 0 
+                AND M.magnitude > 0 
+                ORDER BY CosineSimilarity DESC 
+            ) 
+            SELECT 
+                SS.id AS id, 
+                BB.concept, 
+                IMG.url, 
+                SS.CosineSimilarity 
+            FROM SimilaritySearch SS 
+            INNER JOIN bounding_boxes BB 
+                ON BB.id = SS.id 
+            INNER JOIN images IMG 
+                ON BB.image_id = IMG.id 
+            ; 
+            
+            DROP TABLE #InputFeatureVectors;"	"""[
+    {
+        """"id"""": 2281439,
+        """"concept"""": """"Brachyura"""",
+        """"url"""": """",
+    }
+]"""	"{
+    ""prompt"": ""Find me images similar to the image provided"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images. 2. The sql generated should have a place to add the input image data with name {imageFeatureVector}. 3. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Here are the images similar to the provided image.""
+}"	TRUE		
+"Find place that has the highest temperature and species that is found the most at that place
+"	"You need to find the detail of specific species from the database. So you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id
+The prompt has two section, first is to find the place that has the highest temperature. Since the prompt does not talk about how we should define a place, you should use the regions table and its minimum latitude/longitude. To find maximum temperature in a particular region, we should take the average of all temperature in images data in that region
+Once the region with highest temperature is found out, now you should use the region minimum latitude, minimum longitude, maximum latitude, maximum longitude data to find the most found species in the region. 
+After the species data is found, you need to generate output data in the json format and should have species concept as concept and species bounding box id as id. Also since the prompt is asking about maximum temperature and species count, add maximum temperature and species count in the response
+"	"WITH RegionAvgTemp AS (
+    SELECT 
+        r.name as region_name,
+        AVG(i.temperature_celsius) as avg_temperature
+    FROM dbo.images i
+    JOIN dbo.marine_regions r ON 
+        i.latitude BETWEEN r.min_latitude AND r.max_latitude AND
+        i.longitude BETWEEN r.min_longitude AND r.max_longitude
+    GROUP BY r.name
+),
+MaxTempRegion AS (
+    SELECT TOP 1 region_name, avg_temperature
+    FROM RegionAvgTemp
+    ORDER BY avg_temperature ASC
+),
+MostFoundSpecies AS (
+    SELECT 
+        b.concept, 
+        COUNT(*) as count
+    FROM dbo.bounding_boxes b
+    JOIN dbo.images i ON b.image_id = i.id
+    JOIN dbo.marine_regions r ON 
+        i.latitude BETWEEN r.min_latitude AND r.max_latitude AND
+        i.longitude BETWEEN r.min_longitude AND r.max_longitude
+    JOIN MaxTempRegion m ON r.name = m.region_name
+    GROUP BY b.concept
+)
+SELECT TOP 1 bb.id, mfs.concept, mfs.count, mtr.avg_temperature, mtr.region_name
+FROM MostFoundSpecies mfs
+JOIN dbo.bounding_boxes bb ON bb.concept = mfs.concept
+JOIN MaxTempRegion mtr ON 1=1
+ORDER BY mfs.count ASC;"	"[
+    {
+        ""id"": 2281439,
+        ""concept"": ""Brachyura"",
+        ""count"": 1,
+        ""avg_temperature"": -2.280888888888891e+000,
+        ""region_name"": ""American Samoa Exclusive Economic Zone""
+    }
+]"	"{
+    ""prompt"": ""Find a place that has the highest temperature and species that is found the most at that place"",
+    ""findings"": ""1. The result of the prompt would be the place name that has highest temperature and the most found species name at that place, thus the output type is text. 2. The response text should be output so that place and the species name from the result can be formatted into the text."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""WITH RegionAvgTemp AS (     SELECT          r.name as region_name,         AVG(i.temperature_celsius) as avg_temperature     FROM dbo.images i     JOIN dbo.marine_regions r ON          i.latitude BETWEEN r.min_latitude AND r.max_latitude AND         i.longitude BETWEEN r.min_longitude AND r.max_longitude     GROUP BY r.name ), MaxTempRegion AS (     SELECT TOP 1 region_name, avg_temperature     FROM RegionAvgTemp     ORDER BY avg_temperature ASC ), MostFoundSpecies AS (     SELECT          b.concept,          COUNT(*) as count     FROM dbo.bounding_boxes b     JOIN dbo.images i ON b.image_id = i.id     JOIN dbo.marine_regions r ON          i.latitude BETWEEN r.min_latitude AND r.max_latitude AND         i.longitude BETWEEN r.min_longitude AND r.max_longitude     JOIN MaxTempRegion m ON r.name = m.region_name     GROUP BY b.concept ) SELECT TOP 1 bb.id, mfs.concept, mfs.count, mtr.avg_temperature, mtr.region_name FROM MostFoundSpecies mfs JOIN dbo.bounding_boxes bb ON bb.concept = mfs.concept JOIN MaxTempRegion mtr ON 1=1 ORDER BY mfs.count ASC;"",
+    ""responseText"": ""The place that has the highest temperature is {region_name}. The most found species at the place is {concept}.""
+}"	FALSE		
+"Find the species that are found in image with id 2256720
+"	"You need to find the detail of specific species in an image from the database. So you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+So, you need to search image table and bounding_boxes table using image id 2256720"	"SELECT b.concept, b.id, i.id as image_id, i.url as url
+FROM dbo.bounding_boxes AS b
+JOIN dbo.images AS i ON b.image_id = i.id
+WHERE b.image_id = 2256720;"	"[
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258718,
+        ""image_id"": 2256720,
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""
+    },
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258719,
+        ""image_id"": 2256720,
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""
+    }
+]"	"{
+    ""prompt"": ""Find the species that are found in image with id 2256720"",
+    ""findings"": ""1. The result of the prompt would be the species data from the image with id 2256720 but the prompt does not specify what species data should be specified, I will just output the species concept in a table, so output type is table."",
+    ""outputType"":  ""table"",
+    ""sqlServerQuery"": ""SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;"",
+    ""responseText"": ""The table below lists all the species found in image with id 2256720.""
+}"	FALSE		
+Generate a Correlation Heatmap between Environmental Conditions and Species Observed				"{
+    ""prompt"": ""Generate a Correlation Heatmap between Environmental Conditions and Species Observed"",
+    ""findings"": ""1. The prompt says to generate an Correlation Heatmap, so the output is a visualization.  2. The prompt only says Environmental Conditions, so using the database schema we can say that there are 4 environmental factors and they are Temperature, Salinity, Oxygen and Pressure. 3.Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT      bb.concept,     AVG(i.temperature_celsius) AS AvgTemperature,     AVG(i.salinity) AS AvgSalinity,     AVG(i.oxygen_ml_l) AS AvgOxygen,     AVG(i.pressure_dbar) AS AvgPressure FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id GROUP BY      bb.concept;"",
+    ""sampleData"": ""{    'concept': ['Species A', 'Species B', 'Species C', 'Species D'],    'AvgTemperature': [20, 22, 21, 23],    'AvgSalinity': [35, 36, 34, 37],    'AvgOxygen': [6, 5, 7, 4]    'AvgPressure': [200, 300, 400, 500]}"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\nimport pandas as pd\ndef drawVisualization(data):\n\tdf = pd.DataFrame(data)\n\tcorr_matrix = df.set_index('concept').corr()\n\ttrace = go.Heatmap(\n\t\tz=corr_matrix.values,\n\t\tx=corr_matrix.columns,\n\t\ty=corr_matrix.index,\n\t\tcolorscale='Viridis'\n\t)\n\tlayout = go.Layout(\n\t\ttitle='Correlation Heatmap between Environmental Conditions and Species Observed',\n\t\txaxis=dict(title='Environmental Conditions'),\n\t\tyaxis=dict(title='Species', autorange='reversed')  \n\t)\n\tfig = go.Figure(data=[trace], layout=layout)\n\treturn fig"",
+    ""responseText"": ""Below is a Correlation Heatmap between Environmental Conditions and Species Observed""
+}
+"	FALSE		
+Find me similar images of Chelonia mydas found at pressure level less than 34dbar				"{
+    ""prompt"": ""Find me similar images of Chelonia mydas found at pressure level less than 34dbar"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.pressure_dbar < 34 AND BB.concept = 'Chelonia mydas' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are similar images of Chelonia mydas found at pressure level less than 34dbar.""
+}"	TRUE		
+Find the species that is found in bounding box table with id 2258719	"You need to find the detail of specific species from the database. So you need to format the output such that it is a json and has species array that has species concept as concept and species bounding box id as id
+"	"SELECT concept, id
+FROM dbo.bounding_boxes 
+WHERE id = 2258719;"	"[
+    {
+        ""concept"": ""Bathochordaeus stygius"",
+        ""id"": 2258719
+    }
+]"	"{
+    ""prompt"": ""Find the species that is found in bounding box table with id 2258719"",
+    ""findings"": ""1. The result of the prompt would be the species data that has bounding box id 2258719 but the prompt does not specify what species data should be specified, I will just output the species concept, so output type is text."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT concept FROM dbo.bounding_boxes  WHERE id = 2258719;"",
+    ""responseText"": ""The species that is found in bounding box table with id 2258719 is {concept}.""
+}"	FALSE		
+Identify the two species that most frequently appear together within a single image	"You need to find out any two species which are found the most in a single image, so you need to combine the bounding_boxes and compare the image_id of the two species.
+"	"SELECT TOP 1
+    bb1.concept AS species1, 
+    bb2.concept AS species2, 
+    COUNT(*) AS frequency
+FROM 
+    dbo.bounding_boxes AS bb1
+JOIN 
+    dbo.bounding_boxes AS bb2 
+ON 
+    bb1.image_id = bb2.image_id AND bb1.concept < bb2.concept
+GROUP BY 
+    bb1.concept, 
+    bb2.concept"	"species1 species2 frequency
+Rathbunaster californicus	Strongylocentrotus fragilis	4529"	"{
+    ""prompt"": ""Identify the two species that most frequently appear together within a single image"",
+    ""findings"": ""1. The result of the prompt would be the names of the species that ar found most frequently in an image, so output type is text. 2. Since the prompt is selecting species based on their frequency, it would be better to output the frequency number too."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT TOP 1     bb1.concept AS species1,      bb2.concept AS species2,      COUNT(*) AS frequency FROM      dbo.bounding_boxes AS bb1 JOIN      dbo.bounding_boxes AS bb2  ON      bb1.image_id = bb2.image_id AND bb1.concept < bb2.concept GROUP BY      bb1.concept,      bb2.concept;"",
+    ""responseText"": ""Two species that are most frequently appear together within a single image are {species1} and {species2}. They are found together in {frequency} images.""
+}"	FALSE		
+Find species simiar to the one found in image id 2553888			"""[
+    {
+        """"concept"""": """"Bathochordaeus stygius"""",
+        """"id"""": 2258718,
+        """"image_id"""": 2256720,
+        """"url"""": """"https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""""
+    },
+    {
+        """"concept"""": """"Bathochordaeus stygius"""",
+        """"id"""": 2258719,
+        """"image_id"""": 2256720,
+        """"url"""": """"https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0869\/04_21_41_29.png""""
+    }
+]"""	"{
+    ""prompt"": ""Find me images of species similar to the species found in image id 2553888"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images. 2. The sql query needs to first find out all the bounding box in the image with id 2553888. 3. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [2553888],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Here are the images of species similar to the species found in image id 2553888.""
+}"	TRUE	"""{
+    """"prompt"""": """"Find me images of species similar to the species found in image id 2553888"""",
+    """"findings"""": """"1. The result of the prompt would be images, thus the output type is images. 2. The sql query needs to first find out all the bounding box in the image with id 2553888. 3. Image output must have id, concept of species and url of it's image."""",
+    """"outputType"""":  """"images"""",
+    """"sqlServerQuery"""": """"DECLARE @InputImageID INT; SET @InputImageID = 2553888; WITH BoundingBoxes AS ( SELECT id AS BoxID, image_id FROM bounding_boxes WHERE image_id = @InputImageID ), FeatureVectors AS ( SELECT BB.BoxID, BBFV.vector_index, BBFV.vector_value FROM BoundingBoxes BB INNER JOIN bounding_box_image_feature_vectors BBFV ON BB.BoxID = BBFV.bounding_box_id ), Magnitude AS ( SELECT BB.BoxID, SQRT(SUM(POWER(BBFV.vector_value, 2))) AS magnitude FROM BoundingBoxes BB INNER JOIN bounding_box_image_feature_vectors BBFV ON BB.BoxID = BBFV.bounding_box_id GROUP BY BB.BoxID ), SimilaritySearch AS ( SELECT FV1.BoxID AS BoxID1, FV2.BoxID AS BoxID2, SUM(FV1.vector_value * FV2.vector_value) / (M1.magnitude * M2.magnitude) AS CosineSimilarity FROM FeatureVectors FV1 INNER JOIN FeatureVectors FV2 ON FV1.vector_index = FV2.vector_index AND FV1.BoxID < FV2.BoxID INNER JOIN Magnitude M1 ON FV1.BoxID = M1.BoxID INNER JOIN Magnitude M2 ON FV2.BoxID = M2.BoxID GROUP BY FV1.BoxID, FV2.BoxID, M1.magnitude, M2.magnitude ), TopSimilarity AS ( SELECT TOP 10 SS.BoxID1, SS.BoxID2, SS.CosineSimilarity FROM SimilaritySearch SS ORDER BY SS.CosineSimilarity DESC ) SELECT TS.BoxID1, TS.BoxID2, BB1.concept AS Concept1, BB2.concept AS Concept2, IMG.url, TS.CosineSimilarity FROM TopSimilarity TS INNER JOIN bounding_boxes BB1 ON BB1.id = TS.BoxID1 INNER JOIN bounding_boxes BB2 ON BB2.id = TS.BoxID2 INNER JOIN images IMG ON BB1.image_id = IMG.id;"""",
+    """"responseText"""": """"Here are the images of species similar to the species found in image id 2553888.""""
+}"""	
+Provide an image showcasing the highest concentration of Bathochordaeus stygius	"You need to find the image from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Also in this query asks for image that has many species within a single image, it would be better to include bounding box detail(x, y, width, height) of species
+So, you will first find out the image that contains highest conceentration of the species. Once you get that data, you will format the result such that it is a json array with species id, image url, image_id and concept
+"	"WITH HighestConcentrationImage AS (
+    SELECT TOP 1
+        i.id as image_id,
+        COUNT(b.id) as concentration
+    FROM
+        dbo.images i
+    JOIN
+        dbo.bounding_boxes b ON i.id = b.image_id
+    WHERE
+        b.concept = 'Bathochordaeus stygius' OR b.alt_concept = 'Bathochordaeus stygius'
+    GROUP BY
+        i.id
+    ORDER BY
+        concentration DESC
+)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    HighestConcentrationImage hci ON hci.image_id = i.id
+WHERE 
+    b.concept = 'Bathochordaeus stygius'"	"[
+    {
+        ""id"": 2497449,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 264,
+        ""y"": 64,
+        ""width"": 292,
+        ""height"": 226
+    },
+    {
+        ""id"": 2497450,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 376,
+        ""y"": 261,
+        ""width"": 143,
+        ""height"": 102
+    },
+    {
+        ""id"": 2497451,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 431,
+        ""y"": 309,
+        ""width"": 17,
+        ""height"": 21
+    },
+    {
+        ""id"": 2497452,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 120,
+        ""y"": 44,
+        ""width"": 236,
+        ""height"": 205
+    },
+    {
+        ""id"": 2497453,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 230,
+        ""y"": 160,
+        ""width"": 17,
+        ""height"": 7
+    },
+    {
+        ""id"": 2497454,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 224,
+        ""y"": 151,
+        ""width"": 32,
+        ""height"": 16
+    },
+    {
+        ""id"": 2497455,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 407,
+        ""y"": 192,
+        ""width"": 12,
+        ""height"": 13
+    },
+    {
+        ""id"": 2497456,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 395,
+        ""y"": 176,
+        ""width"": 23,
+        ""height"": 31
+    },
+    {
+        ""id"": 2497457,
+        ""concept"": ""Bathochordaeus stygius"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0547\/11_28_15_08.png"",
+        ""image_id"": 2495378,
+        ""x"": 439,
+        ""y"": 320,
+        ""width"": 9,
+        ""height"": 11
+    }
+]
+"	"{
+    ""prompt"": ""Provide an image showcasing the highest concentration of Bathochordaeus stygius"",
+    ""findings"": ""1. The result of the prompt would be image showcasing the highest concentration of Bathochordaeus stygius, so output type is image. 2. Image should contain highest number of Bathochordaeus stygius. 3. Image output must have id, concept of species and url of it's image. 4. I will add formatting so that user can see the total number of Bathochordaeus stygius using the text response, using '$total' formatter"",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""WITH HighestConcentrationImage AS (     SELECT TOP 1         i.id as image_id,         COUNT(b.id) as concentration     FROM         dbo.images i     JOIN         dbo.bounding_boxes b ON i.id = b.image_id     WHERE         b.concept = 'Bathochordaeus stygius' OR b.alt_concept = 'Bathochordaeus stygius'     GROUP BY         i.id     ORDER BY         concentration DESC ) SELECT      b.id,     b.concept,     i.url,     i.id as image_id,     b.x,     b.y,     b.width,     b.height FROM      dbo.images i JOIN      dbo.bounding_boxes b ON i.id = b.image_id JOIN      HighestConcentrationImage hci ON hci.image_id = i.id WHERE      b.concept = 'Bathochordaeus stygius'"",
+    ""responseText"": ""The image below has the highest concentration of Bathochordaeus stygius. There are {$total} number of Bathochordaeus stygius in the image""
+}"	FALSE		
+Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"SELECT      CASE          WHEN salinity >= 30 AND salinity < 31 THEN '30-31'         WHEN salinity >= 31 AND salinity < 32 THEN '31-32'         WHEN salinity >= 32 AND salinity < 33 THEN '32-33'         WHEN salinity >= 33 AND salinity < 34 THEN '33-34'         WHEN salinity >= 34 AND salinity < 35 THEN '34-35'         WHEN salinity >= 35 AND salinity < 36 THEN '35-36'         WHEN salinity >= 36 AND salinity < 37 THEN '36-37'         WHEN salinity >= 37 AND salinity < 38 THEN '37-38'     END AS salinity_range,     COUNT(*) AS count FROM      dbo.images AS i JOIN      dbo.bounding_boxes AS b ON i.id = b.image_id WHERE      b.concept = 'Bathochordaeus stygius'     AND salinity >= 30 AND salinity < 38 GROUP BY      CASE          WHEN salinity >= 30 AND salinity < 31 THEN '30-31'         WHEN salinity >= 31 AND salinity < 32 THEN '31-32'         WHEN salinity >= 32 AND salinity < 33 THEN '32-33'         WHEN salinity >= 33 AND salinity < 34 THEN '33-34'         WHEN salinity >= 34 AND salinity < 35 THEN '34-35'         WHEN salinity >= 35 AND salinity < 36 THEN '35-36'         WHEN salinity >= 36 AND salinity < 37 THEN '36-37'         WHEN salinity >= 37 AND salinity < 38 THEN '37-38'     END ORDER BY      salinity_range;"		"{
+    ""prompt"": ""Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1"",
+    ""findings"": ""1. The prompt specifies to generate pie-chart, so the output type is a visualization. 2. The prompt instructs to construct chart for species Bathochordaeus stygius. 3. The prompt provides salinity levels from 30 to 38 with each level of width 1. 4. I will take the salinity levels as 30-31, 31-32, 32-33, 33-34, 34-35, 35-36, 36-37, 37-38. 5. Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"": ""visualization"",
+    ""sqlServerQuery"": ""SELECT      CASE          WHEN salinity >= 30 AND salinity < 31 THEN '30-31'         WHEN salinity >= 31 AND salinity < 32 THEN '31-32'         WHEN salinity >= 32 AND salinity < 33 THEN '32-33'         WHEN salinity >= 33 AND salinity < 34 THEN '33-34'         WHEN salinity >= 34 AND salinity < 35 THEN '34-35'         WHEN salinity >= 35 AND salinity < 36 THEN '35-36'         WHEN salinity >= 36 AND salinity < 37 THEN '36-37'         WHEN salinity >= 37 AND salinity < 38 THEN '37-38'     END AS salinity_range,     COUNT(*) AS count FROM      dbo.images AS i JOIN      dbo.bounding_boxes AS b ON i.id = b.image_id WHERE      b.concept = 'Bathochordaeus stygius'     AND salinity >= 30 AND salinity < 38 GROUP BY      CASE          WHEN salinity >= 30 AND salinity < 31 THEN '30-31'         WHEN salinity >= 31 AND salinity < 32 THEN '31-32'         WHEN salinity >= 32 AND salinity < 33 THEN '32-33'         WHEN salinity >= 33 AND salinity < 34 THEN '33-34'         WHEN salinity >= 34 AND salinity < 35 THEN '34-35'         WHEN salinity >= 35 AND salinity < 36 THEN '35-36'         WHEN salinity >= 36 AND salinity < 37 THEN '36-37'         WHEN salinity >= 37 AND salinity < 38 THEN '37-38'     END ORDER BY      salinity_range;"",
+    ""sampleData"": ""{'salinity_range': ['30-31', '31-32', '32-33', '33-34', '34-35', '35-36', '36-37', '37-38'],'count': [10, 20, 30, 40, 50, 60, 70, 80]}"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\ndef drawVisualization(data):\n\ttrace = go.Pie(\n\t\tlabels=data['salinity_range'],\n\t\tvalues=data['count'],\n\t\thoverinfo='label+percent',\n\t\ttextinfo='value'\n\t)\n\tlayout = go.Layout(\n\t\ttitle='Distribution of Bathochordaeus stygius at Different Salinity Levels'\n\t)\n\tfig = go.Figure(data=[trace], layout=layout)\n\treturn fig"",
+    ""responseText"": ""A pie chart shows the distribution of Bathochordaeus stygius at different salinity levels.""
+}"	FALSE		
+"Find me similar images of species that are Chelonia mydas, Caretta caretta, Dermochelys coriacea, Eretmochelys imbricata, Lepidochelys olivacea, Lepidochelys kempii, Natator depressus"				"{
+    ""prompt"": ""Find me similar images of species that are Chelonia mydas, Caretta caretta, Dermochelys coriacea, Eretmochelys imbricata, Lepidochelys olivacea, Lepidochelys kempii, Natator depressus"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept IN ('Chelonia mydas', 'Caretta caretta', 'Dermochelys coriacea', 'Eretmochelys imbricata', 'Lepidochelys olivacea', 'Lepidochelys kempii', 'Natator depressus') ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are similar images of species that are Chelonia mydas, Caretta caretta, Dermochelys coriacea, Eretmochelys imbricata, Lepidochelys olivacea, Lepidochelys kempii, Natator depressus.""
+}
+"	TRUE	"""{
+    """"prompt"""": """"Find me similar images of species that are Chelonia mydas, Caretta caretta, Dermochelys coriacea, Eretmochelys imbricata, Lepidochelys olivacea, Lepidochelys kempii, Natator depressus"""",
+    """"findings"""": """"1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."""",
+    """"outputType"""":  """"images"""",
+    """"sqlServerQuery"""": """"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors;  CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector};  WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ),  Magnitude AS ( SELECT BB.id AS BoxID, BB.magnitude FROM bounding_boxes BB WHERE BB.concept IN ('Chelonia mydas', 'Caretta caretta', 'Dermochelys coriacea',                         'Eretmochelys imbricata', 'Lepidochelys olivacea',                         'Lepidochelys kempii', 'Natator depressus')),  InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ),  SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;"""",
+    """"responseText"""": """"Below are similar images of species that are Chelonia mydas, Caretta caretta, Dermochelys coriacea, Eretmochelys imbricata, Lepidochelys olivacea, Lepidochelys kempii, Natator depressus.""""
+}"""	
+In what pressure level is the species with bounding box id 2258729 living at	"You need to find the pressure level the species with bounding box id 2258729 living at so you can find it by first finding the image data such that it has image id same as the bounding box image id and then find the value that is in the pressure_dbar column
+"	"
+SELECT images.pressure_dbar
+FROM dbo.bounding_boxes
+JOIN dbo.images ON bounding_boxes.image_id = images.id
+WHERE bounding_boxes.id = 2258739;"	"pressure_dbar
+875.7999877929688"	"{
+    ""prompt"": ""In what pressure level is the species with bounding box id 2258729 living at"",
+    ""findings"": ""1. The result of the prompt would be the pressure level at which the species with bounding box id 2258729 is living at, thus the output type would be a text. 2. Since the prompt is selecting species, it would be better to output the species concept too."",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;"",
+    ""responseText"": ""The species with bounding box id 2258729 us {concept}. It is living at pressure {pressure_dbar} dbar.""
+}"	FALSE		
+"Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides
+"	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Since there may be many images in the database and the image count is not provided, you will search for only 5 images
+You will search for the species in bounding boxes table with provided concepts and format it such that it has species id, image url, image_id and concept"	"SELECT TOP 5
+    i.url AS url,
+    b.concept AS concept,
+    b.id as id,
+    b.image_id as image_id
+FROM 
+    dbo.bounding_boxes AS b
+JOIN 
+    dbo.images AS i ON b.image_id = i.id
+WHERE 
+    b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')"	"[
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2987\/03_37_12_17.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2370352,
+        ""image_id"": 2368076
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/2987\/02_15_00_13.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2450919,
+        ""image_id"": 2448715
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3488\/03_52_48_07.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2474652,
+        ""image_id"": 2472626
+    },
+    {
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Ventana\/images\/3580\/06_23_04_25.png"",
+        ""concept"": ""Pycnopodia helianthoides"",
+        ""id"": 2522769,
+        ""image_id"": 2520579
+    }
+]"	"{
+    ""prompt"": ""Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides"",
+    ""findings"":  ""1. Since prompt asks to find images, I need to set the response type as image. 2. Image should be of specific species Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus and Pycnopodia helianthoides 3. The prompt does not say all these species should be in the same image. 3. Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""SELECT TOP 10     i.url AS url,     b.concept AS concept,     b.id as id,     b.image_id as image_id FROM      dbo.bounding_boxes AS b JOIN      dbo.images AS i ON b.image_id = i.id WHERE      b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')"",
+    ""responseText"": ""Few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides are shown below.""
+}"	FALSE		
+"How many images of Pycnopodia helianthoides are in the database
+"	"You need to provide the total number of images of species Pycnopodia helianthoides in the database.
+So, you will search the bounding box table that has a row with concept 'Pycnopodia helianthoides'
+"	"SELECT COUNT(*) as TotalImages
+FROM dbo.bounding_boxes 
+WHERE concept = 'Pycnopodia helianthoides';"	"TotalImages
+4"	"{
+    ""prompt"": ""How many images of Pycnopodia helianthoides are in the database"",
+    ""findings"":  ""1. The result of the prompt is the number of images of Pycnopodia helianthoides, so the ouput type is images. 2.  The response text should be output so that the number of images can be formatted into the text"",
+    ""outputType"":  ""text"",
+    ""sqlServerQuery"": ""SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'"",
+    ""responseText"": ""There are {TotalImages} images of Pycnopodia helianthoides in the database.""
+}"	FALSE		
+Find me similar images of Aurelia Aurita				"{
+    ""prompt"": ""Find me similar images of Aurelia Aurita"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept = 'Aurelia Aurita' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are similar images of Aurelia Aurita""
+}"	TRUE	"""{
+    """"prompt"""": """"Find me similar images of Aurelia Aurita"""",
+    """"findings"""": """"1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."""",
+    """"outputType"""":  """"images"""",
+    """"sqlServerQuery"""": """"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors;  CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector};  WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ),  Magnitude AS ( SELECT BB.id AS BoxID, BB.magnitude FROM bounding_boxes BB WHERE concept = 'Aurelia Aurita' ),  InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ),  SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;"""",
+    """"responseText"""": """"Below are similar images of Aurelia Aurita""""
+}"""	
+"Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."	"The prompt asks to display a chart, I will be using vega lite to display it. I should first generate the vega lite schema and then generate a sql query that outputs the data that will be used by vega lite according to the schema"	"SELECT      CASE          WHEN i.depth_meters <= 200 THEN 'Epipelagic'         WHEN i.depth_meters > 200 AND i.depth_meters <= 1000 THEN 'Mesopelagic'         WHEN i.depth_meters > 1000 AND i.depth_meters <= 4000 THEN 'Bathypelagic'         WHEN i.depth_meters > 4000 THEN 'Abyssopelagic'     END AS OceanZone,     COUNT(b.concept) AS SpeciesCount FROM      dbo.images i JOIN      dbo.bounding_boxes b ON i.id = b.image_id JOIN      dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude                         AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE      mr.name = 'Monterey Bay' GROUP BY      CASE          WHEN i.depth_meters <= 200 THEN 'Epipelagic'         WHEN i.depth_meters > 200 AND i.depth_meters <= 1000 THEN 'Mesopelagic'         WHEN i.depth_meters > 1000 AND i.depth_meters <= 4000 THEN 'Bathypelagic'         WHEN i.depth_meters > 4000 THEN 'Abyssopelagic'     END ORDER BY OceanZone"		"{
+    ""prompt"": ""Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."",
+    ""findings"": ""1. The prompt specifies to generate pie-chart, so the output type is a visualization.  2. The prompt does not provide the depth, so I should discretize the normal sea depth levels which are from Epipelagic (0-200m), Mesopelagic (200-1000m), Bathypelagic (1000-4000m), Abyssopelagic (4000-6000m) and Hadalpelagic (>6000m). 5. Since the output is a visualization, the sample data and plotlyCode needs to be generated"",
+    ""outputType"": ""visualization"",
+    ""sqlServerQuery"": ""SELECT      CASE          WHEN i.depth_meters <= 200 THEN 'Epipelagic'         WHEN i.depth_meters > 200 AND i.depth_meters <= 1000 THEN 'Mesopelagic'         WHEN i.depth_meters > 1000 AND i.depth_meters <= 4000 THEN 'Bathypelagic'         WHEN i.depth_meters > 4000 THEN 'Abyssopelagic'     END AS OceanZone,     COUNT(b.concept) AS SpeciesCount FROM      dbo.images i JOIN      dbo.bounding_boxes b ON i.id = b.image_id JOIN      dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude                         AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE      mr.name = 'Monterey Bay' GROUP BY      CASE          WHEN i.depth_meters <= 200 THEN 'Epipelagic'         WHEN i.depth_meters > 200 AND i.depth_meters <= 1000 THEN 'Mesopelagic'         WHEN i.depth_meters > 1000 AND i.depth_meters <= 4000 THEN 'Bathypelagic'         WHEN i.depth_meters > 4000 THEN 'Abyssopelagic'     END ORDER BY OceanZone;"",
+    ""sampleData"": ""{    'OceanZone': ['Epipelagic', 'Mesopelagic', 'Bathypelagic', 'Abyssopelagic'],    'SpeciesCount': [150, 200, 120, 30] }"",
+    ""plotlyCode"": ""import plotly.graph_objs as go\ndef drawVisualization(data):\n\tdata['OceanZone'] = ['Unknown' if zone is None else zone for zone in data['OceanZone']]\n\ttrace = go.Bar(\n\t\tx=data['OceanZone'],\n\t\ty=data['SpeciesCount'],\n\t\tmarker=dict(color='rgb(158,202,225)', line=dict(color='rgb(8,48,107)', width=1.5))\n\t)\n\tdata = [trace]\n\tlayout = go.Layout(\n\t\ttitle='Distribution of Species in Monterey Bay by Ocean Depth Zones',\n\t\txaxis=dict(title='Ocean Depth Zone'),\n\t\tyaxis=dict(title='Species Count')\n\t)\n\tfig = go.Figure(data=data, layout=layout)\n\treturn fig"",
+    ""responseText"": ""The bar chart below shows the distribution of all species in Monterey Bay, categorized by ocean depth zones.""
+}"	FALSE		
+"Find me some images that has Acanthaster planci, Chrysaora fuscescens and Siphonophorae
+"	"You need to find the images from the database so you need to format the output such that it is a json and has species array that has species concept as concept, image url as url, image id as image_id and species bounding box id as id
+Also in this query asks for image that has many species within a single image, it would be better to include bounding box detail(x, y, width, height) of species
+So, you will first find out the image that contains all the three species. Also, since there may be many images in the database and the image count is not provided, you will search for only 5 images. Once you get that data, you will format the result such that it is a json array with species id, image url, image_id and concept
+"	"WITH ImageConcepts AS (
+    SELECT TOP 5 i.id as image_id
+    FROM dbo.images i
+    JOIN dbo.bounding_boxes b ON i.id = b.image_id
+    WHERE b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')
+    GROUP BY i.id
+    HAVING COUNT(DISTINCT b.concept) = 3
+)
+SELECT 
+    b.id,
+    b.concept,
+    i.url,
+    i.id as image_id,
+    b.x,
+    b.y,
+    b.width,
+    b.height
+FROM 
+    dbo.images i
+JOIN 
+    dbo.bounding_boxes b ON i.id = b.image_id
+JOIN 
+    ImageConcepts c ON c.image_id = i.id
+WHERE 
+    b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')"	"[
+    {
+        ""id"": 2600146,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1200,
+        ""y"": 686,
+        ""width"": 72,
+        ""height"": 96
+    },
+    {
+        ""id"": 2600147,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 235,
+        ""y"": 784,
+        ""width"": 48,
+        ""height"": 52
+    },
+    {
+        ""id"": 2600148,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 170,
+        ""y"": 364,
+        ""width"": 72,
+        ""height"": 66
+    },
+    {
+        ""id"": 2600149,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1357,
+        ""y"": 118,
+        ""width"": 51,
+        ""height"": 57
+    },
+    {
+        ""id"": 2600150,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1434,
+        ""y"": 715,
+        ""width"": 50,
+        ""height"": 74
+    },
+    {
+        ""id"": 2600151,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 126,
+        ""y"": 863,
+        ""width"": 66,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600152,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 9,
+        ""y"": 805,
+        ""width"": 82,
+        ""height"": 76
+    },
+    {
+        ""id"": 2600153,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 831,
+        ""y"": 161,
+        ""width"": 41,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600154,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1798,
+        ""y"": 565,
+        ""width"": 101,
+        ""height"": 47
+    },
+    {
+        ""id"": 2600155,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1765,
+        ""y"": 868,
+        ""width"": 120,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600156,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 942,
+        ""y"": 938,
+        ""width"": 158,
+        ""height"": 89
+    },
+    {
+        ""id"": 2600157,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 4,
+        ""y"": 186,
+        ""width"": 102,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600158,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1598,
+        ""y"": 69,
+        ""width"": 77,
+        ""height"": 111
+    },
+    {
+        ""id"": 2600159,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1,
+        ""y"": 279,
+        ""width"": 41,
+        ""height"": 75
+    },
+    {
+        ""id"": 2600160,
+        ""concept"": ""Siphonophorae"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 928,
+        ""y"": 555,
+        ""width"": 192,
+        ""height"": 125
+    },
+    {
+        ""id"": 2600161,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1018,
+        ""y"": 372,
+        ""width"": 80,
+        ""height"": 82
+    },
+    {
+        ""id"": 2600162,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 728,
+        ""y"": 962,
+        ""width"": 57,
+        ""height"": 63
+    },
+    {
+        ""id"": 2600163,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 963,
+        ""y"": 65,
+        ""width"": 39,
+        ""height"": 64
+    },
+    {
+        ""id"": 2600164,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 703,
+        ""y"": 136,
+        ""width"": 48,
+        ""height"": 65
+    },
+    {
+        ""id"": 2600165,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 796,
+        ""y"": 359,
+        ""width"": 57,
+        ""height"": 53
+    },
+    {
+        ""id"": 2600166,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 452,
+        ""y"": 373,
+        ""width"": 75,
+        ""height"": 38
+    },
+    {
+        ""id"": 2600167,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1777,
+        ""y"": 171,
+        ""width"": 53,
+        ""height"": 70
+    },
+    {
+        ""id"": 2600168,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 254,
+        ""y"": 991,
+        ""width"": 113,
+        ""height"": 46
+    },
+    {
+        ""id"": 2600169,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1154,
+        ""y"": 583,
+        ""width"": 35,
+        ""height"": 48
+    },
+    {
+        ""id"": 2600170,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1391,
+        ""y"": 985,
+        ""width"": 103,
+        ""height"": 90
+    },
+    {
+        ""id"": 2600171,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1527,
+        ""y"": 453,
+        ""width"": 42,
+        ""height"": 56
+    },
+    {
+        ""id"": 2600172,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 10,
+        ""y"": 546,
+        ""width"": 118,
+        ""height"": 90
+    },
+    {
+        ""id"": 2600173,
+        ""concept"": ""Chrysaora fuscescens"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 894,
+        ""y"": 1005,
+        ""width"": 107,
+        ""height"": 52
+    },
+    {
+        ""id"": 2600174,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1314,
+        ""y"": 183,
+        ""width"": 40,
+        ""height"": 62
+    },
+    {
+        ""id"": 2600175,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 392,
+        ""y"": 224,
+        ""width"": 56,
+        ""height"": 58
+    },
+    {
+        ""id"": 2600176,
+        ""concept"": ""Aurelia aurita"",
+        ""url"": ""https:\/\/fathomnet.org\/static\/m3\/framegrabs\/Doc%20Ricketts\/images\/0971\/03_42_04_04.png"",
+        ""image_id"": 2600144,
+        ""x"": 1389,
+        ""y"": 231,
+        ""width"": 42,
+        ""height"": 57
+    }
+]"	"{
+    ""prompt"": ""Find me some images that has Acanthaster planci, Chrysaora fuscescens and Siphonophorae in a single image"",
+    ""findings"":  ""1. Since prompt asks to find images, I need to set the response type as image. 2. Image should be of specific species Acanthaster planci, Chrysaora fuscescens and Siphonophorae 3. Image should contain all three species in the image. 4. Image output must have id, concept of species and url of it's image"",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""WITH ImageConcepts AS (     SELECT TOP 5 i.id as image_id     FROM dbo.images i     JOIN dbo.bounding_boxes b ON i.id = b.image_id     WHERE b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')     GROUP BY i.id     HAVING COUNT(DISTINCT b.concept) = 3 ) SELECT      b.id,     b.concept,     i.url,     i.id as image_id,     b.x,     b.y,     b.width,     b.height FROM      dbo.images i JOIN      dbo.bounding_boxes b ON i.id = b.image_id JOIN      ImageConcepts c ON c.image_id = i.id WHERE      b.concept IN ('Aurelia aurita', 'Chrysaora fuscescens', 'Siphonophorae')"",
+    ""responseText"": ""Below are the images that contain Acanthaster planci, Chrysaora fuscescens and Siphonophorae in the image""
+}"	FALSE		
+Find me similar images of species that are not Bathochordaeus stygius				"{
+    ""prompt"": ""Find me similar images of species that are not Bathochordaeus stygius"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept <> 'Bathochordaeus stygius' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Here are the similar images of species that are not Bathochordaeus stygius.""
+}
+"	TRUE	"""{
+    """"prompt"""": """"Find me similar images of species that are not Bathochordaeus stygius"""",
+    """"findings"""": """"1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."""",
+    """"outputType"""":  """"images"""",
+    """"sqlServerQuery"""": """"IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors; CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector}; WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ), Magnitude AS ( SELECT BB.id AS BoxID, BB.magnitude FROM bounding_boxes BB WHERE concept <> 'Bathochordaeus stygius' ), InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ), SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;"""",
+    """"responseText"""": """"Here are the similar images of species that are not Bathochordaeus stygius.""""
+}"""	
+Create a network visualization showing the species co-occurence of species within an image				"{
+    ""prompt"": ""Create a network visualization showing the species co-occurence of species within an image"",
+    ""findings"": ""1. The prompt says to create a visualization, so the output is a visualization.  2. The sql should output all the species pairs found within an image. 3.Since the output is a visualization, the sample data needs to be generated"",
+    ""outputType"":  ""visualization"",
+    ""sqlServerQuery"": ""SELECT bb1.concept AS Concept1, bb2.concept AS Concept2 FROM dbo.bounding_boxes bb1 JOIN dbo.bounding_boxes bb2 ON bb1.image_id = bb2.image_id AND bb1.concept <> bb2.concept;"",
+    ""sampleData"": ""{'Concept1':['Species 1', 'Species 2'], 'Concept2':['Species 3', Species 4']}"",
+    ""plotlyCode"": ""import pandas as pd\nimport plotly.graph_objs as go\nimport networkx as nx\ndef drawVisualization(data):\n\tdf = pd.DataFrame(data)\n\tG = nx.Graph()\n\tfor i, row in df.iterrows():\n\t\tG.add_edge(row['Concept1'], row['Concept2'])\n\tpos = nx.kamada_kawai_layout(G)\n\tedge_x = []\n\tedge_y = []\n\tfor edge in G.edges():\n\t\tx0, y0 = pos[edge[0]]\n\t\tx1, y1 = pos[edge[1]]\n\t\tedge_x.extend([x0, x1, None])\n\t\tedge_y.extend([y0, y1, None])\n\tedge_trace = go.Scatter(\n\t\tx=edge_x, y=edge_y,\n\t\tline=dict(width=0.5, color='#888'),\n\t\thoverinfo='none',\n\t\tmode='lines')\n\tnode_x = []\n\tnode_y = []\n\tfor node in G.nodes():\n\t\tx, y = pos[node]\n\t\tnode_x.append(x)\n\t\tnode_y.append(y)\n\tnode_trace = go.Scatter(\n\t\tx=node_x, y=node_y,\n\t\tmode='markers',\n\t\thoverinfo='text',\n\t\tmarker=dict(\n\t\t\tshowscale=True,\n\t\t\t\t  colorscale='YlGnBu',\n\t\t\tsize=[len(list(G.neighbors(node))) * 10 for node in G.nodes()],\n\t\t\tcolor=[len(list(G.neighbors(node))) for node in G.nodes()],\n\t\t\tcolorbar=dict(\n\t\t\t\tthickness=15,\n\t\t\t\ttitle='Node Connections',\n\t\t\t\txanchor='left',\n\t\t\t\ttitleside='right'\n\t\t\t),\n\t\t\tline_width=2))\n\tnode_trace.text = [f'{node} ({len(list(G.neighbors(node)))} connections)' for node in G.nodes()]\n\tfig = go.Figure(data=[edge_trace, node_trace],\n\t\t\t\tlayout=go.Layout(\n\t\t\t\t\ttitle='<br>Network graph of species co-occurrence',\n\t\t\t\t\ttitlefont_size=16,\n\t\t\t\t\tshowlegend=False,\n\t\t\t\t\thovermode='closest',\n\t\t\t\t\tmargin=dict(b=20,l=5,r=5,t=40),\n\t\t\t\t\txaxis=dict(showgrid=False, zeroline=False, showticklabels=False),\n\t\t\t\t\tyaxis=dict(showgrid=False, zeroline=False, showticklabels=False))\n\t\t\t\t\t)\n\treturn fig"",
+    ""responseText"": ""Below is the network visualization showing the species co-occurence of species within an image.""
+}"	FALSE		
+Find me similar looking octopus from Monterey Bay				"{
+    ""prompt"": ""Find me similar looking octopus from Monterey Bay"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""similarImageIDs"": [],
+    ""similarBoundingBoxIDs"": [],
+    ""similarImageSearch"": true,
+    ""sqlServerQuery"": ""SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id INNER JOIN marine_regions MR ON IMG.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND IMG.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE BB.concept IN ('Enteroctopus dofleini', 'Octopus rubescens', 'Opisthoteuthis adorabilis', 'Octopus californicus', 'Opisthoteuthis californiana') AND MR.name = 'Monterey Bay' ORDER BY SS.CosineSimilarity DESC;"",
+    ""responseText"": ""Below are similar looking octopus from Monterey Bay""
+}"	TRUE		"{
+    ""prompt"": ""Find me similar looking octopus from Monterey Bay"",
+    ""findings"": ""1. The result of the prompt would be images, thus the output type is images.  2. The sql generated should have a place to add the input image data with name {imageFeatureVector} 3.Image output must have id, concept of species and url of it's image."",
+    ""outputType"":  ""images"",
+    ""sqlServerQuery"": ""IF OBJECT_ID('tempdb..#InputFeatureVectors') IS NOT NULL DROP TABLE #InputFeatureVectors;  CREATE TABLE #InputFeatureVectors ( vector_index INT, vector_value DECIMAL(18,5) ); INSERT INTO #InputFeatureVectors (vector_index, vector_value) VALUES {imageFeatureVector};  DECLARE @MaxLatitude FLOAT, @MinLatitude FLOAT, @MaxLongitude FLOAT, @MinLongitude FLOAT; SELECT @MaxLatitude = max_latitude, @MinLatitude = min_latitude, @MaxLongitude = max_longitude, @MinLongitude = min_longitude FROM marine_regions WHERE name = 'Monterey Bay'; WITH FeatureVectors AS ( SELECT BBFV.bounding_box_id AS BoxID, SUM(IFV.vector_value * BBFV.vector_value) AS DotProduct FROM #InputFeatureVectors IFV INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index GROUP BY BBFV.bounding_box_id ),  Magnitude AS ( SELECT BB.id AS BoxID, BB.magnitude FROM bounding_boxes BB INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.latitude BETWEEN @MinLatitude AND @MaxLatitude AND IMG.longitude BETWEEN @MinLongitude AND @MaxLongitude AND BB.concept in ('Enteroctopus dofleini', 'Octopus rubescens', 'Opisthoteuthis adorabilis', 'Octopus californicus', 'Opisthoteuthis californiana')),  InputMagnitude AS ( SELECT SQRT(SUM(POWER(vector_value, 2))) AS magnitude FROM #InputFeatureVectors ),  SimilaritySearch AS ( SELECT TOP 10 FV.BoxID as id, FV.DotProduct / (IM.magnitude * M.magnitude) AS CosineSimilarity FROM FeatureVectors FV CROSS JOIN InputMagnitude IM INNER JOIN Magnitude M ON FV.BoxID = M.BoxID WHERE IM.magnitude IS NOT NULL AND M.magnitude IS NOT NULL AND IM.magnitude > 0 AND M.magnitude > 0 ORDER BY CosineSimilarity DESC ) SELECT SS.id AS id, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.id INNER JOIN images IMG ON BB.image_id = IMG.id; DROP TABLE #InputFeatureVectors;"",
+    ""responseText"": ""Below are similar looking octopus from Monterey Bay""
+}"

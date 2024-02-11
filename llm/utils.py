@@ -468,3 +468,14 @@ def postprocess(results, limit, prompt, sql, isSpeciesData):
         return results[:10], True
         
     return results, True
+
+def fixTabsAndNewlines(input_string):
+    pattern = r'"([^"]*)"'
+
+    def replace_spaces(match):
+        return match.group(0).replace('    ', '\\t').replace('\n','\\n')
+
+    output_string = re.sub(pattern, replace_spaces, input_string)
+
+
+    return output_string
