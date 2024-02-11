@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '3c9qx8@x*%fm1q@^k)2)se5vcj39@d2o+)k)__brketys2k9=a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['4.227.228.53', 'localhost', '127.0.0.1', 'fathom.navinate.com', 'frontend-one-one-drab.vercel.app', '10.165.46.247', 'localhost:5173', '128.46.81.40']
 

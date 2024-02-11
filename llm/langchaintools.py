@@ -317,7 +317,7 @@ def GetSQLResult(query: str, isVisualization: bool = False):
 
 oneShotData = {
     "images": {
-        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs",
+        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs. Important: You must include the id and concept of boding boxes on the response",
         "user": """
             User Prompt: "Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides"
             Output type: images

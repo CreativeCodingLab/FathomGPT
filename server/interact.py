@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
+import time
 
 def check_pos(y, x, shape):
     return 0 <= x < shape[1] and 0 <= y < shape[0]
@@ -75,6 +76,7 @@ def find_all_pattern(img_rgb, img_hsv, new_img, y, x):
                 new_img[i, j] = img_rgb[i, j]
 
 def patternDivision(x, y, img):
+    start_time = time.time()
     img_rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     new_img = np.zeros((img.shape[0], img.shape[1], 3), np.uint8)
@@ -88,5 +90,9 @@ def patternDivision(x, y, img):
     find_all_pattern(img_rgb, img_hsv, new_img, o_y, o_x)
     window_name = 'new_img'
     new_img = cv.cvtColor(new_img, cv.COLOR_RGB2BGR)
+
+    time_taken = time.time() - start_time
+
+    print(f"Time taken: {time_taken} seconds")
     return new_img
 
