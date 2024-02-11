@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
+from .interact import patternDivision
 from django.http import JsonResponse
 import sys
 from django.core.files.storage import default_storage
@@ -21,6 +22,8 @@ import uuid
 from django.http import HttpResponse
 import base64
 from llm.langchaintools import getTaxonomyTree
+import cv2
+import numpy as np
 
 sqlServer = os.getenv("SQL_SERVER")
 database = os.getenv("DATABASE")
@@ -123,6 +126,27 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             return JsonResponse({'guid': str(image_instance.guid)})
         else:
             return JsonResponse({'error': 'Invalid request'}, status=400)
+        
+    @csrf_exempt
+    @action(detail=False, methods=['POST'])
+    def generate_pattern(self, request):
+        if request.method == 'POST':
+            data = request.data
+            image_base64 = data['image'].split(",")[1]
+            imageX = data['imageX']
+            imageY = data['imageY']
+            
+            img_array = np.frombuffer(base64.b64decode(image_base64), np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            
+            processed_img = patternDivision(imageX, imageY, img)
+            
+            _, buffer = cv2.imencode('.jpg', processed_img)
+            img_base64 = base64.b64encode(buffer).decode()
+            
+            return JsonResponse({'image': 'data:image/jpeg;base64,' + img_base64})
+
+
     
 
 def event_stream(new_question, image, messages, isEventStream, db_obj):
