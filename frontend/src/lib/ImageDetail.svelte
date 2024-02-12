@@ -90,7 +90,7 @@
                     {#if species.last_updated_timestamp!=null}
                         <div>Last Updated: <b>{formattedDate(species.last_updated_timestamp)}</b></div>
                     {/if}
-                    {#if species.last_updated_timestamp != null}
+                    {#if species.salinity != null}
                     <div>Salinity Level: <b>{species.salinity} ppt</b></div>
                     {/if}
                     {#if species.oxygen_ml_l != null}

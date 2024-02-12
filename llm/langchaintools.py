@@ -735,7 +735,7 @@ availableFunctions = [{
     },
 },{
     "name": "generatesqlServerQuery",
-    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.",
+    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. The sql server has can search images of species.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -836,31 +836,6 @@ availableFunctionsDescription = {
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=None):
 
-#    code_string = """
-#import pandas as pdimport plotly.express as pxdef drawVisualization(data):    df = pd.DataFrame(data)    fig = px.density_mapbox(df, lat='latitude', lon='longitude', z='depth_meters', radius=10,                            center=dict(lat=36.6002, lon=-121.8947), zoom=10,                            mapbox_style="open-street-map",                            hover_data={'concept': True, 'depth_meters': False})  # Show 'concept' and hide 'depth_meters' on hover    fig.update_layout(        title='Heatmap of Species in Monterey Bay'    )    return fig
-#    """
-#
-#    isSepceisData, data = GetSQLResult("SELECT     b.concept,     b.id,     i.latitude,     i.longitude,     i.depth_meters FROM     dbo.bounding_boxes b     JOIN dbo.images i ON b.image_id = i.id     JOIN dbo.marine_regions mr ON i.latitude BETWEEN mr.min_latitude AND mr.max_latitude         AND i.longitude BETWEEN mr.min_longitude AND mr.max_longitude WHERE     mr.name = 'Monterey Bay'", True)
-#    exec(code_string, globals())
-#
-#    print("here")
-#
-#    fig = drawVisualization(data)
-#    html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-#    rs = {
-#        "outputType": "visualization",
-#        "html": html_output,
-#        "responseText": "Her is your visualization"
-#    }
-#
-#    event_data = {
-#        "result": rs
-#    }
-#    sse_data = f"data: {json.dumps(event_data)}\n\n"
-#    yield sse_data
-#    return
-
-
 
     start_time = time.time()
     startingMessage = None
@@ -870,7 +845,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 smessage["content"]=smessage["content"][:200]+"...\n"
-    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. Prompt:"+prompt})
+    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. \n"+("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -904,6 +879,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             formatted_features.append(formatted_feature)
 
         eval_image_feature_string = ", ".join(formatted_features)
+    
+    function_name = ""
     
     while curLoopCount < 4:
         curLoopCount+=1
@@ -1061,6 +1038,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             else:
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
+            if function_name == "": # code did not call any function
+                result = response["choices"][0]["message"]['content']
             break
 
     output = None
@@ -1077,7 +1056,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             "responseText": taxonomyResponse["choices"][0]["message"]["content"],
             "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
         }
-    elif(function_name=="getAnswer"):
+    elif(function_name=="getAnswer" or function_name ==""):
         output = {
             "outputType": "text",
             "responseText": result

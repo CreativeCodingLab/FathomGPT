@@ -80,7 +80,12 @@ class MainObjectViewSet(viewsets.ModelViewSet):
     @csrf_exempt
     @action(detail=False, methods=['GET'])
     def getSpeciesDetail(self, request):
-        species_id = request.GET.get('id') | request.GET.get('bounding_box_id')
+        species_id = None
+        if(request.GET.get('id') != None):
+            species_id = request.GET.get('id')
+        else:
+            species_id = request.GET.get('bounding_box_id')
+
         if species_id is None or species_id == "":
             return Response({},status=status.HTTP_400_BAD_REQUEST)
 
@@ -92,13 +97,14 @@ class MainObjectViewSet(viewsets.ModelViewSet):
         )
         
         cursor = connection.cursor()
-        cursor.execute("SELECT bb.*, img.*, mr.name AS region_name FROM dbo.bounding_boxes AS bb INNER JOIN dbo.images AS img ON bb.image_id = img.id INNER JOIN dbo.marine_regions AS mr      ON (img.latitude BETWEEN mr.min_latitude AND mr.max_latitude)     AND (img.longitude BETWEEN mr.min_longitude AND mr.max_longitude) WHERE bb.id = "+species_id+" FOR JSON AUTO;")
+        cursor.execute("SELECT bb.*, img.*, CASE WHEN img.latitude IS NOT NULL AND img.longitude IS NOT NULL THEN mr.name ELSE 'No Region Data Available' END AS region_name FROM dbo.bounding_boxes AS bb INNER JOIN dbo.images AS img ON bb.image_id = img.id LEFT JOIN dbo.marine_regions AS mr ON (img.latitude BETWEEN mr.min_latitude AND mr.max_latitude) AND (img.longitude BETWEEN mr.min_longitude AND mr.max_longitude) WHERE bb.id = "+species_id+" FOR JSON AUTO;")
 
         rows = cursor.fetchall()
 
         content = ''.join(str(row[0]) for row in rows)
         cursor.close()
         connection.close()
+        print("content", content)
         parsed = json.loads(content)[0]
         taxonomy=json.loads(getTaxonomyTree(parsed['concept']))
         parsed['rank'] = taxonomy['rank']

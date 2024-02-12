@@ -136,6 +136,11 @@
 					break;
 				case 'images':
 					if(eventData.result.species){
+						for(let i=0;i<eventData.result.species.length;i++){
+							if(eventData.result.species[i].bb2!=null){
+								eventData.result.species[i].id = eventData.result.species[i].bb2
+							}
+						}
 						handleImage(container, eventData.result);
 					}
 					else{
