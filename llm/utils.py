@@ -420,10 +420,11 @@ def postprocess(results, limit, prompt, sql, isSpeciesData, scientificNames, isI
     
     concepts = scientificNames.split(', ')
     print(concepts)
-
     if 'concept' in results[0]:
-        concepts = set([d['concept'] for d in results if d['concept'] in concepts])
-    
+        if isImageSearch:
+            concepts = set([d['concept'] for d in results])
+        else:
+            concepts = set([d['concept'] for d in results if d['concept'] in concepts])
     
     print(concepts)
     
@@ -440,9 +441,11 @@ def postprocess(results, limit, prompt, sql, isSpeciesData, scientificNames, isI
         for url in urls:
             for r in imgs:
                 if r['url'] == url:
+                    r['concept'] = concept
                     data.append(r)
                     
     data = [d for d in data if d is not None]
+
     print('len = '+ str(len(data)))
     if len(data) == 0:
         return results, isSpeciesData
@@ -470,6 +473,10 @@ def postprocess(results, limit, prompt, sql, isSpeciesData, scientificNames, isI
     
     if getProp(props, 'orderedBy') == 'random':
         random.shuffle(results)
+
+    if isImageSearch:
+        names = scientificNames.split(', ')
+        data = [d for d in data if d['concept'] in names] + [d for d in data if d['concept'] not in names]
 
     if limit == -1 and len(results) > 10:
         return results[:10], True
