@@ -227,6 +227,7 @@
     }
     .imageContainer img{
         width: 100%;
+        max-height: 70vh;
     }
     .imageContainer .boundBoxContainer{
         position: absolute;
