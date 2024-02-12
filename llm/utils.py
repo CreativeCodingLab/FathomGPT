@@ -402,7 +402,8 @@ def noNulls(r):
             return False
     return True
 
-def postprocess(results, limit, prompt, sql, isSpeciesData):
+def postprocess(results, limit, prompt, sql, isSpeciesData, scientificNames, isImageSearch):
+    print('postproc')
     #print(results[0])
     if not isinstance(results, list) or len(results) == 0 or 'url' not in results[0]:
         return results, isSpeciesData
@@ -416,11 +417,16 @@ def postprocess(results, limit, prompt, sql, isSpeciesData):
     results = deduped
 
     results = [r for r in results if noNulls(r)]
+    
+    concepts = scientificNames.split(', ')
+    print(concepts)
 
-    concepts = boundingboxes.find_concepts()[1:]
-    concepts = [c for c in concepts if sql.count(c) > 0]
     if 'concept' in results[0]:
         concepts = set([d['concept'] for d in results if d['concept'] in concepts])
+    
+    
+    print(concepts)
+    
     urls = {d['url']:'' for d in results}
     
     data = []
@@ -437,6 +443,7 @@ def postprocess(results, limit, prompt, sql, isSpeciesData):
                     data.append(r)
                     
     data = [d for d in data if d is not None]
+    print('len = '+ str(len(data)))
     if len(data) == 0:
         return results, isSpeciesData
 
