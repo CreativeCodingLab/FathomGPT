@@ -236,4 +236,5 @@ CREATE VIEW "dbo"."boundingbox_extended_info" AS
 SELECT b.concept, b.alt_concept, b.observer, b.verified, b.verifier, b.verification_timestamp, b.user_defined_key, i.url, i.width, i.height, i.submitter, i.[timestamp], i.contributors_email AS image_contributors_email, u.contributors_email AS upload_contributors_email, dc.owner_institution_code, dc.institution_code, dc.rights_holder, dc.collection_code, dc.collection_id, dc.dataset_name
 FROM dbo.darwin_cores dc LEFT JOIN dbo.image_set_uploads u ON dc.id = u.darwincore_id LEFT JOIN dbo.image_uploads_join j ON j.imagesetupload_id = u.id LEFT JOIN dbo.images i ON j.image_id = i.id LEFT JOIN dbo.bounding_boxes b ON b.image_id = i.id;
 
+
 """
