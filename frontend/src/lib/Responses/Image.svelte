@@ -21,6 +21,9 @@
 					<img src={specimen.url} alt="image retrieved from fathomnet"/>
 				</div>
 				<h4>Name: {specimen.concept}</h4>
+				{#if specimen.CosineSimilarity!=null}
+				<h4>Similarity Score: {(specimen.CosineSimilarity * 100).toFixed(2)}%</h4>
+				{/if}
 			</button>
 		{/each}
 	</div>

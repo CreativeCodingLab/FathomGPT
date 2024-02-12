@@ -48,6 +48,7 @@ export interface speciesData {
 	pressure_dbar?: string;
 	salinity?: string;
 	temperature_celsius: string;
+	CosineSimilarity: number;
 	mr?: {
 		region_name: string
 	}[];
