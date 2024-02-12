@@ -479,11 +479,13 @@ def generatesqlServerQuery(
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
 
-    
-    if len(name) > 1:
-        prompt = prompt.replace(name, scientificNames)
-    elif len(scientificNames) > 1:
-        prompt = prompt.rstrip(".")+" with names: "+scientificNames
+    if inputImageDataAvailable:
+        prompt = prompt.replace(name, '')
+    else:
+        if len(name) > 1:
+            prompt = prompt.replace(name, scientificNames)
+        elif len(scientificNames) > 1:
+            prompt = prompt.rstrip(".")+" with names: "+scientificNames
 
     print("------------------------prompt passed "+ prompt)
 
@@ -870,7 +872,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         if(smessage["role"]=="assistant"):
             if(len(smessage["content"])>200):
                 smessage["content"]=smessage["content"][:200]+"...\n"
-    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. Prompt:"+prompt})
+    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. Prompt:"+prompt})
     isSpeciesData = False
     result = None
     curLoopCount = 0
@@ -920,6 +922,9 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         if(response_message.get("function_call")):
             function_name = response_message["function_call"]["name"]
             args = json.loads(response_message.function_call.get('arguments'))
+            
+            print('----')
+            print(function_name)
 
             for key, value in args.items():
                 if isinstance(value, str):
@@ -974,6 +979,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     yield sse_data
                 if(function_name=="generatesqlServerQuery"):
                     args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
+                
                 result = function_to_call(**args)
                 
 
@@ -1010,7 +1016,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     print("got data from db")
 
                     try:
-                        sqlResult, isSpeciesData = postprocess(sqlResult, limit, prompt, sql, isSpeciesData)
+                        sqlResult, isSpeciesData = postprocess(sqlResult, limit, prompt, sql, isSpeciesData, args["scientificNames"], args["inputImageDataAvailable"])
                     except:
                         print('postprocessing error')
                         pass
@@ -1225,7 +1231,8 @@ SAVE_INTERMEDIATE_RESULTS = False
 #for v in get_Response("What species belong to the genus Aurelia", isEventStream=True):
 #for v in get_Response("Show me the taxonomy of moon jelly", isEventStream=True):
 #for v in get_Response("Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides from 0°C to 20 in 5°C increments", isEventStream=True):
-#    print(v)
+for v in get_Response("Find me similar images of jellyfish", isEventStream=True, imageData="/9j/4AAQSkZJRgABAQEASABIAAD/4QCQRXhpZgAASUkqAAgAAAAGABIBAwABAAAAAQAAABoBBQABAAAAVgAAABsBBQABAAAAXgAAACgBAwABAAAAAgAAADEBAgANAAAAZgAAADIBAgAUAAAAdAAAAAAAAABIAAAAAQAAAEgAAAABAAAAR0lNUCAyLjEwLjM0AAAyMDI0OjAyOjEyIDEzOjIzOjU5AP/hDM1odHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDQuNC4wLUV4aXYyIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6R0lNUD0iaHR0cDovL3d3dy5naW1wLm9yZy94bXAvIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOkRvY3VtZW50SUQ9ImdpbXA6ZG9jaWQ6Z2ltcDpkNGYzODUwZC01ZDBhLTQ5YTMtYWE1Yy02MzE2YTU1ODQ1MzkiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTQ0ZDMxNDQtNTliNi00ZTE3LTg2NGItOTJkMmMyOTk2MTBlIiB4bXBNTTpPcmlnaW5hbERvY3VtZW50SUQ9InhtcC5kaWQ6MWNmMTExNjAtNjk2Ny00ODM0LWJhYmUtZTM2OGQzMmRiMzI0IiBkYzpGb3JtYXQ9ImltYWdlL2pwZWciIEdJTVA6QVBJPSIyLjAiIEdJTVA6UGxhdGZvcm09IldpbmRvd3MiIEdJTVA6VGltZVN0YW1wPSIxNzA3NzYyMjQ2NDM0OTQ2IiBHSU1QOlZlcnNpb249IjIuMTAuMzQiIHhtcDpDcmVhdG9yVG9vbD0iR0lNUCAyLjEwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDI0OjAyOjEyVDEzOjIzOjU5LTA1OjAwIiB4bXA6TW9kaWZ5RGF0ZT0iMjAyNDowMjoxMlQxMzoyMzo1OS0wNTowMCI+IDx4bXBNTTpIaXN0b3J5PiA8cmRmOlNlcT4gPHJkZjpsaSBzdEV2dDphY3Rpb249InNhdmVkIiBzdEV2dDpjaGFuZ2VkPSIvIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmY4MGQ3NThjLTlmMmYtNDI4ZC1iMTI4LTdiMmY2ZTM5YTJkMyIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iR2ltcCAyLjEwIChXaW5kb3dzKSIgc3RFdnQ6d2hlbj0iMjAyNC0wMi0xMlQxMzoyNDowNiIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgPD94cGFja2V0IGVuZD0idyI/Pv/iAhxJQ0NfUFJPRklMRQABAQAAAgxsY21zAhAAAG1udHJSR0IgWFlaIAfcAAEAGQADACkAOWFjc3BBUFBMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD21gABAAAAANMtbGNtcwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACmRlc2MAAAD8AAAAXmNwcnQAAAFcAAAAC3d0cHQAAAFoAAAAFGJrcHQAAAF8AAAAFHJYWVoAAAGQAAAAFGdYWVoAAAGkAAAAFGJYWVoAAAG4AAAAFHJUUkMAAAHMAAAAQGdUUkMAAAHMAAAAQGJUUkMAAAHMAAAAQGRlc2MAAAAAAAAAA2MyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHRleHQAAAAARkIAAFhZWiAAAAAAAAD21gABAAAAANMtWFlaIAAAAAAAAAMWAAADMwAAAqRYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9jdXJ2AAAAAAAAABoAAADLAckDYwWSCGsL9hA/FVEbNCHxKZAyGDuSRgVRd13ta3B6BYmxmnysab9908PpMP///9sAQwBQNzxGPDJQRkFGWlVQX3jIgnhubnj1r7mRyP///////////////////////////////////////////////////9sAQwFVWlp4aXjrgoLr/////////////////////////////////////////////////////////////////////////8IAEQgAVQBkAwERAAIRAQMRAf/EABcAAQEBAQAAAAAAAAAAAAAAAAABAgP/xAAVAQEBAAAAAAAAAAAAAAAAAAAAAf/aAAwDAQACEAMQAAABGQUpUAyRaQsKhpNEWAFBDJqJWkpCABRQZEWtIIChYkUUGY1RBQUBYQAhQgFABFAEKVAIaIpIoAkZrokIUpFJSKBIzWioAAAUQRmhoqAAFAQM1AClAICxoH//xAAYEAEAAwEAAAAAAAAAAAAAAAARACAwYP/aAAgBAQABBQKpCGB3Dh//xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/AQ//xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAECAQE/AQ//xAAUEAEAAAAAAAAAAAAAAAAAAABw/9oACAEBAAY/Ag//xAAdEAACAwEBAQEBAAAAAAAAAAABEQAQIDEwIUFx/9oACAEBAAE/IbUANP6oRpQRzLojAEPiRQ+nCtaHLeTg9g54uOjBy3Hg4PYCjp+AP5g6OAZ826WWaOOODH//2gAMAwEAAgADAAAAEAIA2/BMJ2JJIAw2bbIJFC3+vIJgW++sBIC//wDwSQPvveATR/t5sCMTt9uyTiB9syBUCCCSDm//xAAUEQEAAAAAAAAAAAAAAAAAAABw/9oACAEDAQE/EA//xAAWEQADAAAAAAAAAAAAAAAAAAABUGD/2gAIAQIBAT8QTio//8QAHxAAAgMAAwEBAQEAAAAAAAAAAAERITEQQVFhcSCB/9oACAEBAAE/EG6GKz4GjFtD+B8NDUpEhwLiKLFUtkrA3JJZLEKeoanVr0W2J0TZ3DD/ALR2oTaoT8Bs1ECYShZYr1EniI5Xno6ZshiFaxt+Ev3hzPQjghoSIPyMfvKQ4XVkSLR0OofpL0lxv/Df9Ek9IRDotqsTlMWk+/wRsNwFanhiG4RIk2ucwcyYKiQ64WmuUPRKSU+QW+zNFR0tShNqTFX8JPobScOxydDlqxTWj/RO+OxK7JdpC+UN14NnrKWK2NRx/9k="):
+    print(v)
 
 #test_msgs = [{'role': 'user', 'content': 'find me images of aurelia aurita'}, {'role': 'assistant', 'content': "{'outputType': 'image', 'responseText': 'Images of Aurelia Aurita', 'vegaSchema': {}, 'species': [{'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3405/00_05_46_16.png', 'image_id': 2593314, 'concept': 'Aurelia aurita', 'id': 2593317}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_29_11.png', 'image_id': 2593518, 'concept': 'Aurelia aurita', 'id': 2593520}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0970/06_02_03_18.png', 'image_id': 2598130, 'concept': 'Aurelia aurita', 'id': 2598132}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/05_01_45_07.png', 'image_id': 2598562, 'concept': 'Aurelia aurita', 'id': 2598564}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Doc%20Ricketts/images/0971/03_42_04_04.png', 'image_id': 2600144, 'concept': 'Aurelia aurita', 'id': 2600146}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3219/00_02_48_21.png', 'image_id': 2601105, 'concept': 'Aurelia aurita', 'id': 2601107}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3185/00_05_28_02.png', 'image_id': 2601178, 'concept': 'Aurelia aurita', 'id': 2601180}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3082/04_59_01_12.png', 'image_id': 2601466, 'concept': 'Aurelia aurita', 'id': 2601468}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/images/3184/02_40_58_22.png', 'image_id': 2603507, 'concept': 'Aurelia aurita', 'id': 2603509}, {'url': 'https://fathomnet.org/static/m3/framegrabs/Ventana/stills/2000/236/02_33_01_18.png', 'image_id': 2604817, 'concept': 'Aurelia aurita', 'id': 2604819}]}"}]
 
