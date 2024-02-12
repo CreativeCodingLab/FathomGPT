@@ -86,13 +86,12 @@ def patternDivision(x, y, img):
     o_y = y
     o_x = x
 
-    print(img_hsv[y, x], img_rgb[y, x])
     find_all_pattern(img_rgb, img_hsv, new_img, o_y, o_x)
     window_name = 'new_img'
     new_img = cv.cvtColor(new_img, cv.COLOR_RGB2BGR)
 
     time_taken = time.time() - start_time
 
-    print(f"Time taken: {time_taken} seconds")
+    print(f"INteract Time taken: {time_taken} seconds")
     return new_img
 
