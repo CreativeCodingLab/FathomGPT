@@ -216,4 +216,7 @@
         cursor: se-resize;
         border-radius: 50%;
     }
+	img{
+		max-height: calc(100vh - 220px);
+	}
 </style>

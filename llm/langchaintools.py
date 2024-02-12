@@ -424,21 +424,19 @@ oneShotData = {
             """,
         "user": f"""
             SQL Server Database Structure: ${DB_STRUCTURE}
-            User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."
-            Output type: visualization
-            InputImageDataAvailable: False""",
+            User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
+            """,
         "assistant": """
         {
             "sampleData": "{'concept':['dolphin', 'shark'], 'depth_meters':[10, 20]}",
-            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    # Define depth zones based on meters\n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n\treturn fig",
+            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n\treturn fig",
             "sqlServerQuery": "SELECT b.concept, i.depth_meters FROM dbo.bounding_boxes b JOIN dbo.images i ON b.image_id = i.id  INNER JOIN marine_regions MR ON i.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND i.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE i.depth_meters IS NOT NULL AND MR.name='Monterey Bay';",
-            "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth zones."
+            "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
         }""",
         "user2": f"""
             SQL Server Database Structure: ${DB_STRUCTURE}
             User Prompt: "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year"
-            Output type: visualization
-            InputImageDataAvailable: False""",
+            """,
         "assistant2": """
         {
             "sampleData": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
@@ -1043,7 +1041,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     try:
                         result["responseText"]= result["responseText"].format(**sqlResult[0])
                     except:
-                        print("Error formatting data to response text")
+                        print("Warining: Issues formatting data to response text")
                     break
 
                 else:
