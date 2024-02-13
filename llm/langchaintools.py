@@ -151,18 +151,37 @@ def getConceptCandidates(product_description, n=LANGCHAIN_SEARCH_CONCEPTS_TOPN, 
             print()
     return results
 
-def modifyExistingChart(prompt: str, schema: str):
+def modifyExistingVisualization(prompt: str, plotlyCode: str, sampleData:str):
+
+    code="#sample data: "+sampleData.replace("\n","")+"\n\n"+plotlyCode
+    
     summerizerResponse = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4-turbo-preview",
             temperature=0,
             messages=[{"role": "system","content":"""
-            Modify the vega lite chart schema based on the instruction provided. Output only the chartSchema
+            Modify the python plotly code below based on the user's instruction. Donot output any comments. Re-generate the imports and the drawVisualization function.
 
-            """},{"role":"user", "content": "{\"chartSchema\": \"" + json.dumps(schema) + "\", \"\ninstruction\":\"" + prompt+ "\"}"}],
+            output in this JSON format
+                       {
+                        "plotlyCode":"",
+                       "responseText": ""
+                       }
+
+            In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            The response text is a message to user saying that you made the modification. 
+            Output only the json nothing else
+            """},{"role":"user", "content": "code: \n" + code + "\", \"\ninstruction\":\"" + prompt+ "\"}"}],
         )
     
 
-    return summerizerResponse["choices"][0]["message"]["content"]
+    result = summerizerResponse["choices"][0]["message"]["content"]
+    result = result.strip()
+    first_brace_position = result.find('{')
+    if first_brace_position!=0:
+        result = result[first_brace_position:]
+    if result.endswith('```'):
+        result = result[:-3]
+    return json.loads(result)
 
     
 def filterScientificNames(
@@ -802,20 +821,20 @@ availableFunctions = [{
         "required": ["question"],
     },
 },
-#{
-#    "name": "modifyExistingChart",
-#    "description": "Important:Donot run this function when the prompt says to generate a chart. This tool that modifies the chart schema based on the provided schema. This tool only makes visual changes to the chart. If the data itself needs to be changed, do not use this tool.",
-#    "parameters": {
-#        "type": "object",
-#        "properties": {
-#            "prompt": {
-#                "type": "string",
-#                "description": "Prompt that instructs what modification that needs to be done in the chart",
-#            },
-#        },
-#        "required": ["prompt"],
-#    },
-#}
+{
+    "name": "modifyExistingVisualization",
+    "description": "Important: Donot run this function when the prompt says to generate a visualization. This tool modifies the visualization. This tool only makes visual changes to the chart. If the data itself needs to be changed, do not use this tool.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "prompt": {
+                "type": "string",
+                "description": "Prompt that instructs what modification that needs to be done in the chart",
+            },
+        },
+        "required": ["prompt"],
+    },
+}
 ]
 
 availableFunctionsDescription = {
@@ -829,7 +848,7 @@ availableFunctionsDescription = {
     
     "getAnswer": "Getting answer from ChatGPT.",
 
-    "modifyExistingChart": "Modifying the chart.",
+    "modifyExistingVisualization": "Modifying the chart.",
 
 }
 
@@ -841,10 +860,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
     startingMessage = None
     if len(messages)!=0:
         startingMessage = json.loads(json.dumps(messages[len(messages)-1]))
-    for smessage in messages:
-        if(smessage["role"]=="assistant"):
-            if(len(smessage["content"])>200):
-                smessage["content"]=smessage["content"][:200]+"...\n"
     messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. \n"+("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
     isSpeciesData = False
     result = None
@@ -880,7 +895,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
         eval_image_feature_string = ", ".join(formatted_features)
     
-    function_name = ""
     
     while curLoopCount < 4:
         curLoopCount+=1
@@ -892,7 +906,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             temperature=0,
 
         )
-        sqlServerQuery=None
         response_message = response["choices"][0]["message"]
         if(response_message.get("function_call")):
             function_name = response_message["function_call"]["name"]
@@ -914,32 +927,41 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             pass
                         
             function_to_call = globals().get(function_name)
-            if(function_name=="modifyExistingChart"):
+            if(function_name=="modifyExistingVisualization"):
                 if isEventStream:
                     event_data = {
-                        "message": "Modifying the chart"
+                        "message": "Modifying the visualization"
                     }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
 
-                evaluatedContent = eval(startingMessage['content'])
-                prvSchema = evaluatedContent['vegaSchema']
-                prvData = prvSchema['data']
-                prvSchema['data']=None
-                result = function_to_call(**args, schema=prvSchema)
-                prvSchema = json.loads(result)
-                prvSchema['data'] = prvData
-                evaluatedContent['vegaSchema'] = prvSchema
-                output = evaluatedContent
+                parsedPrvresponse = eval(startingMessage['content'])
+
+                prvPlotlyCode = parsedPrvresponse['plotlyCode']
+                sampleData = parsedPrvresponse['sampleData']
+                result = function_to_call(**args, plotlyCode=prvPlotlyCode, sampleData=sampleData)
+                isSpeciesData, sqlResult = GetSQLResult(parsedPrvresponse['sqlServerQuery'], True)
+                exec(result["plotlyCode"], globals())
+                    
+                fig = drawVisualization(sqlResult)
+                html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+                output = {}
+                output["outputType"] = parsedPrvresponse['outputType']
+                output["responseText"] = result["responseText"]
+                output["html"] = html_output
 
                 if isEventStream:
-                    Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
                     output['guid']=str(db_obj.id)
                     event_data = {
                         "result": output
                     }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
+                    output["sampleData"] = parsedPrvresponse['sampleData']
+                    output["plotlyCode"] = prvPlotlyCode
+                    output["sqlServerQuery"] = parsedPrvresponse['sqlServerQuery']
+                    output["html"] = ""
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
                 return
             elif function_to_call:
                 if isEventStream:
@@ -1006,7 +1028,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         fig = drawVisualization(sqlResult)
                         html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
                         result["html"]=html_output
-                        result["species"]=sqlResult
 
                     elif(result["outputType"]=="table"):
                         result["table"]=sqlResult
@@ -1151,13 +1172,18 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
     #    output["table"] = result
         
     if isEventStream:
-        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
         output['guid']=str(db_obj.id)
         event_data = {
             "result": output
         }
         sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
+        output['html']=""
+        output['sqlServerQuery']=result["sqlServerQuery"]
+        output['plotlyCode']=result["plotlyCode"]
+        output['sampleData']=result["sampleData"]
+        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+
     end_time = time.time()
 
     time_taken = end_time - start_time
