@@ -88,7 +88,7 @@
 				{/if}
 				{#if loading}
 				<div class="loadingContainer">
-					<Shadow size="30" color="#FFFFFF" unit="px" duration="1s" />
+					<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
 				</div>
 				{/if}
             </div>
@@ -167,7 +167,7 @@
     }
 
 	.loadingContainer{
-		background-color: rgba(51,51,51,0.5);
+		background-color: rgba(51,51,51,0.2);
 		position: absolute;
 		width: 100%;
 		height: 100%;

@@ -76,6 +76,8 @@
 			
 			let parsedData = JSON.parse(event.data);
 			console.log('Received message:', parsedData);
+			let isScrollAtBottom = container.scrollHeight==Math.floor(container.getBoundingClientRect().height)
+			console.log(isScrollAtBottom," isScrollAtBottom", container.scrollHeight, container.scrollTop, container.getBoundingClientRect().height)
 			try{
 				handleResponse(parsedData);
 			} catch (e) {
@@ -87,6 +89,16 @@
 				eventSource.close();
 				dispatch( 'responseReceived');
 			}
+			if(isScrollAtBottom){
+				if (container.lastElementChild !== null) {
+					container.lastElementChild.scrollIntoView({
+						block: 'start',
+						behavior: 'smooth',
+					});
+				}
+			}
+
+
 		});
 
 			
@@ -94,7 +106,6 @@
 
 
 	function handleResponse(eventData: any) {
-		
 		if(eventData.message != undefined || eventData.message != null) {
 			//if(updateBox != null) {
 			//	//@ts-ignore
@@ -119,6 +130,7 @@
 					}
 				})
 			}
+			
 		}
 		if(eventData.result != undefined) {
 			if(curLoader!=null){
@@ -130,6 +142,7 @@
 			//@ts-ignore
 			//updateBox.$destroy();
 			console.log("Output type: ",eventData.result.outputType);
+
 			switch (eventData.result.outputType) {
 				case 'text':
 					handleText(container, eventData.result.responseText);

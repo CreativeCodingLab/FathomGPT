@@ -112,7 +112,7 @@
 
 <main>
 	{#if loading}
-	<Shadow size="30" color="#FFFFFF" unit="px" duration="1s" />
+	<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
 	{/if}
 	<div class="divWrapper">
 		<!-- svelte-ignore a11y-autofocus -->
@@ -159,6 +159,7 @@
 			var(--color-white) 50%,
 			var(--color-white) 100%
 		);
+		padding: 0px var(--chat-padding);
 	}
 	.divWrapper {
 		place-self: center;
