@@ -13,7 +13,7 @@
 <main class="fathomChatContainer">
 	<blockquote>{naturalTextResponse}</blockquote>
 	<br />
-	<div>
+	<div class="speciesImageContainer">
 		{#each species as specimen, i}
 			<button class="imgOuterWrapper" on:click={()=>openImageDetailModal(specimen)}>
 				<!-- svelte-ignore a11y-img-redundant-alt -->
@@ -27,6 +27,7 @@
 			</button>
 		{/each}
 	</div>
+	<sub>You can click on the images to get more detail about the species</sub>
 </main>
 
 <style>
@@ -72,5 +73,13 @@
 
 	.imgOuterWrapper:active{
 		opacity: 0.9;
+	}
+
+	sub{
+		margin-bottom: -10px;
+        color: var(--color-pelagic-gray);
+    }
+	.speciesImageContainer{
+		padding-bottom: 2px;
 	}
 </style>
