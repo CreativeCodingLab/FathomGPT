@@ -52,7 +52,6 @@
 		flex-direction: column;
 		flex: 1;
 		background-color: var(--color-sea-salt-gray);
-		padding: 0px var(--chat-padding);
 
 	}
 </style>

@@ -5,11 +5,11 @@
 	let imgElement: HTMLImageElement;
 	let boundingBox: BoundingBox = { x: 50, y: 50, width: 100, height: 100 };
 	let target: HTMLElement | null = null;
-    let resizeHandle: HTMLElement | null = null;
+	let resizeHandle: HTMLElement | null = null;
 	let isOpen: Boolean = false;
 	let isDragging = false;
 	let isResizing = false;
-	let startX: number, startY: number, startWidth:number, startHeight: number;
+	let startX: number, startY: number, startWidth: number, startHeight: number;
 
 	function onMouseDown(event: MouseEvent) {
 		if (event.target === target) {
@@ -48,77 +48,88 @@
 		document.removeEventListener('mouseup', onMouseUp);
 	}
 
-    onMount(() => {
-        document.addEventListener('imageAdded', function (e) {
-            //@ts-ignore
-            imgElement.src=e.detail
-            isOpen = true;
-        });
-    });
+	onMount(() => {
+		document.addEventListener('imageAdded', function (e) {
+			//@ts-ignore
+			imgElement.src = e.detail;
+			document.body.style.overflow = 'hidden';
+			isOpen = true;
+		});
+	});
 
 	async function sendCroppedImage() {
-    if (!imgElement) return;
+		if (!imgElement) return;
 
-    const scaleX = imgElement.naturalWidth / imgElement.width;
-    const scaleY = imgElement.naturalHeight / imgElement.height;
+		const scaleX = imgElement.naturalWidth / imgElement.width;
+		const scaleY = imgElement.naturalHeight / imgElement.height;
 
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = boundingBox.width;
-    offscreenCanvas.height = boundingBox.height;
-    const offCtx = offscreenCanvas.getContext('2d');
+		const offscreenCanvas = document.createElement('canvas');
+		offscreenCanvas.width = boundingBox.width;
+		offscreenCanvas.height = boundingBox.height;
+		const offCtx = offscreenCanvas.getContext('2d');
 
-    if (!offCtx) return;
+		if (!offCtx) return;
 
-    // Draw the cropped area on the in-memory canvas
-    // Use natural dimensions for source coordinates and dimensions
-    offCtx.drawImage(
-        imgElement,
-        boundingBox.x * scaleX, // Scale the x coordinate
-        boundingBox.y * scaleY, // Scale the y coordinate
-        boundingBox.width * scaleX, // Scale the width
-        boundingBox.height * scaleY, // Scale the height
-        0,
-        0,
-        boundingBox.width,
-        boundingBox.height
-    );
+		// Draw the cropped area on the in-memory canvas
+		// Use natural dimensions for source coordinates and dimensions
+		offCtx.drawImage(
+			imgElement,
+			boundingBox.x * scaleX, // Scale the x coordinate
+			boundingBox.y * scaleY, // Scale the y coordinate
+			boundingBox.width * scaleX, // Scale the width
+			boundingBox.height * scaleY, // Scale the height
+			0,
+			0,
+			boundingBox.width,
+			boundingBox.height
+		);
 
-    offscreenCanvas.toBlob(async (blob) => {
-        const blobUrl = URL.createObjectURL(blob);
-        console.log(blobUrl)
-        const myCustomEvent = new CustomEvent('imageSelected', {
-            detail: blobUrl
-        });
-        document.dispatchEvent(myCustomEvent);
-        closeModal();
-    });
-}
-
+		offscreenCanvas.toBlob(async (blob) => {
+			const blobUrl = URL.createObjectURL(blob);
+			console.log(blobUrl);
+			const myCustomEvent = new CustomEvent('imageSelected', {
+				detail: blobUrl
+			});
+			document.dispatchEvent(myCustomEvent);
+			closeModal();
+		});
+	}
 
 	function closeModal() {
-        isOpen = false;
-    }
+		document.body.style.overflow = 'auto';
+		isOpen = false;
+	}
 </script>
 
 <main>
 	<div class="imageDetailsOuterContainer" class:active={isOpen}>
-		<div class="imageDetailsContainer">
-			<div class="header">
-				<h1>Upload Image</h1>
-				<button class="closeBtn" on:click={closeModal}><i class="fa-solid fa-xmark" /></button>
+		<div class="imageDetailsContainerWrapper">
+			<div class="imageDetailsContainer">
+				<div class="header">
+					<h1>Upload Image</h1>
+					<button class="closeBtn" on:click={closeModal}><i class="fa-solid fa-xmark" /></button>
+				</div>
+				<div class="infoText">
+					Please move/resize the box to select the portion of the image that contains the specimen.
+				</div>
+				<div class="detailsContainer">
+					<img alt="Loaded image" bind:this={imgElement} />
+					<div
+						id="target"
+						bind:this={target}
+						style="width: {boundingBox.width}px; height: {boundingBox.height}px; background: rgba(255, 0, 0, 0.5); position: absolute; left: {boundingBox.x}px; top: {boundingBox.y}px"
+						on:mousedown={onMouseDown}
+					>
+						<div
+							id="resizeHandle"
+							class="resizeHandle"
+							bind:this={resizeHandle}
+							on:mousedown={onMouseDown}
+						/>
+					</div>
+				</div>
+				<button class="button imgUploadBtn" on:click={sendCroppedImage}>Add</button>
 			</div>
-			<div class="infoText">
-				Please move/resize the box to select the portion of the image that contains the specimen.
-			</div>
-            <div class="detailsContainer">
-                <img alt="Loaded image" bind:this={imgElement}/>
-                <div id="target" bind:this={target} 
-                     style="width: {boundingBox.width}px; height: {boundingBox.height}px; background: rgba(255, 0, 0, 0.5); position: absolute; left: {boundingBox.x}px; top: {boundingBox.y}px" 
-                     on:mousedown={onMouseDown}>
-                    <div id="resizeHandle" class="resizeHandle" bind:this={resizeHandle} on:mousedown={onMouseDown}></div> <!-- Bind resizeHandle here -->
-                </div>
-            </div>
-			<button class="button imgUploadBtn" on:click={sendCroppedImage}>Add</button>
 		</div>
 	</div>
 </main>
@@ -142,20 +153,27 @@
 		top: 0;
 		width: 100%;
 		min-height: 100vh;
-		display: flex;
-		justify-content: center;
-		align-items: center;
 		z-index: 1000;
 		background-color: rgba(0, 0, 0, 0.5);
 		opacity: 0;
 		pointer-events: none;
 		transition: 0.2s;
 		backdrop-filter: blur(1px);
+		overflow: auto;
+        height: 100vh;
 	}
 	.imageDetailsOuterContainer.active {
 		opacity: 1;
 		pointer-events: all;
 	}
+
+	.imageDetailsContainerWrapper{
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
 
 	.imageDetailsContainer {
 		padding: 20px;
@@ -206,17 +224,17 @@
 		color: var(--color-pelagic-gray);
 	}
 
-    .resizeHandle {
-        width: 10px;
-        height: 10px;
-        background: var(--accent-color);
-        position: absolute;
-        right: -3px;
-        bottom: -3px;
-        cursor: se-resize;
-        border-radius: 50%;
-    }
-	img{
-		max-height: calc(100vh - 220px);
+	.resizeHandle {
+		width: 10px;
+		height: 10px;
+		background: var(--accent-color);
+		position: absolute;
+		right: -3px;
+		bottom: -3px;
+		cursor: se-resize;
+		border-radius: 50%;
+	}
+	img {
+		max-height: calc(100vh - 240px);
 	}
 </style>
