@@ -11,18 +11,18 @@ router.register(r'stream', views.MainObjectViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('get_response', views.MainObjectViewSet.as_view({
+    path('api/get_response', views.MainObjectViewSet.as_view({
         'post': 'create_with_question_answer',
         'put': 'update_with_question_answer'
     })),
-    path('species_detail', views.MainObjectViewSet.as_view({
+    path('api/species_detail', views.MainObjectViewSet.as_view({
         'get': 'getSpeciesDetail'
     })),
-    path('upload_image', views.MainObjectViewSet.as_view({
+    path('api/upload_image', views.MainObjectViewSet.as_view({
         'post':'upload_image'
         })),
-    path('generate_pattern', views.MainObjectViewSet.as_view({
+    path('api/generate_pattern', views.MainObjectViewSet.as_view({
         'post':'generate_pattern'
         })),
-    path('event-stream', views.PostStreamView.as_view(), name='stream'),
+    path('api/event-stream', views.PostStreamView.as_view(), name='stream'),
 ]
