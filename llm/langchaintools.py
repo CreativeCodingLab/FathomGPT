@@ -1180,8 +1180,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         yield sse_data
         output['html']=""
         output['sqlServerQuery']=result["sqlServerQuery"]
-        output['plotlyCode']=result["plotlyCode"]
-        output['sampleData']=result["sampleData"]
+        output['plotlyCode']=result["plotlyCode"] if "plotlyCode" in result else ""
+        output['sampleData']=result["sampleData"] if "sampleData" in result else ""
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
 
     end_time = time.time()
