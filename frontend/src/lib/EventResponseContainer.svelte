@@ -49,7 +49,7 @@
 			const payload = {
 				image: inputtedImage
 			};
-			const response = await fetch(`${serverBaseURL}upload_image`, {
+			const response = await fetch(`${serverBaseURL}/upload_image`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
