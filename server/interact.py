@@ -138,7 +138,7 @@ def find_all_pattern(img_rgb, img_hsv, new_img, y, x):
 def patternDivision(x, y, img):
     img_rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    new_img = np.zeros((img.shape[0], img.shape[1], 3), np.uint8
+    new_img = np.zeros((img.shape[0], img.shape[1], 3), np.uint8)
 
     for i in range(new_img.shape[0]):
         for j in range(new_img.shape[1]):
