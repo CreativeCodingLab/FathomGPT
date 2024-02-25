@@ -165,13 +165,13 @@ def modifyExistingVisualization(prompt: str, plotlyCode: str, sampleData:str):
             output in this JSON format
                        {
                         "plotlyCode":"",
-                       "responseText": ""
+                       "responseText": "",
                        }
 
             In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
             The response text is a message to user saying that you made the modification. 
-            Output only the json nothing else
-            """},{"role":"user", "content": "code: \n" + code + "\", \"\ninstruction\":\"" + prompt+ "\"}"}],
+            Output only the json nothing else.
+            """},{"role":"user", "content": "code: \n" + code + "\ninstruction:" + prompt+ "\nsample data:"+sampleData}],
         )
     
     result = summerizerResponse["choices"][0]["message"]["content"]
@@ -1064,6 +1064,22 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 prvPlotlyCode = parsedPrvresponse['plotlyCode']
                 sampleData = parsedPrvresponse['sampleData']
 
+                evalNewdbQueryNeeded = openai.ChatCompletion.create(
+                    model="gpt-4-turbo-preview",
+                    temperature=0,
+                    messages=[{"role": "system","content":"""
+                    Your task is to evaluate the current situation and output either True or False nothing else. You will be given a plotly code. 
+                               The plotly code will have a sample data as a comment. This is the current data the system has right now. User is trying to modify the plotly visualization. What user is trying to acheieve is given by the prompt that the user provides.
+                               Your task is to evaluate either the user needs additional data or not to perform the modification according to the prompt to the visualization.
+
+                    Output True if user needs additional data to modify the visualization else Output False, nothing else
+                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "\prompt:" + prompt}],
+                )
+
+                if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
+                    messages.append({"role":"function","content":"Not enough data to modify the visualization, using previous prompts, re-generate another prompt that instructs to draw the visualization with the modification and run generatesqlServerQuery function. Make sure to add all the constraints that were in the earlier prompts.","name": function_name})
+                    continue
+
                 def first_task():
                     return function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
 
@@ -1083,6 +1099,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Error while running the generated sql query")
                     return None
                 
                 codeGenerationTries = 3
@@ -1103,6 +1120,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                 }
                             sse_data = f"data: {json.dumps(event_data)}\n\n"
                             yield sse_data
+                            Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
                             return None
                         event_data = {
                                 "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
@@ -1172,6 +1190,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
+                        Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated sql query")
                         return None
                     
                     if sqlResult is None:
@@ -1191,7 +1210,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                     if sqlResult and limit != -1 and limit < len(sqlResult) and isinstance(sqlResult, list):
                         sqlResult  = sqlResult[:limit]
-                    print('isSpeciesData: '+str(isSpeciesData))
 
                     if(result["outputType"]=="visualization"):
                         codeGenerationTries = 3
@@ -1202,7 +1220,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                 fig = drawVisualization(sqlResult)
                                 codeGenerationTries = 0
                             except Exception as e:
-                                print(e)
+                                print("Error ",str(e))
                                 codeGenerationTries-=1
                                 if(codeGenerationTries==0):
                                     event_data = {
@@ -1213,6 +1231,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                         }
                                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                                     yield sse_data
+                                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
                                     return None
                                 event_data = {
                                         "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
