@@ -202,6 +202,10 @@
 		position: relative;
 	}
 
+	.detailsContainer img{
+		user-select: none;
+	}
+
 	.closeBtn {
 		width: 30px;
 		height: 30px;
