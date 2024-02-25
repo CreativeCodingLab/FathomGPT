@@ -162,4 +162,5 @@ cython_debug/
 #.idea/
 
 /frontend/node_modules
-
+/images
+/frontend/_web.config
