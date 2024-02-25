@@ -207,6 +207,8 @@
 		overscroll-behavior: contain;
 		width: 100%;
 		padding-top: 10px;
+		padding-left: 20px;
+		padding-right: 20px;
 	}
 
 

@@ -74,12 +74,20 @@
 			isImageDetailsOpen: !current.isImageDetailsOpen
 		}));
 	}
+
+	function bgClicked(event: MouseEvent): void {
+		if(event.target === backgroundRef) {
+			closeModal();
+		}
+	}
+
+	let backgroundRef: Element;
 </script>
 
 <main>
 	<div class="imageDetailsOuterContainer" class:active={$isOpen}>
 		{#if species !== null}
-			<div class="imageDetailsContainerWrapper">
+			<div class="imageDetailsContainerWrapper" on:click={bgClicked} bind:this={backgroundRef}>
 				<div class="imageDetailsContainer">
 					<div class="header">
 						<h1>{species.concept}</h1>
@@ -199,6 +207,8 @@
 		padding-bottom: 3px;
 	}
 	.taxonomyContainer {
+		max-width: 60%;
+    	overflow-x: auto;
 	}
 	.innerTaxonomyContainer {
 		padding-left: 2px;
