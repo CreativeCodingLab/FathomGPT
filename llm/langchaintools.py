@@ -1162,6 +1162,11 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
                         return None
+                    
+                    if sqlResult is None:
+                        messages.append({"role":"function","content":"No results found after running the sql query. If getScientificNamesFromDescription was run earlier, ask user to specify the name of the species or any other description.","name": function_name})
+                        continue
+
 
                         
                     print("got data from db")
@@ -1171,6 +1176,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     except:
                         print('postprocessing error')
                         pass
+
 
                     if sqlResult and limit != -1 and limit < len(sqlResult) and isinstance(sqlResult, list):
                         sqlResult  = sqlResult[:limit]
