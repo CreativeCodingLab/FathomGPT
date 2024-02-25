@@ -285,7 +285,7 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
 
             cursor = connection.cursor()
 
-            if imageData != "":
+            if imageData != "" and imageData is not None:
                 cursor.execute(addImageSearchQuery([imageData], fullGeneratedSQLJSON))
             else:
                 cursor.execute(query)
@@ -958,8 +958,8 @@ availableFunctionsDescription = {
 def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=None):
 
 
+    initialMessagesCount = len(messages)
     start_time = time.time()
-    startingMessage = None
     messages.insert(0,{"role":"system", "content":"""You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. 
                        You have the ability to do visulizations like generating area chart showing the year the images were taken, generating heatmap of species in Monterey Bay, etc.
                        You have the ability to find marine species that live below 1000 meters, find the total count of marine species in Monterey Bay, etc.
@@ -967,8 +967,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                        Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The 'getScientificNamesFromDescription' function will output the same input name when the input name is already a scientific name. Donot re-run the function with the same input. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. 
                        If you are not running any function, just output the text, dont format it like the other content
                        """})
-    if len(messages)!=0:
-        startingMessage = json.loads(json.dumps(messages[len(messages)-1]))
 
     messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
     isSpeciesData = False
@@ -1047,7 +1045,22 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
 
-                parsedPrvresponse = eval(startingMessage['content'])
+                lastInteractionWithVisualization = None
+                for i in range(initialMessagesCount, 0, -1):
+                    try:
+                        print(i)
+                        print(messages[i]['content'])
+                        lastPlotlyCode = eval(messages[i]['content'])['plotlyCode']
+                        if lastPlotlyCode is not None and lastPlotlyCode != "":
+                            lastInteractionWithVisualization = json.loads(json.dumps(messages[i]))
+                            break
+                    except Exception:
+                        continue
+                
+                if lastInteractionWithVisualization is None:
+                    messages.append({"role":"function","content":"User Prompt Error. No previous visualization data found","name": function_name})
+                    continue
+                parsedPrvresponse = eval(lastInteractionWithVisualization['content'])
 
                 prvPlotlyCode = parsedPrvresponse['plotlyCode']
                 sampleData = parsedPrvresponse['sampleData']
@@ -1227,16 +1240,20 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             else:
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
-            if function_name == "": # code did not call any function
+            if(function_name!="getTaxonomyTree"):
                 result = response["choices"][0]["message"]['content']
                 try:
                     result = eval(result)['responseText']
                 except:
-                    print("")
+                    result = {
+                        "outputType": "text",
+                        "responseText": response["choices"][0]["message"]['content']
+                    }
             break
 
     output = None
     if(function_name=="getTaxonomyTree"):
+        print(result)
         parsedResult = json.loads(result)
 
         taxonomyResponse = openai.ChatCompletion.create(
