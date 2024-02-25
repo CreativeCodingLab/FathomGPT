@@ -240,10 +240,12 @@ def getScientificNamesFromDescription(
             results = results[:LANGCHAIN_SEARCH_CONCEPTS_TOPN]
         results = list(dict.fromkeys(results))
         print(results)
+        if len(results)==1 and results[0]==name:
+            print("Error: "+name+"is already a scientific name")
+            return "Error: "+name+"is already a scientific name. Do not run this function again with the same input"
         return ", ".join(results)
     
-    if len(results)==1 and results[0]==name:
-        return "Error: "+name+"is a Scientific Name"
+
     
     return "anything"
 
@@ -445,7 +447,7 @@ oneShotData = {
             responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
             The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs that you generated above to calculate the similarity search. You will suppose the similarity search is already done and you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt
-            """,
+            """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
             User Prompt: Find me similar images of species that are not Bathochordaeus stygius
             """,
@@ -492,9 +494,8 @@ oneShotData = {
             Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
             Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. 
             If the prompt has specified levels or range, the plotly visualization should show all the levels even when the range or level has no data, it should show empty space.
-            """,
+            """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
-            SQL Server Database Structure: ${DB_STRUCTURE}
             User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
             """,
         "assistant": """
@@ -505,7 +506,6 @@ oneShotData = {
             "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
         }""",
         "user2": f"""
-            SQL Server Database Structure: ${DB_STRUCTURE}
             User Prompt: "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year"
             """,
         "assistant2": """
@@ -575,7 +575,6 @@ def generatesqlServerQuery(
                 plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable, which is a python list. The data value will have the structur of the sampleData generated above. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function. This attribute is optional but must be generated only when the outputType is visualization.
                 """ if needsGpt4 else "")
                 +"""responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
-
 
 
                 SQL Server Database Structure:
@@ -1048,8 +1047,6 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 lastInteractionWithVisualization = None
                 for i in range(initialMessagesCount, 0, -1):
                     try:
-                        print(i)
-                        print(messages[i]['content'])
                         lastPlotlyCode = eval(messages[i]['content'])['plotlyCode']
                         if lastPlotlyCode is not None and lastPlotlyCode != "":
                             lastInteractionWithVisualization = json.loads(json.dumps(messages[i]))
@@ -1243,7 +1240,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             if(function_name!="getTaxonomyTree"):
                 result = response["choices"][0]["message"]['content']
                 try:
-                    result = eval(result)['responseText']
+                    result = result['responseText']
                 except:
                     result = {
                         "outputType": "text",

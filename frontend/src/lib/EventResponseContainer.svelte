@@ -154,6 +154,9 @@
 								eventData.result.species[i].id = eventData.result.species[i].bb2
 							}
 						}
+						if(eventData.result.species.length>0&&eventData.result.species[0].CosineSimilarity!=null){
+							eventData.result.species = eventData.result.species.sort((a:any,b:any)=>b.CosineSimilarity-a.CosineSimilarity)
+						}
 						handleImage(container, eventData.result);
 					}
 					else{
