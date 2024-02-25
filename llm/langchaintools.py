@@ -1243,20 +1243,26 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             else:
                 raise ValueError("No function named '{function_name}' in the global scope")
         else:
-            if(function_name!="getTaxonomyTree"):
-                result = response["choices"][0]["message"]['content']
+            if(function_name!="getTaxonomyTree" and function_name!="getTaxonomicRelatives"):
                 try:
-                    result = result['responseText']
+                    responseContent = response["choices"][0]["message"]['content']
+                    if(eval(responseContent)["outputType"]=="text"):
+                        result = eval(responseContent)
                 except:
-                    result = {
-                        "outputType": "text",
-                        "responseText": response["choices"][0]["message"]['content']
-                    }
+                    try:
+                        result = {
+                            "outputType": "text",
+                            "responseText": response["choices"][0]["message"]['content']
+                        }
+                    except:
+                        result = {
+                            "outputType": "text",
+                            "responseText": response
+                        }
             break
 
     output = None
-    if(function_name=="getTaxonomyTree"):
-        print(result)
+    if(function_name=="getTaxonomyTree" or function_name=="getTaxonomicRelatives"):
         parsedResult = json.loads(result)
 
         taxonomyResponse = openai.ChatCompletion.create(
@@ -1265,19 +1271,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             temperature=0,
         )
         output = {
-            "outputType": "taxonomy",
+            "outputType": "taxonomy" if function_name=="getTaxonomyTree" else "text",
             "responseText": taxonomyResponse["choices"][0]["message"]["content"],
             "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
         }
-    elif(function_name=="getAnswer" or function_name ==""):
-        output = {
-            "outputType": "text",
-            "responseText": result
-        }
-        if isinstance(result, str):#preventing errors below
-            result = {
-                "responseText": result
-            }
     else:
         output = {
             "outputType": result["outputType"] if "outputType" in result else "",
