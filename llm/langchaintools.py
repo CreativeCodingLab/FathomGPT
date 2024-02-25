@@ -40,6 +40,7 @@ import base64
 from PIL import Image
 import io
 import torch
+from concurrent.futures import ThreadPoolExecutor
 
 import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
@@ -491,9 +492,10 @@ oneShotData = {
             sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. The output from this sql query must match the structure of sampleData above
             responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
         
-            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
-            Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. 
-            If the prompt has specified levels or range, the plotly visualization should show all the levels even when the range or level has no data, it should show empty space.
+            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks (") are properly escaped with a backslash (\\").Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            While generating the sql server query make sure the output when running the sql query, the output data format matches the sample format. Make sure the variable names match
+            Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. A valid JSON must be generated.
+
             """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
             User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
@@ -614,8 +616,8 @@ def generatesqlServerQuery(
     if result.endswith('```'):
         result = result[:-3]
     result = fixTabsAndNewlines(result)
+    print(result)
     result = json.loads(result)
-    print(messages)
     result['outputType'] = outputType
 
     return result
@@ -1061,8 +1063,17 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                 prvPlotlyCode = parsedPrvresponse['plotlyCode']
                 sampleData = parsedPrvresponse['sampleData']
-                result = function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
-                isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt,isEventStream=isEventStream)
+
+                def first_task():
+                    return function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
+
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    future_result = executor.submit(first_task)
+                    
+                    isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt, isEventStream=isEventStream)
+
+                    result = future_result.result()
+
                 if errorRunningSQL:
                     event_data = {
                             "result": {
