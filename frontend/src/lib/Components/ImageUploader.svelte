@@ -99,11 +99,19 @@
 		document.body.style.overflow = 'auto';
 		isOpen = false;
 	}
+
+	function bgClicked(event: MouseEvent): void {
+		if(event.target === backgroundRef) {
+			closeModal();
+		}
+	}
+
+	let backgroundRef: Element;
 </script>
 
 <main>
 	<div class="imageDetailsOuterContainer" class:active={isOpen}>
-		<div class="imageDetailsContainerWrapper">
+		<div class="imageDetailsContainerWrapper" on:click={bgClicked} bind:this={backgroundRef}>
 			<div class="imageDetailsContainer">
 				<div class="header">
 					<h1>Upload Image</h1>

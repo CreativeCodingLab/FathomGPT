@@ -167,13 +167,12 @@ def modifyExistingVisualization(prompt: str, plotlyCode: str, sampleData:str):
                        "responseText": ""
                        }
 
-            In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
             The response text is a message to user saying that you made the modification. 
             Output only the json nothing else
             """},{"role":"user", "content": "code: \n" + code + "\", \"\ninstruction\":\"" + prompt+ "\"}"}],
         )
     
-
     result = summerizerResponse["choices"][0]["message"]["content"]
     result = result.strip()
     first_brace_position = result.find('{')
@@ -181,6 +180,7 @@ def modifyExistingVisualization(prompt: str, plotlyCode: str, sampleData:str):
         result = result[first_brace_position:]
     if result.endswith('```'):
         result = result[:-3]
+    
     return json.loads(result)
 
     
@@ -242,6 +242,9 @@ def getScientificNamesFromDescription(
         print(results)
         return ", ".join(results)
     
+    if len(results)==1 and results[0]==name:
+        return "Error: "+name+"is a Scientific Name"
+    
     return "anything"
 
 
@@ -253,7 +256,7 @@ def getAnswer(
 
     response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-0613",
-            messages=[{"role":"system","content":"answer the user's question"},{"role":"user","content":question}],
+            messages=[{"role":"system","content":"You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. Answer the user's question using your own knowledge"},{"role":"user","content":question}],
             temperature=0,
         )
     return response["choices"][0]["message"]["content"]
@@ -261,31 +264,64 @@ def getAnswer(
 
 # ==== SQL database query ====
 
-def GetSQLResult(query: str, isVisualization: bool = False):
+def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, prompt = "", fullGeneratedSQLJSON=None, isEventStream=False):
     isSpeciesData = False
     output = ""
-    try:
-        connection = pymssql.connect(
-            server=KEYS['SQL_server'],
-            user=KEYS['Db_user'],
-            password=KEYS['Db_pwd'],
-            database=KEYS['Db']
-        )
 
-        cursor = connection.cursor()
-        print(query)
+    errorRunningSQL = False
+    sqlGenerationTries = 3
+    while(sqlGenerationTries>=0):
+        if sqlGenerationTries==0:
+            output="Error generating the sql for the prompt"
+            errorRunningSQL = True
+            break
+        try:
+            connection = pymssql.connect(
+                server=KEYS['SQL_server'],
+                user=KEYS['Db_user'],
+                password=KEYS['Db_pwd'],
+                database=KEYS['Db']
+            )
 
-        cursor.execute(query)
+            cursor = connection.cursor()
 
-        rows = cursor.fetchall()
+            if imageData != "":
+                cursor.execute(addImageSearchQuery([imageData], fullGeneratedSQLJSON))
+            else:
+                cursor.execute(query)
 
-        if isVisualization:
-            results_dict = {header[0]: [] for header in cursor.description}
+            rows = cursor.fetchall()
+            errorRunningSQL = False
+
+            if isVisualization:
+                results_dict = {header[0]: [] for header in cursor.description}
+
+                if rows:
+                    for row in rows:
+                        for idx, value in enumerate(row):
+                            column_header = cursor.description[idx][0]
+                            if isinstance(value, bytes) and len(value) == 8:
+                                try:
+                                    # Assuming the binary format is specific to SQL Server's datetime
+                                    timestamp = struct.unpack('Q', value)[0]
+                                    value = datetime.datetime.fromtimestamp(timestamp / 1000)  # Convert to seconds
+                                except struct.error:
+                                    # Handle or log error if unpacking fails
+                                    print("Could not unpack bytes to a timestamp.")
+                            elif isinstance(value, bytes):
+                                # Fallback to decode bytes to string for other byte objects
+                                value = value.decode('utf-8', errors='ignore')
+                            results_dict[column_header].append(value)
+                else:
+                    print("No rows found for this query.")
+                return (False, results_dict, False)
 
             if rows:
+                columns = [column[0] for column in cursor.description]
+                output = []
                 for row in rows:
+                    row_data = {}
                     for idx, value in enumerate(row):
-                        column_header = cursor.description[idx][0]
                         if isinstance(value, bytes) and len(value) == 8:
                             try:
                                 # Assuming the binary format is specific to SQL Server's datetime
@@ -297,59 +333,76 @@ def GetSQLResult(query: str, isVisualization: bool = False):
                         elif isinstance(value, bytes):
                             # Fallback to decode bytes to string for other byte objects
                             value = value.decode('utf-8', errors='ignore')
-                        results_dict[column_header].append(value)
+                        elif isinstance(value, Decimal):
+                            # Convert Decimal to float for numerical processing
+                            value = float(value)
+                        row_data[columns[idx]] = value
+                    output.append(row_data)
+                isSpeciesData = True
             else:
                 print("No rows found for this query.")
-            return (False, results_dict)
+                output = None
+            break
+        except pymssql.OperationalError as e:
+            print("Database connection issues", e)
+            if e.args[0]==229:
+                output = "I don't have enough sufficient permission to execute your prompt."
+            else:
+                output = "Error connecting to the database"
+            errorRunningSQL = True
+            break
+        except pymssql.ProgrammingError as e:
+            sqlGenerationTries-=1
+            if isEventStream:
+                event_data = {
+                    "message": "Error with the generated code. Fixing it. Try "+str(3-sqlGenerationTries)
+                }
+                sse_data = f"data: {json.dumps(event_data)}\n\n"
+                yield sse_data
+            if imageData == "":
+                query = fixGeneratedSQL(prompt, query, str(e))
+            else:
+                fullGeneratedSQLJSON['sqlServerQuery'] = fixGeneratedSQLForImageSearch(fullGeneratedSQLJSON['sqlServerQuery'], query, str(e))
+                print(fullGeneratedSQLJSON['sqlServerQuery'])
+        except Exception as e:
+            print("Error processing sql server response", e)
+            output = "Error while retreiving or running the sql server query"
+            errorRunningSQL = True
+            break
 
-        if rows:
-            columns = [column[0] for column in cursor.description]
-            output = []
-            for row in rows:
-                row_data = {}
-                for idx, value in enumerate(row):
-                    if isinstance(value, bytes) and len(value) == 8:
-                        try:
-                            # Assuming the binary format is specific to SQL Server's datetime
-                            timestamp = struct.unpack('Q', value)[0]
-                            value = datetime.datetime.fromtimestamp(timestamp / 1000)  # Convert to seconds
-                        except struct.error:
-                            # Handle or log error if unpacking fails
-                            print("Could not unpack bytes to a timestamp.")
-                    elif isinstance(value, bytes):
-                        # Fallback to decode bytes to string for other byte objects
-                        value = value.decode('utf-8', errors='ignore')
-                    elif isinstance(value, Decimal):
-                        # Convert Decimal to float for numerical processing
-                        value = float(value)
-                    row_data[columns[idx]] = value
-                output.append(row_data)
-            isSpeciesData = True
-        else:
-            print("No rows found for this query.")
-            output = None
-    except Exception as e:
-        print("Error processing sql server response", e)
-        output = "Error"
+    return (isSpeciesData, output, errorRunningSQL)
 
-    return (isSpeciesData, output)
+def tryFixGeneratedCode(prompt, code, error):
+    completion = openai.ChatCompletion.create(
+            model="gpt-4-turbo-preview",
+            temperature=0,
+            messages=[{"role": "system","content":"""
+            An AI agent has generated a plotly code to show an output based on the user prompt. But the code has an error. Fix the plotly code error. The user provides the prompt, plotly code with error and the detaul of the error that has occurred. Generate only the plotly code nothing else donot output anything. The plotly code must have the necessary import and the drawVisualization function that takes in python list data and outputs plotly fig object.
+            Output the full python code.
+            In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            """},{"role":"user", "content": "user prompt: " + prompt+ "\n\nplotly code: \n" + code + "\n\nerror: "+error}],
+        )
+    
+    result = completion.choices[0].message.content.strip()
+    if result.startswith('```python'):
+        result=result.replace('```python','')
+    if result.endswith('```'):
+        result = result[:-3]
+    result = fixTabsAndNewlines(result)
+    return result
 
 oneShotData = {
     "images": {
-        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs. Important: You must include the id and concept of boding boxes on the response",
+        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs. Important: You must include the id and concept of boding boxes on the response. There must be an output json.",
         "user": """
-            User Prompt: "Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides"
-            Output type: images
-            InputImageDataAvailable: False""",
+            User Prompt: "Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides""",
         "assistant": """
         {
             "sqlServerQuery": "SELECT TOP 10     i.url AS url,     b.concept AS concept,     b.id as id,     b.image_id as image_id FROM      dbo.bounding_boxes AS b JOIN      dbo.images AS i ON b.image_id = i.id WHERE      b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')",
             "responseText": "Few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides are shown below."
         }""",
         "user2": """
-            User Prompt: "Find me images of Aurelia aurita that looks good"
-            Output type: images
-            InputImageDataAvailable: False""",
+            User Prompt: "Find me images of Aurelia aurita that looks good""",
         "assistant2": """
         {
             "sqlServerQuery": "SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC",
@@ -357,19 +410,17 @@ oneShotData = {
         }""",
     },
     "text": {
-        "instructions": "Make sure the response text is a templated string so that data can be formatted inside the text",
+        "instructions": "Make sure the response text is a templated string so that data can be formatted inside the text. There must be an output json.",
         "user": f"""
             User Prompt: ""How many images of Pycnopodia helianthoides are in the database"
-            Output type: text
-            InputImageDataAvailable: False""",
+            Output type: text""",
         "assistant": """{
                 "sqlServerQuery": "SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'",
                 "responseText": "There are {TotalImages} images of Pycnopodia helianthoides in the database."
             }""",
         "user2": f"""
             User Prompt: ""In what pressure level is the species with bounding box id 2258729 living at"
-            Output type: text
-            InputImageDataAvailable: False""",
+            Output type: text""",
         "assistant2": """{
                 "sqlServerQuery": "SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;",
                 "responseText": "The species with bounding box id 2258729 us {concept}. It is living at pressure {pressure_dbar} dbar."
@@ -438,8 +489,9 @@ oneShotData = {
             sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. The output from this sql query must match the structure of sampleData above
             responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
         
-            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash ().Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
             Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. 
+            If the prompt has specified levels or range, the plotly visualization should show all the levels even when the range or level has no data, it should show empty space.
             """,
         "user": f"""
             SQL Server Database Structure: ${DB_STRUCTURE}
@@ -448,7 +500,7 @@ oneShotData = {
         "assistant": """
         {
             "sampleData": "{'concept':['dolphin', 'shark'], 'depth_meters':[10, 20]}",
-            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n\treturn fig",
+            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n	return fig",
             "sqlServerQuery": "SELECT b.concept, i.depth_meters FROM dbo.bounding_boxes b JOIN dbo.images i ON b.image_id = i.id  INNER JOIN marine_regions MR ON i.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND i.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE i.depth_meters IS NOT NULL AND MR.name='Monterey Bay';",
             "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
         }""",
@@ -459,21 +511,17 @@ oneShotData = {
         "assistant2": """
         {
             "sampleData": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
-            "plotlyCode": "import plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n\tfig = go.Figure()\n\tfor year in sorted(set(data['ObservationYear'])):\n\t\tfig.add_trace(\n\t\t\tgo.Scattergeo(\n\t\t\t\tlon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\tlat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],\n\t\t\t\ttext=[f\"{data['concept'][i]} ({year})\" for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],\n\t\t\t\tmode='markers',\n\t\t\t\tmarker=dict(\n\t\t\t\t\tsize=8,\n\t\t\t\t\tsymbol='circle',\n\t\t\t\t\tline=dict(width=1, color='rgba(102, 102, 102)')\n\t\t\t\t),\n\t\t\t\tname=f\"Year {year}\",\n\t\t\t\tvisible=(year == min(data['ObservationYear'])) \n\t\t\t)\n\t\t)\n\tsteps = []\n\tfor i, year in enumerate(sorted(set(data['ObservationYear']))):\n\t\tstep = dict(\n\t\t\tmethod='update',\n\t\t\targs=[{'visible': [False] * len(fig.data)},\n\t\t\t\t{'title': f\"Observations for Year: {year}\"}], \n\t\t)\n\t\tstep['args'][0]['visible'][i] = True   i'th trace to \"visible\"\n\t\tsteps.append(step)\n\tsliders = [dict(\n\t\tactive=10,\n\t\tcurrentvalue={\"prefix\": \"Year: \"},\n\t\tpad={\"t\": 50},\n\t\tsteps=steps\n\t)]\n\tfig.update_layout(\n\t\tsliders=sliders,\n\t\ttitle='Time-lapse Visualization of Species Observations',\n\t\tgeo=dict(\n\t\t\tscope='world',\n\t\t\tprojection_type='equirectangular',\n\t\t\tshowland=True,\n\t\t\tlandcolor='rgb(243, 243, 243)',\n\t\t\tcountrycolor='rgb(204, 204, 204)',\n\t\t),\n\t)\n\treturn fig",
+            "plotlyCode": "import plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n	fig = go.Figure()\n	for year in sorted(set(data['ObservationYear'])):\n		fig.add_trace(\n			go.Scattergeo(\n				lon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],\n				lat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],\n				text=[f\"{data['concept'][i]} ({year})\" for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],\n				mode='markers',\n				marker=dict(\n					size=8,\n					symbol='circle',\n					line=dict(width=1, color='rgba(102, 102, 102)')\n				),\n				name=f\"Year {year}\",\n				visible=(year == min(data['ObservationYear'])) \n			)\n		)\n	steps = []\n	for i, year in enumerate(sorted(set(data['ObservationYear']))):\n		step = dict(\n			method='update',\n			args=[{'visible': [False] * len(fig.data)},\n				{'title': f\"Observations for Year: {year}\"}], \n		)\n		step['args'][0]['visible'][i] = True   i'th trace to \"visible\"\n		steps.append(step)\n	sliders = [dict(\n		active=10,\n		currentvalue={\"prefix\": \"Year: \"},\n		pad={\"t\": 50},\n		steps=steps\n	)]\n	fig.update_layout(\n		sliders=sliders,\n		title='Time-lapse Visualization of Species Observations',\n		geo=dict(\n			scope='world',\n			projection_type='equirectangular',\n			showland=True,\n			landcolor='rgb(243, 243, 243)',\n			countrycolor='rgb(204, 204, 204)',\n		),\n	)\n	return fig",
             "sqlServerQuery": "SELECT      bb.concept,     i.latitude,      i.longitude,      YEAR(i.timestamp) AS ObservationYear FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      i.latitude IS NOT NULL AND      i.longitude IS NOT NULL AND     i.timestamp IS NOT NULL ORDER BY      i.timestamp;",
             "responseText": "Below is an Interactive Time-lapse Map of Marine Species Observations Grouped by Year."
         }""",
     },
     "table": {
-        "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result.",
+        "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result. There must be an output json.",
         "user": f"""
-            User Prompt: "List the species that are found in image with id 2256720"
-            Output type: table
-            InputImageDataAvailable: False""",
+            User Prompt: "List the species that are found in image with id 2256720""",
         "user2": f"""
-            User Prompt: "What species are frequently found at 1000m depth?"
-            Output type: table
-            InputImageDataAvailable: False""",
+            User Prompt: "What species are frequently found at 1000m depth?""",
         "assistant": """
         {
             "sqlServerQuery": "SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;",
@@ -499,12 +547,10 @@ def generatesqlServerQuery(
     if inputImageDataAvailable and not isNameAvaliable(name):
         prompt = prompt.replace(name, '')
     else:
-        if len(name) > 1:
+        if isinstance(name, str) and len(name) > 1:
             prompt = prompt.replace(name, scientificNames)
-        elif len(scientificNames) > 1:
+        elif isinstance(scientificNames, str) and len(scientificNames) > 1:
             prompt = prompt.rstrip(".")+" with names: "+scientificNames
-
-    print("------------------------prompt passed "+ prompt)
 
     needsGpt4 = outputType == "visualization"
 
@@ -513,10 +559,10 @@ def generatesqlServerQuery(
                 The JSON format and the attributes on the JSON are provided below
                 {
                     "sqlServerQuery": "",
-                 """+ """
+                 """+ ("""
                     "sampleData": "",
                     "plotlyCode": "",
-                    """ if needsGpt4 else ""
+                    """ if needsGpt4 else "")
                     +
                 """
                     "responseText": ""
@@ -569,8 +615,8 @@ def generatesqlServerQuery(
     if result.endswith('```'):
         result = result[:-3]
     result = fixTabsAndNewlines(result)
-    print("result",result)
     result = json.loads(result)
+    print(messages)
     result['outputType'] = outputType
 
     return result
@@ -731,9 +777,65 @@ def initLangchain(messages=[]):
         agent=agent, tools=tools, verbose=True, memory=memory
     )
 
+def fixGeneratedSQL(prompt, sql, error):
+    response = openai.ChatCompletion.create(
+        model="gpt-4-0125-preview",
+        messages=[
+            {"role": "system","content":f"""
+                You are a text to sql generator. A sql query has been generated for a given prompt. Unforunately, user got an error while running the sql query. Your task is to fix the error in the sql query. User will provide the prompt, the sql query that has error and the error detail.
+                You need to generate only the sql query nothing else. Donot generate any comments in the sql query. Only sql query needs to be generated.
+             
+                The SQL Server is a Microsoft SQL Server with the following database structure:
+                {DB_STRUCTURE}
+
+                Only output the fixed sql query nothing else.
+             """},
+            {"role":"user", "content": "user prompt: " + prompt+ "\n\nsql server query: " + sql + "\n\nerror: "+error}
+        ],
+        functions=availableFunctions,
+        function_call="auto",
+        temperature=0,
+    )
+
+    result = response.choices[0].message.content.strip()
+    if result.startswith('```sql'):
+        result=result.replace('```sql','')
+    if result.endswith('```'):
+        result = result[:-3]
+
+    return result
+
+def fixGeneratedSQLForImageSearch(prompt, sql, error):
+    response = openai.ChatCompletion.create(
+        model="gpt-4-0125-preview",
+        messages=[
+            {"role": "system","content":f"""
+                You are a very intelligent text to sql generator.
+                The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs and does the similarity search. Thus, now you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt
+                
+                The SQL Server is a Microsoft SQL Server with the following database structure:
+                {DB_STRUCTURE}
+             
+                Only output the fixed sql query nothing else.
+             """},
+            {"role":"user", "content": "user prompt: " + prompt+ "\n\nsql server query: " + sql + "\n\nerror: "+error}
+        ],
+        functions=availableFunctions,
+        function_call="auto",
+        temperature=0,
+    )
+
+    result = response.choices[0].message.content.strip()
+    if result.startswith('```sql'):
+        result=result.replace('```sql','')
+    if result.endswith('```'):
+        result = result[:-3]
+
+    return result
+
 availableFunctions = [{
     "name": "getScientificNamesFromDescription",
-    "description": "Function to get all scientific names that fits a common name or appearance. If there are no matches, return anything. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature",
+    "description": "Function to get all scientific names that fits a common name or appearance. If there are no matches, return anything. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature. If the input name is already a scientific name, the function will return the same name, donot run the same function with the same input more than once.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -858,14 +960,24 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
     start_time = time.time()
     startingMessage = None
+    messages.insert(0,{"role":"system", "content":"""You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. 
+                       You have the ability to do visulizations like generating area chart showing the year the images were taken, generating heatmap of species in Monterey Bay, etc.
+                       You have the ability to find marine species that live below 1000 meters, find the total count of marine species in Monterey Bay, etc.
+
+                       Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The 'getScientificNamesFromDescription' function will output the same input name when the input name is already a scientific name. Donot re-run the function with the same input. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. 
+                       If you are not running any function, just output the text, dont format it like the other content
+                       """})
     if len(messages)!=0:
         startingMessage = json.loads(json.dumps(messages[len(messages)-1]))
-    messages.append({"role":"user","content":"Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. \n"+("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
+
+    messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
     isSpeciesData = False
     result = None
+    function_name=""
     curLoopCount = 0
     allResultsCsv = []
     allResults = {}
+
     if SAVE_INTERMEDIATE_RESULTS:
         with open('data/intermediate_results.json') as f:
             allResultsCsv = json.load(f)
@@ -899,7 +1011,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
     while curLoopCount < 4:
         curLoopCount+=1
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
+            model="gpt-3.5-turbo-0125",
             messages=messages,
             functions=availableFunctions,
             function_call="auto",
@@ -939,11 +1051,45 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                 prvPlotlyCode = parsedPrvresponse['plotlyCode']
                 sampleData = parsedPrvresponse['sampleData']
-                result = function_to_call(**args, plotlyCode=prvPlotlyCode, sampleData=sampleData)
-                isSpeciesData, sqlResult = GetSQLResult(parsedPrvresponse['sqlServerQuery'], True)
-                exec(result["plotlyCode"], globals())
-                    
-                fig = drawVisualization(sqlResult)
+                result = function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
+                isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt,isEventStream=isEventStream)
+                if errorRunningSQL:
+                    event_data = {
+                            "result": {
+                                "outputType": "error",
+                                "responseText": sqlResult
+                            }
+                        }
+                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                    yield sse_data
+                    return None
+                
+                codeGenerationTries = 3
+                fig=None
+                while(codeGenerationTries > 0):
+                    try:
+                        exec(result["plotlyCode"], globals())
+                        fig = drawVisualization(sqlResult)
+                        codeGenerationTries = 0
+                    except Exception as e:
+                        codeGenerationTries-=1
+                        if(codeGenerationTries==0):
+                            event_data = {
+                                    "result": {
+                                        "outputType": "error",
+                                        "responseText": "Error running the generated code"
+                                    }
+                                }
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                            return None
+                        event_data = {
+                                "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+                            }
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
+                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
+
                 html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
                 output = {}
                 output["outputType"] = parsedPrvresponse['outputType']
@@ -984,9 +1130,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 if(function_name=="generatesqlServerQuery"):
                     if 'sqlQuery' in result:
                         result['sqlServerQuery'] = result['sqlQuery']
-                    if len(eval_image_feature_string) != 0:
-                        result['sqlServerQuery'] = addImageSearchQuery([eval_image_feature_string], result)
-                        
+
                     sql = result['sqlServerQuery']
                     limit = -1
                     if sql.strip().startswith('SELECT '):
@@ -997,12 +1141,12 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                    isSpeciesData, sqlResult = GetSQLResult(sql, result["outputType"]=="visualization")
-                    if sqlResult == "Error":
+                    isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+                    if errorRunningSQL:
                         event_data = {
                                 "result": {
                                     "outputType": "error",
-                                    "responseText": "Error running the generated sql query"
+                                    "responseText": sqlResult
                                 }
                             }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
@@ -1023,9 +1167,33 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     print('isSpeciesData: '+str(isSpeciesData))
 
                     if(result["outputType"]=="visualization"):
-                        exec(result["plotlyCode"], globals())
-                    
-                        fig = drawVisualization(sqlResult)
+                        codeGenerationTries = 3
+                        fig=None
+                        while(codeGenerationTries > 0):
+                            try:
+                                exec(result["plotlyCode"], globals())
+                                fig = drawVisualization(sqlResult)
+                                codeGenerationTries = 0
+                            except Exception as e:
+                                print(e)
+                                codeGenerationTries-=1
+                                if(codeGenerationTries==0):
+                                    event_data = {
+                                            "result": {
+                                                "outputType": "error",
+                                                "responseText": "Error running the generated code"
+                                            }
+                                        }
+                                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                                    yield sse_data
+                                    return None
+                                event_data = {
+                                        "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+                                    }
+                                sse_data = f"data: {json.dumps(event_data)}\n\n"
+                                yield sse_data
+                                result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
+
                         html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
                         result["html"]=html_output
 
@@ -1061,6 +1229,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         else:
             if function_name == "": # code did not call any function
                 result = response["choices"][0]["message"]['content']
+                try:
+                    result = eval(result)['responseText']
+                except:
+                    print("")
             break
 
     output = None
@@ -1082,9 +1254,13 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             "outputType": "text",
             "responseText": result
         }
+        if isinstance(result, str):#preventing errors below
+            result = {
+                "responseText": result
+            }
     else:
         output = {
-            "outputType": result["outputType"],
+            "outputType": result["outputType"] if "outputType" in result else "",
             "responseText": result["responseText"] if "responseText" in result else "",
             "species": result["species"] if "species" in result else "",
             "html": result["html"] if "html" in result else "",
@@ -1179,9 +1355,12 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
         output['html']=""
-        output['sqlServerQuery']=result["sqlServerQuery"]
-        output['plotlyCode']=result["plotlyCode"]
-        output['sampleData']=result["sampleData"]
+        if "species" in output:
+            output['result']=output['species']
+        output['species']=""
+        output['sqlServerQuery']=result["sqlServerQuery"] if "sqlServerQuery" in result else ""
+        output['plotlyCode']=result["plotlyCode"] if "plotlyCode" in result else ""
+        output['sampleData']=result["sampleData"] if "sampleData" in result else ""
         Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
 
     end_time = time.time()
