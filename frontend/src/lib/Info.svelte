@@ -16,7 +16,7 @@
         "Find me best images of ray-finned creatures in Monterey bay and depth less than 5k meters",
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
-        //"What color are moon jellyfsh",
+        "What color are moon jellyfsh",
         "How large are moon jellyfish",
         "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year",
         "Generate an area chart showing the year the images were taken",
