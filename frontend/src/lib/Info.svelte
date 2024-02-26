@@ -27,7 +27,7 @@
         "Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1",
         "Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides colored coded for each species from 0°C to 20 in 5°C increments.",
         "Generate a box plot for the showing the oxygen level at which Aurelia Aurita live",
-        "Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in below 2, 2 to 10, 10 to 100, 100 to 1000, above 1000 pressure levels",
+        //"Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in below 2, 2 to 10, 10 to 100, 100 to 1000, above 1000 pressure levels",
         "Find me any 3 species of starfish and get me their total image count in the database",
     ]
 
