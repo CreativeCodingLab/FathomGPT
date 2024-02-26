@@ -482,12 +482,11 @@ oneShotData = {
                 {
                     
                     "sampleData": "",
-                    "plotlyCode": "",
                     "sqlServerQuery": "",
                     "responseText": ""
                 }
 
-            Donot do any processing the sqlServerQuery, it will later be done by user using plotly python library. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
+            Donot do any data processing in the sqlServerQuery, it will later be done by user using plotly python library. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
 
             sampleData: This is the sample data that you think is needed for the visualization. Sample data must not have attributes other than any column in the sql server database tables
             sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. The output from this sql query must match the structure of sampleData above
@@ -495,7 +494,7 @@ oneShotData = {
         
             Guarantee that the produced SQL query is free of syntax errors and does not contain any comments.
             While generating the sql server query make sure the output when running the sql query, the output data format matches the sample format. Make sure the variable names match
-            Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. A valid JSON must be generated.
+            Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. There must be a valid sqlServerQuery in the output JSON.
             Make sure the sql query outputs data in format specified by the sample data, make sure the variable names match.
             """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
@@ -536,53 +535,24 @@ def drawVisualization(data):
             "responseText": "Below is an Interactive Time-lapse Map of Marine Species Observations Grouped by Year."
         }""",
         "sampleData2": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
-        "plotlyCode2": """import plotly.graph_objs as go
-from plotly.subplots import make_subplots
+        "plotlyCode2": """import plotly.express as px
+import pandas as pd
+
 def drawVisualization(data):
-	fig = go.Figure()
-	for year in sorted(set(data['ObservationYear'])):
-		fig.add_trace(
-			go.Scattergeo(
-				lon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],
-				lat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],
-				text=[f"{data['concept'][i]} ({year}) for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],
-				mode='markers',
-				marker=dict(
-					size=8,
-					symbol='circle',
-					line=dict(width=1, color='rgba(102, 102, 102)')
-				),
-				name=f"Year {year}",
-				visible=(year == min(data['ObservationYear'])) 
-			)
-		)
-	steps = []
-	for i, year in enumerate(sorted(set(data['ObservationYear']))):
-		step = dict(
-			method='update',
-			args=[{'visible': [False] * len(fig.data)},
-				{'title': f"Observations for Year: {year}"}], 
-		)
-		step['args'][0]['visible'][i] = True   i'th trace to "visible"
-		steps.append(step)
-	sliders = [dict(
-		active=10,
-		currentvalue={"prefix": "Year: "},
-		pad={"t": 50},
-		steps=steps
-	)]
-	fig.update_layout(
-		sliders=sliders,
-		title='Time-lapse Visualization of Species Observations',
-		geo=dict(
-			scope='world',
-			projection_type='equirectangular',
-			showland=True,
-			landcolor='rgb(243, 243, 243)',
-			countrycolor='rgb(204, 204, 204)',
-		),
-	)
-	return fig""",
+    df = pd.DataFrame(data)
+
+    fig = px.scatter_geo(df,
+                         lat='latitude',
+                         lon='longitude',
+                         color='concept',
+                         animation_frame='ObservationYear',
+                         title='Interactive Time-lapse Map of Marine Species Observations Grouped by Year',
+                         size_max=15,
+                         projection="natural earth")
+
+    fig.update_layout(geo=dict(showland=True, landcolor="rgb(217, 217, 217)"))
+
+    return fig""",
     },
     "table": {
         "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result. There must be an output json.",
@@ -611,6 +581,8 @@ def generatesqlServerQuery(
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
+
+    print("prompt sent to generatesqlServerQuery ",prompt)
 
     if inputImageDataAvailable and not isNameAvaliable(name):
         prompt = prompt.replace(name, '')
@@ -681,6 +653,7 @@ def generatesqlServerQuery(
         result = result[:-3]
     result = fixTabsAndNewlines(result)
     result = json.loads(result)
+    print(result)
     result['outputType'] = outputType
     return result
 
@@ -1233,12 +1206,15 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     if 'sqlQuery' in result:
                         result['sqlServerQuery'] = result['sqlQuery']
 
+                    if "sqlServerQuery" not in result or result['sqlServerQuery'] == "":
+                        continue
+
                     def gen_plotly_task(vizprompt, sampleData):
                         vizmessages = [{"role": "system","content":"""
                             Your task is to generate plotly code based on the user's prompt. The plotly code should define the necessary import and have drawVisualization function defined that takes in data variable and outputs plotly visualization object.
                             The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
                             The plotly visualization should be able to take the data defined like the sample data and should not bug out for input same as sample data.
-                            Important: The plotly code should not use any other attriubte from the input data variable that are not in the sample data. Make sure the variables name match. Donot use any variables that are not in the sample data.
+                            Important: The plotly code will be run with exact input as that of the sample data, so do not use any properties other than those defined in the sample data.
                             Do not write any comments in the code.
                             """}]
 
@@ -1278,6 +1254,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
                         
                             result["plotlyCode"] = future_result.result()
+                            print(result["plotlyCode"])
 
                     else:
                         isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
