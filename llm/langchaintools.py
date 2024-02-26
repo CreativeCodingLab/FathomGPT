@@ -242,8 +242,8 @@ def getScientificNamesFromDescription(
         results = list(dict.fromkeys(results))
         print(results)
         if len(results)==1 and results[0]==name:
-            print("Error: "+name+"is already a scientific name")
-            return "Error: "+name+"is already a scientific name. Do not run this function again with the same input"
+            print("Error: "+name+" is already a scientific name")
+            return "Error: "+name+" is already a scientific name. Do not run this function again with the same input"
         return ", ".join(results)
     
 
@@ -317,6 +317,7 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
                             results_dict[column_header].append(value)
                 else:
                     print("No rows found for this query.")
+                    results_dict = None
                 return (False, results_dict, False)
 
             if rows:
@@ -474,7 +475,8 @@ oneShotData = {
     },
     "visualization": {
         "instructions": """
-            You are a very intelligent json generated that can generate highly efficient sql queries and plotly python code. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+            You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+            You are the doing the first part of the visualization work. Once you generate the sql query, the user will generate plotly code to visualzie the data.
                 The Generated SQL must be valid
                 The JSON format and the attributes on the JSON are provided below
                 {
@@ -485,17 +487,16 @@ oneShotData = {
                     "responseText": ""
                 }
 
-            Do all the data processing in the plotly code not on the sqlServerQuery. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
+            Donot do any processing the sqlServerQuery, it will later be done by user using plotly python library. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
 
-            sampleData: This is the sample data that you think is needed for the plotly code. Sample data must not have attributes other than any column in the sql server database tables
-            plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function.
+            sampleData: This is the sample data that you think is needed for the visualization. Sample data must not have attributes other than any column in the sql server database tables
             sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. The output from this sql query must match the structure of sampleData above
             responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
         
-            Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks (") are properly escaped with a backslash (\\").Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+            Guarantee that the produced SQL query is free of syntax errors and does not contain any comments.
             While generating the sql server query make sure the output when running the sql query, the output data format matches the sample format. Make sure the variable names match
             Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. A valid JSON must be generated.
-
+            Make sure the sql query outputs data in format specified by the sample data, make sure the variable names match.
             """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
             User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
@@ -503,20 +504,85 @@ oneShotData = {
         "assistant": """
         {
             "sampleData": "{'concept':['dolphin', 'shark'], 'depth_meters':[10, 20]}",
-            "plotlyCode": "import plotly.express as px\nimport pandas as pd\n\ndef drawVisualization(data):\n    df = pd.DataFrame(data)\n    \n    bins = [0, 200, 400, 600, 800, 1000]\n    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']\n    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)\n    \n    # Aggregate data\n    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')\n    \n    # Plot\n    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')\n    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})\n\n	return fig",
             "sqlServerQuery": "SELECT b.concept, i.depth_meters FROM dbo.bounding_boxes b JOIN dbo.images i ON b.image_id = i.id  INNER JOIN marine_regions MR ON i.latitude BETWEEN MR.min_latitude AND MR.max_latitude     AND i.longitude BETWEEN MR.min_longitude AND MR.max_longitude WHERE i.depth_meters IS NOT NULL AND MR.name='Monterey Bay';",
             "responseText": "Below is a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
         }""",
+        "sampleData": "{'concept':['dolphin', 'shark'], 'depth_meters':[10, 20]}",
+        "plotlyCode": """import plotly.express as px
+import pandas as pd
+
+def drawVisualization(data):
+    df = pd.DataFrame(data)
+    
+    bins = [0, 200, 400, 600, 800, 1000]
+    labels = ['0-200m', '200-400m', '400-600m', '600-800m', '800-1000m']
+    df['Depth Zone'] = pd.cut(df['depth_meters'], bins=bins, labels=labels, right=False)
+    
+    # Aggregate data
+    zone_species_count = df.groupby(['Depth Zone', 'concept']).size().reset_index(name='Count')
+    
+    # Plot
+    fig = px.bar(zone_species_count, x='Depth Zone', y='Count', color='concept', title='Species Distribution by Depth Zone in Monterey Bay')
+    fig.update_layout(barmode='stack', xaxis={'categoryorder':'total descending'})
+
+	return fig""",
         "user2": f"""
             User Prompt: "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year"
             """,
         "assistant2": """
         {
             "sampleData": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
-            "plotlyCode": "import plotly.graph_objs as go\nfrom plotly.subplots import make_subplots\ndef drawVisualization(data):\n	fig = go.Figure()\n	for year in sorted(set(data['ObservationYear'])):\n		fig.add_trace(\n			go.Scattergeo(\n				lon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],\n				lat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],\n				text=[f\"{data['concept'][i]} ({year})\" for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],\n				mode='markers',\n				marker=dict(\n					size=8,\n					symbol='circle',\n					line=dict(width=1, color='rgba(102, 102, 102)')\n				),\n				name=f\"Year {year}\",\n				visible=(year == min(data['ObservationYear'])) \n			)\n		)\n	steps = []\n	for i, year in enumerate(sorted(set(data['ObservationYear']))):\n		step = dict(\n			method='update',\n			args=[{'visible': [False] * len(fig.data)},\n				{'title': f\"Observations for Year: {year}\"}], \n		)\n		step['args'][0]['visible'][i] = True   i'th trace to \"visible\"\n		steps.append(step)\n	sliders = [dict(\n		active=10,\n		currentvalue={\"prefix\": \"Year: \"},\n		pad={\"t\": 50},\n		steps=steps\n	)]\n	fig.update_layout(\n		sliders=sliders,\n		title='Time-lapse Visualization of Species Observations',\n		geo=dict(\n			scope='world',\n			projection_type='equirectangular',\n			showland=True,\n			landcolor='rgb(243, 243, 243)',\n			countrycolor='rgb(204, 204, 204)',\n		),\n	)\n	return fig",
             "sqlServerQuery": "SELECT      bb.concept,     i.latitude,      i.longitude,      YEAR(i.timestamp) AS ObservationYear FROM      dbo.bounding_boxes bb JOIN dbo.images i ON bb.image_id = i.id WHERE      i.latitude IS NOT NULL AND      i.longitude IS NOT NULL AND     i.timestamp IS NOT NULL ORDER BY      i.timestamp;",
             "responseText": "Below is an Interactive Time-lapse Map of Marine Species Observations Grouped by Year."
         }""",
+        "sampleData2": "{     'concept': ['Species A', 'Species B', 'Species A', 'Species B'],     'latitude': [35.6895, 35.6895, 35.6895, 35.6895],     'longitude': [139.6917, 139.6917, 139.6917, 139.6917],  'ObservationYear': [2020, 2021, 2022, 2023]  }",
+        "plotlyCode2": """import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+def drawVisualization(data):
+	fig = go.Figure()
+	for year in sorted(set(data['ObservationYear'])):
+		fig.add_trace(
+			go.Scattergeo(
+				lon=[data['longitude'][i] for i in range(len(data['longitude'])) if data['ObservationYear'][i] == year],
+				lat=[data['latitude'][i] for i in range(len(data['latitude'])) if data['ObservationYear'][i] == year],
+				text=[f"{data['concept'][i]} ({year}) for i in range(len(data['concept'])) if data['ObservationYear'][i] == year],
+				mode='markers',
+				marker=dict(
+					size=8,
+					symbol='circle',
+					line=dict(width=1, color='rgba(102, 102, 102)')
+				),
+				name=f"Year {year}",
+				visible=(year == min(data['ObservationYear'])) 
+			)
+		)
+	steps = []
+	for i, year in enumerate(sorted(set(data['ObservationYear']))):
+		step = dict(
+			method='update',
+			args=[{'visible': [False] * len(fig.data)},
+				{'title': f"Observations for Year: {year}"}], 
+		)
+		step['args'][0]['visible'][i] = True   i'th trace to "visible"
+		steps.append(step)
+	sliders = [dict(
+		active=10,
+		currentvalue={"prefix": "Year: "},
+		pad={"t": 50},
+		steps=steps
+	)]
+	fig.update_layout(
+		sliders=sliders,
+		title='Time-lapse Visualization of Species Observations',
+		geo=dict(
+			scope='world',
+			projection_type='equirectangular',
+			showland=True,
+			landcolor='rgb(243, 243, 243)',
+			countrycolor='rgb(204, 204, 204)',
+		),
+	)
+	return fig""",
     },
     "table": {
         "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result. There must be an output json.",
@@ -563,7 +629,6 @@ def generatesqlServerQuery(
                     "sqlServerQuery": "",
                  """+ ("""
                     "sampleData": "",
-                    "plotlyCode": "",
                     """ if needsGpt4 else "")
                     +
                 """
@@ -574,7 +639,6 @@ def generatesqlServerQuery(
                 """+
                 ("""
                 sampleData: This is the sample data that you think should be generated when running the sql query. This is optional. It is only needed when the outputType is visualization
-                plotlyCode: This is the python plotly code that you will generate. You will generate a function named "drawVisualization(data)". The function should take in data variable, which is a python list. The data value will have the structur of the sampleData generated above. Donot redfine the sample data here. The code should have the necessary imports and the "drawVisualization" function. This attribute is optional but must be generated only when the outputType is visualization.
                 """ if needsGpt4 else "")
                 +"""responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
@@ -616,10 +680,8 @@ def generatesqlServerQuery(
     if result.endswith('```'):
         result = result[:-3]
     result = fixTabsAndNewlines(result)
-    print(result)
     result = json.loads(result)
     result['outputType'] = outputType
-
     return result
 
 def addImageSearchQuery(imageData, generatedJSON):
@@ -1074,7 +1136,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                Plotly code will be modified later by the user based on the user's prompt, if there are any visual changes like change the x, y axis range, visual attributes, another type of visualization, etc that will be done by the user. In those cases the sample data does not need to be modified.
 
                     Output True if user needs additional data to modify the visualization else Output False
-                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "\prompt:" + args['prompt']}],
+                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "prompt:" + args['prompt']}],
                 )
 
                 if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
@@ -1084,7 +1146,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 def first_task():
                     return function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
 
-                with ThreadPoolExecutor(max_workers=2) as executor:
+                with ThreadPoolExecutor(max_workers=1) as executor:
                     future_result = executor.submit(first_task)
                     
                     isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt, isEventStream=isEventStream)
@@ -1130,7 +1192,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         yield sse_data
                         result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
 
-                html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+                html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
                 output = {}
                 output["outputType"] = parsedPrvresponse['outputType']
                 output["responseText"] = result["responseText"]
@@ -1171,6 +1233,35 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     if 'sqlQuery' in result:
                         result['sqlServerQuery'] = result['sqlQuery']
 
+                    def gen_plotly_task(vizprompt, sampleData):
+                        vizmessages = [{"role": "system","content":"""
+                            Your task is to generate plotly code based on the user's prompt. The plotly code should define the necessary import and have drawVisualization function defined that takes in data variable and outputs plotly visualization object.
+                            The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+                            The plotly visualization should be able to take the data defined like the sample data and should not bug out for input same as sample data.
+                            Important: The plotly code should not use any other attriubte from the input data variable that are not in the sample data. Make sure the variables name match. Donot use any variables that are not in the sample data.
+                            Do not write any comments in the code.
+                            """}]
+
+                        vizmessages.append({"role":"user","content": "prompt:" + oneShotData['visualization']['user']+ "\nsample data:"+oneShotData['visualization']['sampleData']})
+                        vizmessages.append({"role":"user","content": "prompt:" + oneShotData['visualization']['plotlyCode']})
+                        vizmessages.append({"role":"user","content": "prompt:" + oneShotData['visualization']['user2']+ "\nsample data:"+oneShotData['visualization']['sampleData2']})
+                        vizmessages.append({"role":"user","content": "prompt:" + oneShotData['visualization']['plotlyCode2']})
+                        vizmessages.append({"role":"user","content": "prompt:" + vizprompt+ "\nsample data:"+sampleData})
+
+                        plotlyCodeGenerator = openai.ChatCompletion.create(
+                            model="gpt-4-0125-preview",
+                            temperature=0,
+                            messages=vizmessages,
+                        )
+
+                        plotlyCode = plotlyCodeGenerator["choices"][0]["message"]["content"]
+                        plotlyCode = plotlyCode.strip()
+                        if plotlyCode.startswith('```python'):
+                            plotlyCode=plotlyCode.replace('```python','')
+                        if plotlyCode.endswith('```'):
+                            plotlyCode = plotlyCode[:-3]
+                        return plotlyCode
+
                     sql = result['sqlServerQuery']
                     limit = -1
                     if sql.strip().startswith('SELECT '):
@@ -1181,7 +1272,17 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                    isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+                    if(result["outputType"]=="visualization"):
+                        with ThreadPoolExecutor(max_workers=1) as executor:
+                            future_result = executor.submit(gen_plotly_task, args['prompt'], result['sampleData'])
+                            isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+                        
+                            result["plotlyCode"] = future_result.result()
+
+                    else:
+                        isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+
+
                     if errorRunningSQL:
                         event_data = {
                                 "result": {
@@ -1194,9 +1295,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated sql query")
                         return None
                     
-                    if sqlResult is None:
+                    if sqlResult is None or len(sqlResult)==0:
                         messages.append({"role":"function","content":"No results found after running the sql query. If getScientificNamesFromDescription was run earlier, ask user to specify the name of the species or any other description.","name": function_name})
                         continue
+
 
 
                         
@@ -1241,7 +1343,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                 yield sse_data
                                 result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
 
-                        html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+                        #html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+                        html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
                         result["html"]=html_output
 
                     elif(result["outputType"]=="table"):
@@ -1277,8 +1380,12 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             if(function_name!="getTaxonomyTree" and function_name!="getTaxonomicRelatives"):
                 try:
                     responseContent = response["choices"][0]["message"]['content']
+                    print(responseContent)
                     if(eval(responseContent)["outputType"]=="text"):
                         result = eval(responseContent)
+                    else:
+                        messages.append({"role":"user","content":"You need to run the functions available to generate response to user's query."})
+                        continue
                 except:
                     try:
                         result = {
