@@ -495,7 +495,7 @@ oneShotData = {
             Generate sample data and corresponding python Plotly code.Guarantee that the produced SQL query and Plotly code are free of syntax errors and do not contain comments.In the Plotly code, ensure all double quotation marks (") are properly escaped with a backslash (\\").Represent newline characters as \\n and tab characters as \\t within the Plotly code. The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
             While generating the sql server query make sure the output when running the sql query, the output data format matches the sample format. Make sure the variable names match
             Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. A valid JSON must be generated.
-
+            The response from sql server after running the query must be in the format same as sampleData. Make sure the names of the varirable match.
             """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
             User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."
