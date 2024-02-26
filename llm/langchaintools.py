@@ -1068,12 +1068,13 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     model="gpt-4-turbo-preview",
                     temperature=0,
                     messages=[{"role": "system","content":"""
-                    Your task is to evaluate the current situation and output either True or False nothing else. You will be given a plotly code. 
+                    Your task is to evaluate the current situation and come to a conclusion of True or False. You will be given a plotly code. 
                                The plotly code will have a sample data as a comment. This is the current data the system has right now. User is trying to modify the plotly visualization. What user is trying to acheieve is given by the prompt that the user provides.
                                Your task is to evaluate either the user needs additional data or not to perform the modification according to the prompt to the visualization.
+                               Plotly code will be modified later by the user based on the user's prompt, if there are any visual changes like change the x, y axis range, visual attributes, another type of visualization, etc that will be done by the user. In those cases the sample data does not need to be modified.
 
-                    Output True if user needs additional data to modify the visualization else Output False, nothing else
-                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "\prompt:" + prompt}],
+                    Output True if user needs additional data to modify the visualization else Output False
+                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "\prompt:" + args['prompt']}],
                 )
 
                 if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
