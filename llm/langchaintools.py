@@ -376,7 +376,7 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
 
     return (isSpeciesData, output, errorRunningSQL)
 
-def tryFixGeneratedCode(prompt, code, error):
+def tryFixGeneratedCode(prompt, code, sampleData, error):
     completion = openai.ChatCompletion.create(
             model="gpt-4-turbo-preview",
             temperature=0,
@@ -384,7 +384,7 @@ def tryFixGeneratedCode(prompt, code, error):
             An AI agent has generated a plotly code to show an output based on the user prompt. But the code has an error. Fix the plotly code error. The user provides the prompt, plotly code with error and the detaul of the error that has occurred. Generate only the plotly code nothing else donot output anything. The plotly code must have the necessary import and the drawVisualization function that takes in python list data and outputs plotly fig object.
             Output the full python code.
             In the Plotly code, ensure all double quotation marks ("") are properly escaped with a backslash (). The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
-            """},{"role":"user", "content": "user prompt: " + prompt+ "\n\nplotly code: \n" + code + "\n\nerror: "+error}],
+            """},{"role":"user", "content": "user prompt: " + prompt+ "\n\nplotly code: \n" + "#sample data:"+sampleData.replace("\n","")+"\n"+ code + "\n\nerror: "+error}],
         )
     
     result = completion.choices[0].message.content.strip()
@@ -972,6 +972,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         codeGenerationTries = 0
                     except Exception as e:
                         codeGenerationTries-=1
+
                         if(codeGenerationTries==0):
                             event_data = {
                                     "result": {
@@ -988,7 +989,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
+                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(lastError))
 
                 html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
                 output = {}
@@ -1129,6 +1130,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             except Exception as e:
                                 print("Error ",str(e))
                                 codeGenerationTries-=1
+                                if codeGenerationTries !=1:
+                                    lastError = e
                                 if(codeGenerationTries==0):
                                     event_data = {
                                             "result": {
@@ -1145,7 +1148,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                                     }
                                 sse_data = f"data: {json.dumps(event_data)}\n\n"
                                 yield sse_data
-                                result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], str(e))
+                                result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}) if codeGenerationTries==2 else parsedPrvresponse['sqlServerQuery'], str(lastError))
 
                         #html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
                         html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
