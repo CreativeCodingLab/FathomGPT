@@ -478,13 +478,7 @@ oneShotData = {
             You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
             You are the doing the first part of the visualization work. Once you generate the sql query, the user will generate plotly code to visualzie the data.
                 The Generated SQL must be valid
-                The JSON format and the attributes on the JSON are provided below
-                {
-                    
-                    "sampleData": "",
-                    "sqlServerQuery": "",
-                    "responseText": ""
-                }
+                The JSON should have sampleData, sqlServerQuery and responseText attribute
 
             Donot do any data processing in the sqlServerQuery, it will later be done by user using plotly python library. sqlServerQuery must not have any GROUP BY clause in the sql query. Make the plotlycode complex hard. Do all data processing in the plotly code.
 
