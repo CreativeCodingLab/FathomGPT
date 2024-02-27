@@ -20,7 +20,7 @@
 
 <header>
 	<div class="headerInner">
-		<img src="./logo.png" alt="logo" class="logo"/>
+		<img src="./logo.png" alt="logo" class="logo" on:click={()=>goto('/')}/>
 		{#if currentPath === '/'}
 		<button class="button" on:click={changePage}>Pattern</button>
 		{:else if currentPath === '/pattern'}
