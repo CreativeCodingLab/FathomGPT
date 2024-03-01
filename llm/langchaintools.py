@@ -4,7 +4,6 @@ from .utils import getScientificNames, isNameAvaliable, findDescendants, findAnc
 
 import openai
 import json
-from datetime import datetime
 import math
 from urllib.request import urlopen
 from urllib.parse import quote
@@ -303,14 +302,12 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
                     for row in rows:
                         for idx, value in enumerate(row):
                             column_header = cursor.description[idx][0]
-                            if isinstance(value, bytes) and len(value) == 8:
-                                try:
-                                    # Assuming the binary format is specific to SQL Server's datetime
-                                    timestamp = struct.unpack('Q', value)[0]
-                                    value = datetime.datetime.fromtimestamp(timestamp / 1000)  # Convert to seconds
-                                except struct.error:
-                                    # Handle or log error if unpacking fails
-                                    print("Could not unpack bytes to a timestamp.")
+                            if isinstance(value, datetime.datetime):
+                                value = value.strftime('%Y-%m-%dT%H:%M:%S.%f')  # Convert to seconds
+                            elif isinstance(value, datetime.date):
+                                value = value.strftime('%Y-%m-%d')  # Convert to seconds
+                            elif isinstance(value, datetime.time):
+                                value = value.strftime('%H:%M:%S.%f')  # Convert to seconds
                             elif isinstance(value, bytes):
                                 # Fallback to decode bytes to string for other byte objects
                                 value = value.decode('utf-8', errors='ignore')
@@ -326,14 +323,12 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
                 for row in rows:
                     row_data = {}
                     for idx, value in enumerate(row):
-                        if isinstance(value, bytes) and len(value) == 8:
-                            try:
-                                # Assuming the binary format is specific to SQL Server's datetime
-                                timestamp = struct.unpack('Q', value)[0]
-                                value = datetime.datetime.fromtimestamp(timestamp / 1000)  # Convert to seconds
-                            except struct.error:
-                                # Handle or log error if unpacking fails
-                                print("Could not unpack bytes to a timestamp.")
+                        if isinstance(value, datetime.datetime):
+                            value = value.strftime('%Y-%m-%dT%H:%M:%S.%f')  # Convert to seconds
+                        elif isinstance(value, datetime.date):
+                            value = value.strftime('%Y-%m-%d')  # Convert to seconds
+                        elif isinstance(value, datetime.time):
+                            value = value.strftime('%H:%M:%S.%f')  # Convert to seconds
                         elif isinstance(value, bytes):
                             # Fallback to decode bytes to string for other byte objects
                             value = value.decode('utf-8', errors='ignore')
@@ -1168,10 +1163,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         result["html"]=html_output
 
                     elif(result["outputType"]=="table"):
+                        print(sqlResult)
                         result["table"]=sqlResult
 
                     elif(result["outputType"]=="images"):
-                        print("species, ", sqlResult)
                         result["species"]=sqlResult
 
                     try:
@@ -1336,7 +1331,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         event_data = {
             "result": output
         }
-        sse_data = f"data: {json.dumps(str(event_data))}\n\n"
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
         output['html']=""
         if "species" in output:
