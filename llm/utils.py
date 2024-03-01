@@ -14,6 +14,7 @@ from fathomnet.api import taxa
 from fathomnet.api import boundingboxes
 from fathomnet.api import images
 from fathomnet.dto import GeoImageConstraints
+import uuid
 
 import openai
 
@@ -299,6 +300,16 @@ def filterByBoundingBoxes(data, names, includeGood, findBest, findWorst, findOth
 
 # Name ---------------------------
 
+def is_uuid(obj):
+    try:
+        uuid_obj = uuid.UUID(str(obj))
+        return True
+    except ValueError:
+        return False
+    except AttributeError:
+        # In case the object can't be converted to a string
+        return False
+    
 def get_singular(word):
     word = re.sub('es$', '', word)
     word = re.sub('s$', '', word)
