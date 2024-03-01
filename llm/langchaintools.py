@@ -352,7 +352,18 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
             if e.args[0]==229:
                 output = "I don't have enough sufficient permission to execute your prompt."
             else:
-                output = "Error connecting to the database"
+                sqlGenerationTries-=2
+                if isEventStream:
+                    event_data = {
+                        "message": "Connection error. Retrying running the query."
+                    }
+                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                    yield sse_data
+                if imageData == "":
+                    query = fixGeneratedSQL(prompt, query, str(e))
+                else:
+                    fullGeneratedSQLJSON['sqlServerQuery'] = fixGeneratedSQLForImageSearch(fullGeneratedSQLJSON['sqlServerQuery'], query, str(e))
+                continue
             errorRunningSQL = True
             break
         except pymssql.ProgrammingError as e:
@@ -836,6 +847,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
     curLoopCount = 0
     allResultsCsv = []
     allResults = {}
+    lastTemperature=0
 
     if SAVE_INTERMEDIATE_RESULTS:
         with open('data/intermediate_results.json') as f:
@@ -874,7 +886,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             messages=messages,
             functions=availableFunctions,
             function_call="auto",
-            temperature=0,
+            temperature=lastTemperature,
 
         )
         response_message = response["choices"][0]["message"]
@@ -938,6 +950,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 )
 
                 if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
+                    lastTemperature = 1.0
                     messages.append({"role":"function","content":"Not enough data to modify the visualization, using previous prompts, re-generate another prompt that instructs to draw the visualization with the modification and run generatesqlServerQuery function. Make sure to add all the constraints that were in the earlier prompts.","name": function_name})
                     continue
 
@@ -1182,7 +1195,16 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     #    modifiedMessages = modifiedMessages[:-1] 
 
             else:
-                raise ValueError("No function named '{function_name}' in the global scope")
+                event_data = {
+                        "result": {
+                            "outputType": "error",
+                            "responseText": "Sorry, error while processing your prompt. Please try re-phrasing the prompt and try again."
+                        }
+                    }
+                sse_data = f"data: {json.dumps(str(event_data))}\n\n"
+                yield sse_data
+                Interaction.objects.create(main_object=db_obj, request=prompt, response="Error finding a function to process the prompt")
+                return None
         else:
             if(function_name!="getTaxonomyTree" and function_name!="getTaxonomicRelatives"):
                 try:
@@ -1314,7 +1336,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         event_data = {
             "result": output
         }
-        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        sse_data = f"data: {json.dumps(str(event_data))}\n\n"
         yield sse_data
         output['html']=""
         if "species" in output:
