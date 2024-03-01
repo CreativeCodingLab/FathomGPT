@@ -1,6 +1,6 @@
 from decimal import Decimal
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
 
 import openai
 import json
@@ -332,6 +332,8 @@ def GetSQLResult(query: str, isVisualization: bool = False, imageData = None, pr
                         elif isinstance(value, bytes):
                             # Fallback to decode bytes to string for other byte objects
                             value = value.decode('utf-8', errors='ignore')
+                        elif is_uuid(value):
+                            value = str(value)
                         elif isinstance(value, Decimal):
                             # Convert Decimal to float for numerical processing
                             value = float(value)
@@ -1331,7 +1333,11 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         event_data = {
             "result": output
         }
-        sse_data = f"data: {json.dumps(event_data)}\n\n"
+        sse_data = ""
+        try:
+            sse_data = f"data: {json.dumps(event_data)}\n\n"
+        except:
+            sse_data = f"data: {str(event_data)}\n\n"
         yield sse_data
         output['html']=""
         if "species" in output:
