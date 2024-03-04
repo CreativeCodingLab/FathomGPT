@@ -1,6 +1,7 @@
 from decimal import Decimal
 from .constants import *
 from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
+from .kg import kg_name_res
 
 import openai
 import json
@@ -200,28 +201,30 @@ def filterScientificNames(
     data = chain.invoke({"description": description, "names": names})
     return data.content
 
+def commonNameToSciName(name):
+    results = []
+    names = name.replace(', and ', ', ').replace(' and ', ', ').replace(' or ', ', ').split(', ')
+    for n in names:
+        if isNameAvaliable(n):
+            results.append(n)
+            continue
+        results.extend(getScientificNames(n))
+    return results
+
 def getScientificNamesFromDescription(
-    name: str,
     constraints: str,
     description: str,
 ) -> list:
     """Function to get all scientific names that fits a common name or appearance.
     DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature"""
-    print("name: "+name+", description: "+description)
+    print("description: "+description+", constraints: "+constraints)
     
     results = []
 
-    if len(name) > 0:
-        names = name.replace(', and ', ', ').replace(' and ', ', ').replace(' or ', ', ').split(', ')
-        for n in names:
-            if isNameAvaliable(n):
-                results.append(n)
-                continue
-            results.extend(getScientificNames(n))
-
-        if len(description) == 0:
-            description = name
+    if len(description) > 0:
+        results.extend(commonNameToSciName(description))
     
+    """
     if len(results) == 0:
         desc = list(set(name.split(' ') + description.split(' ')))
         if len(description) > 0:
@@ -231,7 +234,12 @@ def getScientificNamesFromDescription(
         #print(desc)
         for d in desc:
             results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
+    """
     
+    if len(description) > 0 and len(results) == 0:
+        kg_matches = kg_name_res(description)
+        results = [t['c'] for t in kg_matches]
+        
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))
     
@@ -240,9 +248,9 @@ def getScientificNamesFromDescription(
             results = results[:LANGCHAIN_SEARCH_CONCEPTS_TOPN]
         results = list(dict.fromkeys(results))
         print(results)
-        if len(results)==1 and results[0]==name:
-            print("Error: "+name+" is already a scientific name")
-            return "Error: "+name+" is already a scientific name. Do not run this function again with the same input"
+        if len(results)==1 and results[0]==description:
+            print("Error: "+description+" is already a scientific name")
+            return "Error: "+description+" is already a scientific name. Do not run this function again with the same input"
         return ", ".join(results)
     
 
@@ -707,17 +715,13 @@ availableFunctions = [{
     "parameters": {
         "type": "object",
         "properties": {
-            "name": {
-                "type": "string",
-                "description": "The name of the creature",
-            },
             "constraints": {
                 "type": "string",
                 "description": "The location, depth, taxonomy, salinity, or temperature",
             },
             "description": {
                 "type": "string",
-                "description": "The description of the species, excluding location, depth, taxonomy, salinity, or temperature",
+                "description": "The name or description of the species, excluding location, depth, taxonomy, salinity, or temperature",
             },
         },
         "required": ["name", "constraints", "description"],
@@ -1389,6 +1393,7 @@ SAVE_INTERMEDIATE_RESULTS = False
 
 #for v in get_Response("Find me images of starfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
+#for v in get_Response("Find me images of predators of moon jellyfish", isEventStream=True):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jelly or Pycnopodia helianthoides", isEventStream=True):
