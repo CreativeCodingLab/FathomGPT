@@ -21,25 +21,10 @@ import numpy as np
 import os.path
 
 
-def kg_name_res(prompt):
+def kg_name_res(prompt_kg):
     with open('scripts/kg/kg_trees.json') as f:
         kgs = json.load(f)
-        
-    
 
-    instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
-
-    answer = openai.ChatCompletion.create(
-      model="gpt-3.5-turbo-1106",
-      timeout=30,
-      messages=[
-        {"role": "system", "content": instructions},
-        {"role": "user", "content": prompt}
-      ]
-    )
-    prompt_kg = json.loads(answer['choices'][0]['message']['content'])
-    print(prompt_kg)
-    
     if 'subject' in prompt_kg and 'relation' in prompt_kg and 'object' in prompt_kg:
         prompt_tree = {'nodes': [prompt_kg['subject'], prompt_kg['object']], 'edges': [{"p": prompt_kg['subject'], "c": prompt_kg['object'], "label": prompt_kg['relation']}]}
     else:
@@ -210,7 +195,7 @@ def prune(concept, tree, tree2, embeddings, prompt_embeddings):
     for t in tree['edges']:
         #print(t)
         label = str(t['label']).lower()
-        if 'name' in label or 'alias' in label:
+        if 'name' in label or 'alias' in label or 'entity' in label:
             aliases.append(str(t['c']))
     #print(aliases)
     

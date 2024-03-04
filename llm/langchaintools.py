@@ -212,33 +212,56 @@ def commonNameToSciName(name):
     return results
 
 def getScientificNamesFromDescription(
-    constraints: str,
     description: str,
 ) -> list:
     """Function to get all scientific names that fits a common name or appearance.
     DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature"""
-    print("description: "+description+", constraints: "+constraints)
+    print("description: "+description)
     
     results = []
 
     if len(description) > 0:
         results.extend(commonNameToSciName(description))
     
-    """
-    if len(results) == 0:
-        desc = list(set(name.split(' ') + description.split(' ')))
+    if len(results) == 0 and 'creatures' in description:
+        desc = list(set(description.split(' ')))
         if len(description) > 0:
             desc.append(description)
         desc = list(set([d for d in desc if len(d)>0]))
-            
-        #print(desc)
+
         for d in desc:
             results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
-    """
+
+
+    if len(results) == 0:
+        instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
+
+        answer = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-1106",
+            timeout=30,
+            messages=[
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": "what are "+description}
+            ]
+        )
+        prompt_kg = json.loads(answer['choices'][0]['message']['content'])
+        print(prompt_kg)
+        
+        if 'subject' in prompt_kg and 'relation' in prompt_kg and 'object' in prompt_kg:
+            if prompt_kg['relation'] in ['has', 'have']:
+                desc = [prompt_kg['object']]
+
+                #print(desc)
+                for d in desc:
+                    results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
+
     
-    if len(description) > 0 and len(results) == 0:
-        kg_matches = kg_name_res(description)
-        results = [t['c'] for t in kg_matches]
+        if len(results) == 0:
+            try:
+                kg_matches = kg_name_res(prompt_kg)
+                results = [t['c'] for t in kg_matches]
+            except:
+                pass
         
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))
@@ -715,10 +738,6 @@ availableFunctions = [{
     "parameters": {
         "type": "object",
         "properties": {
-            "constraints": {
-                "type": "string",
-                "description": "The location, depth, taxonomy, salinity, or temperature",
-            },
             "description": {
                 "type": "string",
                 "description": "The name or description of the species, excluding location, depth, taxonomy, salinity, or temperature",
@@ -1003,7 +1022,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(lastError))
+                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(e))
 
                 html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
                 output = {}
