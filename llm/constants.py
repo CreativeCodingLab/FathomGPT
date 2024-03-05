@@ -228,19 +228,17 @@ CREATE TABLE "dbo"."marine_regions" ( "id" bigint NOT NULL, "created_timestamp" 
 ON [PRIMARY]);
 CREATE TABLE "dbo"."revinfo" ( "rev" int IDENTITY(1,1) NOT NULL, "revtstmp" bigint NULL, CONSTRAINT "PK__revinfo__C2B7CC69D3938648" PRIMARY KEY CLUSTERED("rev")
 ON [PRIMARY]);
-CREATE TABLE "dbo"."tags" ( "id" bigint NOT NULL, "created_timestamp" datetime2 NULL, "tag" varchar(255) NOT NULL, "last_updated_timestamp" datetime2 NULL, "media_type" varchar(255) NULL, "uuid" uniqueidentifier NOT NULL, "value" varchar(255) NOT NULL, "image_id" bigint NULL, CONSTRAINT "PK__tags__3213E83F3A490684" PRIMARY KEY CLUSTERED("id")
+CREATE TABLE "dbo"."imageSourceInfo" ( "id" bigint NOT NULL, "created_timestamp" datetime2 NULL, "tag" varchar(255) NOT NULL, "last_updated_timestamp" datetime2 NULL, "media_type" varchar(255) NULL, "uuid" uniqueidentifier NOT NULL, "value" varchar(255) NOT NULL, "image_id" bigint NULL, CONSTRAINT "PK__imageSourceInfo__3213E83F3A490684" PRIMARY KEY CLUSTERED("id")
 ON [PRIMARY]);
-CREATE TABLE "dbo"."tags_aud" ( "id" bigint NOT NULL, "rev" int NOT NULL, "revtype" smallint NULL, "created_timestamp" datetime2 NULL, "tag" varchar(255) NULL, "last_updated_timestamp" datetime2 NULL, "media_type" varchar(255) NULL, "uuid" uniqueidentifier NULL, "value" varchar(255) NULL, "image_id" bigint NULL, CONSTRAINT "PK__tags_aud__BE3894F94F1608A8" PRIMARY KEY CLUSTERED("id","rev")
+CREATE TABLE "dbo"."imageSourceInfo_aud" ( "id" bigint NOT NULL, "rev" int NOT NULL, "revtype" smallint NULL, "created_timestamp" datetime2 NULL, "tag" varchar(255) NULL, "last_updated_timestamp" datetime2 NULL, "media_type" varchar(255) NULL, "uuid" uniqueidentifier NULL, "value" varchar(255) NULL, "image_id" bigint NULL, CONSTRAINT "PK__imageSourceInfo_aud__BE3894F94F1608A8" PRIMARY KEY CLUSTERED("id","rev")
 ON [PRIMARY]);
 CREATE VIEW "dbo"."boundingbox_extended_info" AS
 SELECT b.concept, b.alt_concept, b.observer, b.verified, b.verifier, b.verification_timestamp, b.user_defined_key, i.url, i.width, i.height, i.submitter, i.[timestamp], i.contributors_email AS image_contributors_email, u.contributors_email AS upload_contributors_email, dc.owner_institution_code, dc.institution_code, dc.rights_holder, dc.collection_code, dc.collection_id, dc.dataset_name
 FROM dbo.darwin_cores dc LEFT JOIN dbo.image_set_uploads u ON dc.id = u.darwincore_id LEFT JOIN dbo.image_uploads_join j ON j.imagesetupload_id = u.id LEFT JOIN dbo.images i ON j.image_id = i.id LEFT JOIN dbo.bounding_boxes b ON b.image_id = i.id;
 
-Use the image table to retreieve information about species depth, oxygen level, salinity level, pressure level, etc.
-IMPORTANT: Tags table only has data about the image source information. The source information is only to identify which company had produced this image. A sample row from the table is given below.
+Sample imageSourceInfo table data
 id	created_timestamp	tag	last_updated_timestamp	media_type	uuid	value	image_id
 2256713	2021-09-29 21:15:46.7170000	source	2021-09-29 21:15:46.7170000	text/plain	E142AF1D-E85D-4821-A640-254BED3C8D64	MBARI/VARS	2256712
-Tags table has similar rows as provided above, there is any other data. DONOT use this table to search for any other detail like salinity, depth, oxygen level, etc. of the species, use the image or bounding boxes table.
 """
 
 
