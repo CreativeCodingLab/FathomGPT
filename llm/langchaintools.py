@@ -224,17 +224,14 @@ def getScientificNamesFromDescription(
         results.extend(commonNameToSciName(description))
     
     if len(results) == 0:
-        try:
-            instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
+        instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
+        kg_matches = kg_name_res(description, instructions)
+        if not kg_matches or len(kg_matches) == 0:
+            instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
             kg_matches = kg_name_res(description, instructions)
-            if len(kg_matches) == 0:
-                instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
+            if not kg_matches or len(kg_matches) == 0:
                 kg_matches = kg_name_res(description, instructions)
-                if len(kg_matches) == 0:
-                    kg_matches = kg_name_res(description, instructions)
-            results = list(kg_matches.keys())
-        except:
-            pass
+        results = list(kg_matches.keys())
         
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))

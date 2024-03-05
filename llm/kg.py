@@ -81,7 +81,7 @@ def kg_name_res(prompt, instructions):
         prompt = {"s": ps.stem(prompt_kg['subject']), "o": ps.stem(prompt_kg['object']), "r": prompt_kg['relation'].lower()}
     else:
         return None
-    #print(prompt)
+    print(prompt)
 
     prompt_embedding = openai.Embedding.create(
         input=prompt['r'],
