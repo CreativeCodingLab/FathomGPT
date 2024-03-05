@@ -232,36 +232,19 @@ def getScientificNamesFromDescription(
         for d in desc:
             results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
 
-
-    if len(results) == 0:
-        instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
-
-        answer = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-1106",
-            timeout=30,
-            messages=[
-                {"role": "system", "content": instructions},
-                {"role": "user", "content": "what are "+description}
-            ]
-        )
-        prompt_kg = json.loads(answer['choices'][0]['message']['content'])
-        print(prompt_kg)
-        
-        if 'subject' in prompt_kg and 'relation' in prompt_kg and 'object' in prompt_kg:
-            if prompt_kg['relation'] in ['has', 'have']:
-                desc = [prompt_kg['object']]
-
-                #print(desc)
-                for d in desc:
-                    results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
-
     
-        if len(results) == 0:
-            try:
-                kg_matches = kg_name_res(prompt_kg)
-                results = [t['c'] for t in kg_matches]
-            except:
-                pass
+    if len(results) == 0:
+        try:
+            instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
+            kg_matches = kg_name_res(description, instructions)
+            if len(kg_matches) == 0:
+                instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
+                kg_matches = kg_name_res(description, instructions)
+                if len(kg_matches) == 0:
+                    kg_matches = kg_name_res(description, instructions)
+            results = list(kg_matches.keys())
+        except:
+            pass
         
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))
@@ -1420,6 +1403,7 @@ SAVE_INTERMEDIATE_RESULTS = False
 #for v in get_Response("Find me images of starfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jellyfish in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of predators of moon jellyfish", isEventStream=True):
+#for v in get_Response("Find me images of creatures that are orange", isEventStream=True):
 #for v in get_Response("Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of ray-finned creatures in Monterey bay and depth less than 5k meters", isEventStream=True):
 #for v in get_Response("Find me images of moon jelly or Pycnopodia helianthoides", isEventStream=True):
