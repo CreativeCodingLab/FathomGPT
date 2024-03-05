@@ -132,24 +132,25 @@ def kg_name_res(prompt, instructions):
                     results.update(dict.fromkeys(kg_raw[c][species_rel[rel]], 0.6))
                     
         concepts = boundingboxes.find_concepts()
-        concepts = [c.lower() for c in concepts]
-        
+        concepts = [c for c in concepts if c!='']
         sciNames = {}
         for r in results:
-            print(r)
+            #print(r)
             found = False
             for c in concepts:
-                if c != '' and c in r:
-                    print(c)
+                if '('+c.lower()+')' in r:
                     sciNames[c] = results[r] + 0.25
-                    found = True
-                    break
-            if found:
-                continue
-            
-            for c in kg_raw:
-                if 'alias' in kg_raw[c] and r in kg_raw[c]['alias']:
-                    sciNames[c] = results[r]
+                elif ' ' in c and c.lower() in r:
+                    sciNames[c] = results[r] + 0.25
+        if len(sciNames) == 0:
+            for r in results:
+                if c.lower() in r:
+                    sciNames[c] = results[r] + 0.2
+        if len(sciNames) == 0:
+            for r in results:
+                for c in kg_raw:
+                    if 'alias' in kg_raw[c] and r in kg_raw[c]['alias']:
+                        sciNames[c] = results[r]
         results = sciNames
     
     if prompt['o'] != 'unknown' and len(results) == 0:
@@ -173,12 +174,12 @@ def kg_name_res(prompt, instructions):
     return results
 
 
-instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
+#instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
 
 #instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
 
 #kg_name_res("what are the predators of moon jellyfishes?", instructions)
-kg_name_res("find me images of the predators of moon jelly", instructions)
+#kg_name_res("find me images of the predators of moon jelly", instructions)
 #kg_name_res("find me images of what moon jelly eat", instructions)
 #kg_name_res("moon jellyfish", instructions)
 #kg_name_res("creatures with tentacles", instructions)
