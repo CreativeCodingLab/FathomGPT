@@ -1,0 +1,5 @@
+Collecting setuptools
+  Using cached setuptools-69.1.1-py3-none-any.whl.metadata (6.2 kB)
+Using cached setuptools-69.1.1-py3-none-any.whl (819 kB)
+Installing collected packages: setuptools
+Successfully installed setuptools-69.1.1
