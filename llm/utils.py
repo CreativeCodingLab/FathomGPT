@@ -358,6 +358,26 @@ def getScientificNames(concept, should_normalize=True, filename=NAMES_JSON, is_d
     return concepts
 
 
+def extractScientificNames(name):
+    name = name.lower()
+    
+    concepts = boundingboxes.find_concepts()
+    concepts = [c.lower() for c in concepts]
+    
+    for c in concepts:
+        if c in name:
+            return [c]
+    
+    f = open(NAMES_JSON)
+    names = json.load(f)
+    
+    name = get_normalized(name)
+    if concept in names:
+        return names[concept]
+        
+    return []
+    
+
 # ==== post-processing langchain ====
 
 def findImages(includeOnlyGood=False, findBest=False, findWorst=False, findOtherSpecies=False, excludeOtherSpecies=False):
