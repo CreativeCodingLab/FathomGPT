@@ -1162,11 +1162,18 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         result["html"]=html_output
 
                     elif(result["outputType"]=="table"):
-                        print(sqlResult)
                         result["table"]=sqlResult
 
                     elif(result["outputType"]=="images"):
                         result["species"]=sqlResult
+                        if "id" not in sqlResult[0] and "concept" not in sqlResult[0]:
+                            responseTextGen = openai.ChatCompletion.create(
+                                model="gpt-3.5-turbo-0613",
+                                messages=[{"role":"system","content":"Generate a response text to the user based on the user's prompt and the data generated"},{"role":"user","content":"Prompt:"+prompt+"\Data Generated+"+json.dumps(sqlResult)}],
+                                temperature=0,
+                            )
+                            result["responseText"] = responseTextGen["choices"][0]["message"]["content"]
+                            result["outputType"] = "text"
 
                     try:
                         result["responseText"]= result["responseText"].format(**sqlResult[0])
