@@ -1,6 +1,6 @@
 from decimal import Decimal
 from .constants import *
-from .utils import getScientificNames, extractScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
+from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
 from .kg import kg_name_res
 
 import openai
@@ -232,8 +232,7 @@ def getScientificNamesFromDescription(
                 kg_matches = kg_name_res(description, instructions)
                 if len(kg_matches) == 0:
                     kg_matches = kg_name_res(description, instructions)
-            for match in kg_matches.keys():
-                results.extend(extractScientificNames(match))
+            results = list(kg_matches.keys())
         except:
             pass
         
