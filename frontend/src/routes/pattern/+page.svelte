@@ -11,7 +11,9 @@
 
     let uploadedImageUrl = writable('');
     let isImageUploaded = writable(false);
-    let patternImagedata = writable('');
+    let patternImagedata0 = writable('');
+    let patternImagedata1 = writable('');
+    let patternImagedata2 = writable('');
 	let loading = false;
 
     function handleFilesChange(event: Event) {
@@ -46,7 +48,7 @@
         reader.onloadend = function() {
             const base64data = reader.result;
 			loading = true
-            fetch(serverBaseURL+'/generate_pattern', {
+            fetch(serverBaseURL+'/segment_image', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -59,7 +61,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                patternImagedata.set(data.image);
+                patternImagedata0.set(data.image0);
+                patternImagedata1.set(data.image1);
+                patternImagedata2.set(data.image2);
 				loading = false
             })
             .catch(error => {
@@ -81,10 +85,34 @@
                 <button on:click={clearImage} class="clear-button button">Clear</button>
             </div>
             <div class="image-pane">
-				{#if $patternImagedata.length===0 && !loading}
+				{#if $patternImagedata0.length===0 && !loading}
                 <p>Image is not clicked yet!</p>
-				{:else if $patternImagedata.length!==0 }
-				<img class="patternedImage" src={$patternImagedata} alt="Patterned">
+				{:else if $patternImagedata0.length!==0 }
+				<img class="patternedImage" src={$patternImagedata0} alt="Patterned">
+				{/if}
+				{#if loading}
+				<div class="loadingContainer">
+					<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
+				</div>
+				{/if}
+            </div>
+             <div class="image-pane">
+				{#if $patternImagedata1.length===0 && !loading}
+                <p>Image is not clicked yet!</p>
+				{:else if $patternImagedata1.length!==0 }
+				<img class="patternedImage" src={$patternImagedata1} alt="Patterned">
+				{/if}
+				{#if loading}
+				<div class="loadingContainer">
+					<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
+				</div>
+				{/if}
+            </div>
+             <div class="image-pane">
+				{#if $patternImagedata2.length===0 && !loading}
+                <p>Image is not clicked yet!</p>
+				{:else if $patternImagedata2.length!==0 }
+				<img class="patternedImage" src={$patternImagedata2} alt="Patterned">
 				{/if}
 				{#if loading}
 				<div class="loadingContainer">
