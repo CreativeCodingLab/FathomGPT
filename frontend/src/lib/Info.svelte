@@ -14,6 +14,8 @@
         "Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters",
         "Find me images of starfish in Monterey bay and depth less than 5k meters",
         "Find me best images of ray-finned creatures in Monterey bay and depth less than 5k meters",
+        "Find me images of predators of moon jelly",
+        "Find me images of orange creatures",
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
         "What color are moon jellyfsh",
