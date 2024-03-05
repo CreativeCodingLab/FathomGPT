@@ -1,6 +1,6 @@
 from decimal import Decimal
 from .constants import *
-from .utils import getScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
+from .utils import getScientificNames, extractScientificNames, isNameAvaliable, findDescendants, findAncestors, getParent, findRelatives, filterUnavailableDescendants, changeNumberToFetch, postprocess, fixTabsAndNewlines, is_uuid
 from .kg import kg_name_res
 
 import openai
@@ -223,16 +223,6 @@ def getScientificNamesFromDescription(
     if len(description) > 0:
         results.extend(commonNameToSciName(description))
     
-    if len(results) == 0 and 'creatures' in description:
-        desc = list(set(description.split(' ')))
-        if len(description) > 0:
-            desc.append(description)
-        desc = list(set([d for d in desc if len(d)>0]))
-
-        for d in desc:
-            results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
-
-    
     if len(results) == 0:
         try:
             instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
@@ -242,7 +232,8 @@ def getScientificNamesFromDescription(
                 kg_matches = kg_name_res(description, instructions)
                 if len(kg_matches) == 0:
                     kg_matches = kg_name_res(description, instructions)
-            results = list(kg_matches.keys())
+            for match in kg_matches.keys():
+                results.extend(extractScientificNames(match))
         except:
             pass
         
