@@ -10,7 +10,7 @@ def show_mask(mask, ax, random_color=False):
     if random_color:
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     else:
-        color = np.array([0, 0, 0, 1.0])
+        color = np.array([100.0 / 255.0, 100.0 / 255.0, 100.0 / 255.0, 1.0])
     h, w = mask.shape[-2:]
     mask_image = (mask.reshape(h, w, 1)) * color.reshape(1, 1, -1)
     return mask_image
