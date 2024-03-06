@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
-from .interact import patternDivision
+from .interact_thre import patternDivision
 from .segment import segment
 from django.http import JsonResponse
 import sys
@@ -167,11 +167,12 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             image_base64 = data['image'].split(",")[1]
             imageX = data['imageX']
             imageY = data['imageY']
+            color_thre = data['color_thre']
             
             img_array = np.frombuffer(base64.b64decode(image_base64), np.uint8)
             img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             
-            processed_img = patternDivision(imageX, imageY, img)
+            processed_img = patternDivision(imageX, imageY, img, color_thre)
             
             _, buffer = cv2.imencode('.jpg', processed_img)
             img_base64 = base64.b64encode(buffer).decode()
