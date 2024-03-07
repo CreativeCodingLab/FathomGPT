@@ -24,5 +24,8 @@ urlpatterns = [
     path('api/generate_pattern', views.MainObjectViewSet.as_view({
         'post':'generate_pattern'
         })),
+    path('api/segment_image', views.MainObjectViewSet.as_view({
+        'post':'segment_image'
+        })),
     path('api/event-stream', views.PostStreamView.as_view(), name='stream'),
 ]
