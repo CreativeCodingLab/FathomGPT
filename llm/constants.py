@@ -337,6 +337,7 @@ FEW_SHOT_DATA = {
             While generating the sql server query make sure the output when running the sql query, the output data format matches the sample format. Make sure the variable names match
             Important: Donot generate the sql query wrong, if you are selecting a column, make sure the table is also referenced properly. There must be a valid sqlServerQuery in the output JSON.
             Make sure the sql query outputs data in format specified by the sample data, make sure the variable names match.
+            If the prompt is asking for a heatmap, output must include the latitude and longitude coordinates to the output data
             """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
         "user": f"""
             User Prompt: "Display a bar chart illustrating the distribution of all species in Monterey Bay, categorized by ocean depth levels."

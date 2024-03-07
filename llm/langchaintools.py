@@ -224,15 +224,27 @@ def getScientificNamesFromDescription(
         results.extend(commonNameToSciName(description))
     
     if len(results) == 0:
-        instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
-        kg_matches = kg_name_res(description, instructions)
-        if not kg_matches or len(kg_matches) == 0:
-            instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
+        try:
+            instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
             kg_matches = kg_name_res(description, instructions)
             if not kg_matches or len(kg_matches) == 0:
+                instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
                 kg_matches = kg_name_res(description, instructions)
-        results = list(kg_matches.keys())
+                if not kg_matches or len(kg_matches) == 0:
+                    kg_matches = kg_name_res(description, instructions)
+            results = list(kg_matches.keys())
+        except:
+            print('kg name res error')
         
+    if len(description) > 0 and len(results) == 0:
+        desc = list(set(description.split(' ')))
+        if len(description) > 0:
+            desc.append(description)
+        desc = list(set([d for d in desc if len(d)>0]))
+
+        for d in desc:
+            results.extend(getScientificNames(d, False, SEMANTIC_MATCHES_JSON, True))
+
     if len(description) > 0 and len(results) == 0:
         results = list(getConceptCandidates(description))
     
@@ -593,6 +605,7 @@ def addImageSearchQuery(imageData, generatedJSON):
         sql+=genSQLQuery
     if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
         sql+=") ORDER BY CosineSimilarity DESC"
+
     return sql
 
 
@@ -1071,7 +1084,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                     sql = result['sqlServerQuery']
                     limit = -1
-                    if sql.strip().startswith('SELECT '):
+                    if result["outputType"]=="images" and sql.strip().startswith('SELECT '):
                         limit, sql = changeNumberToFetch(sql)
                     if isEventStream:
                         event_data = {
