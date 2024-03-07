@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
-from .interact import patternDivision
+from .interact_thre import patternDivision
+from .segment import segment
 from django.http import JsonResponse
 import sys
 from django.core.files.storage import default_storage
@@ -132,10 +133,10 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             return JsonResponse({'guid': str(image_instance.guid)})
         else:
             return JsonResponse({'error': 'Invalid request'}, status=400)
-        
+
     @csrf_exempt
     @action(detail=False, methods=['POST'])
-    def generate_pattern(self, request):
+    def segment_image(self, request):
         if request.method == 'POST':
             data = request.data
             image_base64 = data['image'].split(",")[1]
@@ -145,7 +146,33 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             img_array = np.frombuffer(base64.b64decode(image_base64), np.uint8)
             img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
             
-            processed_img = patternDivision(imageX, imageY, img)
+            processed_img = segment(imageX, imageY, img)
+            
+            img_base64 = []
+
+            _, buffer1 = cv2.imencode('.jpg', processed_img[0])
+            _, buffer2 = cv2.imencode('.jpg', processed_img[1])
+            _, buffer3 = cv2.imencode('.jpg', processed_img[2])
+            img_base64.append(base64.b64encode(buffer1).decode())
+            img_base64.append(base64.b64encode(buffer2).decode())
+            img_base64.append(base64.b64encode(buffer3).decode())
+            
+            return JsonResponse({'image0': 'data:image/jpeg;base64,' + img_base64[0], 'image1': 'data:image/jpeg;base64,' + img_base64[1], 'image2': 'data:image/jpeg;base64,' + img_base64[2]})
+        
+    @csrf_exempt
+    @action(detail=False, methods=['POST'])
+    def generate_pattern(self, request):
+        if request.method == 'POST':
+            data = request.data
+            image_base64 = data['image'].split(",")[1]
+            imageX = data['imageX']
+            imageY = data['imageY']
+            color_thre = data['color_thre']
+            
+            img_array = np.frombuffer(base64.b64decode(image_base64), np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            
+            processed_img = patternDivision(imageX, imageY, img, color_thre)
             
             _, buffer = cv2.imencode('.jpg', processed_img)
             img_base64 = base64.b64encode(buffer).decode()

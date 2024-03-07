@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
+import time
 
 def check_pos(y, x, shape):
     return 0 <= x < shape[1] and 0 <= y < shape[0]
@@ -107,18 +108,33 @@ def find_all_pattern(color_thre, img_rgb, img_hsv, new_img, y, x):
 
     Color_thre_table = [[0, 6, 7], [1, 1, 1], [2, 3, 9], [3, 2, 4], [4, 3, 5], [5, 4, 6], [6, 7, 0], [7, 6, 0], [8, 7, 9], [9, 2, 8]]
     
+
+    cal_time = -1.0
+    start = time.time()
+    print("img_rgb.shape: ", img_rgb.shape[0], img_rgb.shape[1])
     for i in range(img_rgb.shape[0]):
         for j in range(img_rgb.shape[1]):
             rc, gc, bc = img_rgb[i, j]  
             hc, sc, vc = img_hsv[i, j]
+            start1 = time.time()
             for k in range(0, color_thre):
                 if similar_color_hsv(Color_thre_table[color][k], hc, sc, vc, rc, gc, bc):
                     new_img[i, j] = img_rgb[i, j]
+            cal_time = max(cal_time, time.time()-start1)
 
+    print("huge ugly loop: ", time.time()-start, "cal_time: ", cal_time)
+
+# division
+# @param color_thre : the number of color threshold (1,2,3)
 def patternDivision(x, y, img, color_thre):
+    
+    start = time.time()
     img_rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     new_img = np.zeros((img.shape[0], img.shape[1], 3), np.uint8)
+
+    print("fist time: ", time.time()-start)
+    start = time.time()
 
     for i in range(new_img.shape[0]):
         for j in range(new_img.shape[1]):
@@ -129,7 +145,17 @@ def patternDivision(x, y, img, color_thre):
     o_y = y
     o_x = x
 
+    print("second time: ", time.time()-start)
+    start = time.time()
+
     find_all_pattern(color_thre, img_rgb, img_hsv, new_img, o_y, o_x)
+
+
+    print("third time: ", time.time()-start)
+    start = time.time()
+
     window_name = 'new_img'
     new_img = cv.cvtColor(new_img, cv.COLOR_RGB2BGR)
+
+    print("fourth time: ", time.time()-start)
     return new_img
