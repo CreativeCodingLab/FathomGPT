@@ -155,41 +155,43 @@
 	{#if $isImageUploaded}
 		{#if !$isPatternExtract}
 			<div class="images-container">
-				<div class="image-pane">
+				<div class="image-pane firstImagePane">
 					<h5>Click on the image to select the fish</h5>
 					<img src={$uploadedImageUrl} alt="Uploaded" on:click={handleImageClick} />
 					<button on:click={clearImage} class="clear-button button">Clear</button>
 				</div>
-				<div class="image-pane">
-					{#if $patternImagedata0.length === 0 && !loading}
-						<p>Image is not clicked yet!</p>
-					{:else if $patternImagedata0.length !== 0}
-						<img class="patternedImage" src={$patternImagedata0} alt="Patterned" />
-						<button class="button" on:click={() => handleImageMaskSelect(0)}>Select</button>
-					{/if}
-				</div>
-				<div class="image-pane">
-					{#if $patternImagedata1.length === 0 && !loading}
-						<p>Image is not clicked yet!</p>
-					{:else if $patternImagedata1.length !== 0}
-						<img class="patternedImage" src={$patternImagedata1} alt="Patterned" />
-						<button class="button" on:click={() => handleImageMaskSelect(1)}>Select</button>
-					{/if}
-					{#if loading}
-						<div class="loadingContainer">
-							<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
-						</div>
-					{/if}
-				</div>
-				<div class="image-pane">
-					{#if $patternImagedata2.length === 0 && !loading}
-						<p>Image is not clicked yet!</p>
-					{:else if $patternImagedata2.length !== 0}
-						<img class="patternedImage" src={$patternImagedata2} alt="Patterned" />
-						<button class="button" on:click={() => handleImageMaskSelect(2)}>Select</button>
-					{/if}
-				</div>
-			</div>
+                <div class="outputWrapper">
+                    <div class="image-pane">
+                        {#if $patternImagedata0.length === 0 && !loading}
+                            <p>Image is not clicked yet!</p>
+                        {:else if $patternImagedata0.length !== 0}
+                            <img class="patternedImage" src={$patternImagedata0} alt="Patterned" />
+                            <button class="button" on:click={() => handleImageMaskSelect(0)}>Select</button>
+                        {/if}
+                    </div>
+                    <div class="image-pane">
+                        {#if $patternImagedata1.length === 0 && !loading}
+                            <p>Image is not clicked yet!</p>
+                        {:else if $patternImagedata1.length !== 0}
+                            <img class="patternedImage" src={$patternImagedata1} alt="Patterned" />
+                            <button class="button" on:click={() => handleImageMaskSelect(1)}>Select</button>
+                        {/if}
+                    </div>
+                    <div class="image-pane">
+                        {#if $patternImagedata2.length === 0 && !loading}
+                            <p>Image is not clicked yet!</p>
+                        {:else if $patternImagedata2.length !== 0}
+                            <img class="patternedImage" src={$patternImagedata2} alt="Patterned" />
+                            <button class="button" on:click={() => handleImageMaskSelect(2)}>Select</button>
+                        {/if}
+                    </div>
+                    {#if loading}
+                    <div class="loadingContainer">
+                        <Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
+                    </div>
+                    {/if}
+                </div>
+            </div>
 		{:else}
 			<div class="images-container">
 				<div class="image-pane">
@@ -214,7 +216,7 @@
 					</div>
 					<button on:click={backToImageMaskSelect} class="button">Back</button>
 				</div>
-				<div class="image-pane">
+				<div class="image-pane lastImagePane">
 					{#if $extractedPatternData.length === 0 && !loading}
 						<p>Image is not clicked yet!</p>
 					{:else if $extractedPatternData.length !== 0}
@@ -265,7 +267,7 @@
 		padding: 20px;
 	}
 
-	.image-pane:first-child {
+	.image-pane:not(:last-child) {
 		border-right: 1px solid #ccc;
 	}
 
@@ -314,4 +316,24 @@
 		justify-content: center;
 		align-items: center;
 	}
+
+    .outputWrapper{
+        flex: 3;
+        display: flex;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .outputWrapper .image-pane{
+        padding-top: 50px;
+    }
+
+    .firstImagePane{
+        flex: 1;
+        flex-shrink: 0;
+    }
+
+    .lastImagePane{
+        position: relative;
+    }
 </style>
