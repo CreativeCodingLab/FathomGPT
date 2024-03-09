@@ -141,7 +141,13 @@
 			guid = eventData.result.guid
 			//@ts-ignore
 			//updateBox.$destroy();
-			console.log("Output type: ",eventData.result.outputType);
+
+			const myCustomEvent = new CustomEvent('chatEvents', {
+				detail: {
+					chatEnd: true
+				}
+			});
+			document.dispatchEvent(myCustomEvent);
 
 			switch (eventData.result.outputType) {
 				case 'text':

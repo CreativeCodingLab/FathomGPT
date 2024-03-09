@@ -66,6 +66,9 @@
 		height: calc(100vh - var(--page-header-height));
         position: sticky;
         top: var(--page-header-height);
+		@media (max-width: 1080px) {
+			display: none;
+		}
     }
 
     sub{

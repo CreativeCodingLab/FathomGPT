@@ -180,7 +180,6 @@
 	.imageDetailsContainer {
 		padding: 20px;
 		max-width: 1200px;
-		min-width: 600px;
 		border-radius: 10px;
 		background: white;
 		display: flex;
@@ -192,23 +191,32 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
+		max-width: calc(100vw);
     }
 	.detailsContainer {
 		display: flex;
 		flex-direction: row;
-		padding-top: 5px;
+		max-width: calc(100vw - 80px);
+		flex-flow: wrap;
 	}
 	.detailsTextContainer {
 		display: flex;
 		flex-direction: column;
 		flex: 1;
+		flex-shrink: 0;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		min-width: 400px;
+
 	}
 	.detailsTextContainer h3 {
 		padding-bottom: 3px;
 	}
 	.taxonomyContainer {
-		max-width: 60%;
+		flex: 1;
     	overflow-x: auto;
+		padding-top: 5px;
+		min-width: 400px;
 	}
 	.innerTaxonomyContainer {
 		padding-left: 2px;
