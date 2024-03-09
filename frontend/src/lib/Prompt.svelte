@@ -78,30 +78,13 @@
 		}
 	}
 
-	async function handleFileChange(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (!input.files || input.files.length === 0) {
-			console.error('No file selected.');
-			return;
-		}
-
-		const file = input.files[0];
-		const reader = new FileReader();
-
-		reader.onload = (e: ProgressEvent<FileReader>) => {
-			if(reader && reader.result){
-				const myCustomEvent = new CustomEvent('imageAdded', {
-					detail: reader.result as string
-				});
-				document.dispatchEvent(myCustomEvent);
-			}
-		};
-		reader.onerror = (error) => alert("Error reading the file! " + error);
-		reader.readAsDataURL(file);
-	}
-
 	function openFileSelector(){
-		imageTag.click()
+		const myCustomEvent = new CustomEvent('fileUploader', {
+			detail: {
+				popupOpened: true
+			}
+		});
+		document.dispatchEvent(myCustomEvent);
 	}
 
 	function removeSelectedImage(){
@@ -126,7 +109,6 @@
 			<i class="fa-solid fa-file-import"></i>
 		</button>
 		{/if}
-		<input hidden accept="image/*" type="file" bind:this={imageTag} on:input={handleFileChange}/>
 		<textarea
 			bind:this={textarea}
 			bind:value
