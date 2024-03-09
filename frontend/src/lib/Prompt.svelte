@@ -14,6 +14,7 @@
 	let imageTag: HTMLInputElement;
 	let isImageSelected = false;
 	let selectedImage: HTMLImageElement;
+	let isNewChat: Boolean = true;
 
 	export function toggleLoading() {
 		loading = !loading
@@ -63,6 +64,12 @@
 			await tick();
             selectedImage.src=e.detail
         });
+
+		document.addEventListener('chatEvents', function (e) {
+			if(e.detail.chatEnd!=null){
+				isNewChat = false
+			}
+		})
     });
 
 	function detectEnterPress(e: KeyboardEvent) {
@@ -91,35 +98,42 @@
 		isImageSelected=false;
 	}
 
+	function reload(){
+        window.location.reload()
+    }
+
 </script>
 
 <main>
 	{#if loading}
 	<Shadow size="30" color="var(--color-ultramarine-blue)" unit="px" duration="1s" />
 	{/if}
-	<div class="divWrapper">
-		<!-- svelte-ignore a11y-autofocus -->
-		{#if isImageSelected}
-		<div class="selectedImageWrapper">
-			<img class="selectedImage" bind:this={selectedImage}/>
-			<button class="removeImageBtn" on:click={removeSelectedImage}><i class="fa-solid fa-xmark" /></button>
+	<div class="outerContentWrapper">
+		<button class:isNewChat={isNewChat} class="newChatBtn buttonCircled" on:click={reload}><i class="fa-solid fa-trash"></i></button>
+		<div class="divWrapper">
+			<!-- svelte-ignore a11y-autofocus -->
+			{#if isImageSelected}
+			<div class="selectedImageWrapper">
+				<img class="selectedImage" bind:this={selectedImage}/>
+				<button class="removeImageBtn" on:click={removeSelectedImage}><i class="fa-solid fa-xmark" /></button>
+			</div>
+			{:else}
+			<button class="buttonCircled" on:click={openFileSelector}>
+				<i class="fa-solid fa-file-import"></i>
+			</button>
+			{/if}
+			<textarea
+				bind:this={textarea}
+				bind:value
+				autofocus
+				{placeholder}
+				on:keypress={detectEnterPress}
+				style="--heightModifier: {heightModifier}"
+			/>
+			<button class="sendBtn" on:click={submitPrompt}>
+				<img src="/submit.svg" alt="submission arrow" />
+			</button>
 		</div>
-		{:else}
-		<button class="buttonCircled" on:click={openFileSelector}>
-			<i class="fa-solid fa-file-import"></i>
-		</button>
-		{/if}
-		<textarea
-			bind:this={textarea}
-			bind:value
-			autofocus
-			{placeholder}
-			on:keypress={detectEnterPress}
-			style="--heightModifier: {heightModifier}"
-		/>
-		<button class="sendBtn" on:click={submitPrompt}>
-			<img src="/submit.svg" alt="submission arrow" />
-		</button>
 	</div>
 </main>
 
@@ -144,12 +158,9 @@
 		padding: 0px var(--chat-padding);
 	}
 	.divWrapper {
-		place-self: center;
-		width: 70%;
 		border: none;
 		border-radius: 0.5rem;
 		padding: 0.5rem 0.8rem;
-		background-color: var(--color-white);
 		color: var(--accent-dark);
 		display: flex;
 		align-items: center;
@@ -157,6 +168,18 @@
 		box-shadow: 0 0 2rem rgba(255, 255, 255, 0.2);
 		border: 2px solid var(--color-salt-marsh-gray);
 		border-radius: 33px;
+		flex: 1;
+	}
+
+	.outerContentWrapper{
+		width: 98%;
+		max-width: 1000px;
+		place-self: center;
+		background-color: var(--color-white);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+
 	}
 	.divWrapper:hover{
 		border-color: var(--accent-color);
@@ -235,6 +258,30 @@
 
 	.selectedImageWrapper{
 		position: relative;
+	}
+
+	.newChatBtn{
+		background-color: rgba(51,51,51, 0.05);
+		width: 50px;
+		height: 50px;
+		border-radius: 50%;
+		border: none;
+		margin-right: 10px;
+		flex-shrink: 0;
+		display: none;
+		justify-content: center;
+		align-items: center;
+		@media (max-width: 1080px) {
+			display: flex;
+		}
+	}
+
+	.newChatBtn.isNewChat{
+		display: none;
+	}
+
+	.newChatBtn i{
+		font-size: 20px;
 	}
 
 </style>

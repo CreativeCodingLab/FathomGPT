@@ -191,9 +191,9 @@ body {
 }
 
 .buttonCircled:hover{
-	background-color: var(--accent-color);
+	background-color: var(--accent-color) !important;
 }
 
 .buttonCircled:hover i{
-	color: white;
+	color: white !important;
 }

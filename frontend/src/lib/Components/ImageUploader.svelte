@@ -6,6 +6,8 @@
 	let fileInput: HTMLInputElement;
 	let imgElement: HTMLImageElement;
 	let boundingBox: BoundingBox = { x: 50, y: 50, width: 100, height: 100 };
+	let lastImageWidth: Number = 0;
+	let lastImageHeight: Number = 0;
 	let target: HTMLElement | null = null;
 	let resizeHandleBottomRight: HTMLElement | null = null;
 	let resizeHandleTopLeft: HTMLElement | null = null;
@@ -63,52 +65,44 @@
 	}
 
 	function onMouseMove(event: MouseEvent) {
-		console.log(imgElement.width)
 		event.preventDefault();
-		const dx = event.clientX - startX;
-		const dy = event.clientY - startY;
+		let dx = event.clientX - startX;
+		let dy = event.clientY - startY;
 
 		if (isDragging) {
-			boundingBox.x += dx;
-			boundingBox.y += dy;
-			boundingBox.x = Math.max(boundingBox.x, 0)
-			boundingBox.y = Math.max(boundingBox.y, 0)
+			boundingBox.x = Math.min(Math.max(boundingBox.x + dx, 0), imgElement.width - boundingBox.width);
+			boundingBox.y = Math.min(Math.max(boundingBox.y + dy, 0), imgElement.height - boundingBox.height);
 		} else if (isResizing) {
 			switch (resizingCorner) {
 				case 'resizeHandleBottomRight':
-					boundingBox.width += dx;
-					boundingBox.height += dy;
+					boundingBox.width = Math.min(Math.max(boundingBox.width + dx, 10), imgElement.width - boundingBox.x);
+					boundingBox.height = Math.min(Math.max(boundingBox.height + dy, 10), imgElement.height - boundingBox.y);
 					break;
 				case 'resizeHandleTopLeft':
+					dx = Math.min(Math.max(dx, -boundingBox.x), boundingBox.width - 10);
+					dy = Math.min(Math.max(dy, -boundingBox.y), boundingBox.height - 10);
 					boundingBox.x += dx;
 					boundingBox.y += dy;
 					boundingBox.width -= dx;
 					boundingBox.height -= dy;
 					break;
 				case 'resizeHandleTopRight':
+					dy = Math.min(Math.max(dy, -boundingBox.y), boundingBox.height - 10);
 					boundingBox.y += dy;
-					boundingBox.width += dx;
+					boundingBox.width = Math.min(Math.max(boundingBox.width + dx, 10), imgElement.width - boundingBox.x);
 					boundingBox.height -= dy;
 					break;
 				case 'resizeHandleBottomLeft':
+					dx = Math.min(Math.max(dx, -boundingBox.x), boundingBox.width - 10);
 					boundingBox.x += dx;
 					boundingBox.width -= dx;
-					boundingBox.height += dy;
+					boundingBox.height = Math.min(Math.max(boundingBox.height + dy, 10), imgElement.height - boundingBox.y);
 					break;
 			}
-			boundingBox.width = Math.max(boundingBox.width, 10)
-			boundingBox.height = Math.max(boundingBox.height, 10)
-			boundingBox.x = Math.max(boundingBox.x, 0)
-			boundingBox.y = Math.max(boundingBox.y, 0)
 		}
 
 		startX = event.clientX;
 		startY = event.clientY;
-
-		console.log(boundingBox.x/imgElement.naturalWidth)
-		console.log(boundingBox.y/imgElement.naturalHeight)
-		console.log(boundingBox.width/imgElement.naturalWidth)
-		console.log(boundingBox.height/imgElement.naturalHeight)
 	}
 
 	function onMouseUp() {
@@ -132,6 +126,16 @@
 			//@ts-ignore
 			//imgElement.src = e.detail;
 		});
+
+		window.addEventListener("resize",()=>{
+			boundingBox.x = boundingBox.x*imgElement.width/lastImageWidth
+			boundingBox.y = boundingBox.y*imgElement.height/lastImageHeight
+			boundingBox.width = boundingBox.width*imgElement.width/lastImageWidth
+			boundingBox.height = boundingBox.height*imgElement.height/lastImageHeight
+
+			lastImageWidth = imgElement.width
+			lastImageHeight = imgElement.height
+		})
 	});
 
 	async function sendCroppedImage() {
@@ -197,10 +201,12 @@
 		isImageBeingCropped = true
 		await tick();
 		imgElement.src = event.target.getAttribute("src")
-		boundingBox.x=x*imgElement.naturalWidth
-		boundingBox.y=y*imgElement.naturalHeight
-		boundingBox.width=width*imgElement.naturalWidth
-		boundingBox.height=height*imgElement.naturalHeight
+		boundingBox.x=x*imgElement.width
+		boundingBox.y=y*imgElement.height
+		boundingBox.width=width*imgElement.width
+		boundingBox.height=height*imgElement.height
+		lastImageWidth = imgElement.width
+		lastImageHeight = imgElement.height
 	}
 
 	async function onFileAdded(file: any) {
@@ -211,6 +217,8 @@
 				await tick();
 				imgElement.src = reader.result;
 				BoundingBox = { x: 50, y: 50, width: 100, height: 100 }
+				lastImageWidth = imgElement.width
+				lastImageHeight = imgElement.height
 			}
 			fileInput.value=null
 		};
@@ -243,19 +251,18 @@
 				<h3>Sample Images to Try</h3>
 				<div class="sampleImagesContainer">
 					<div class="sampleImage">
-						<img src="./sample-image-2.jpg" on:click={(e)=>selectImage(e,  0.06310446174545778, 0.1284144744025619, 0.759080944742441, 0.717362931765593)}/>
+						<img src="./sample-image-2.jpg" on:click={(e)=>selectImage(e,  0.06310446174545778, 0.1284144744025619, 0.8748704184266516, 0.825471039873701)}/>
 					</div>
 					<div class="sampleImage">
-						<img src="./sample-image-3.jpeg" on:click={(e)=>selectImage(e, 0.09600862998921252,0.10690316395014382,0.18087019057892845,0.19463087248322147)}/>
+						<img src="./sample-image-3.jpeg" on:click={(e)=>selectImage(e, 0.2522586299892125, 0.2659940730410529, 0.479165645124383, 0.5166005694529184)}/>
 					</div>
 					<div class="sampleImage">
-						<img src="./sample-image-1.jpg" on:click={(e)=>selectImage(e,  0.3228836299892125,0.2819031639501438,0.3514951905789285,0.2616308724832215)}/>
+						<img src="./sample-image-1.jpg" on:click={(e)=>selectImage(e,  0.44362226635284885, 0.3705395275865075, 0.48359746330620124, 0.3752672361195851)}/>
 					</div>
 				</div>
 				{:else}
 					<div class="infoText">
-						Please move/resize the red box to select the portion of the image that contains the
-						specimen.
+						Please move/resize the red box to select the portion of the image that contains the specimen.
 					</div>
 					<div class="detailsContainer">
 						<img alt="Loaded image" bind:this={imgElement} />
@@ -342,7 +349,6 @@
 	.imageDetailsContainer {
 		padding: 20px;
 		max-width: 1200px;
-		margin: 20px;
 		border-radius: 10px;
 		background: white;
 		display: flex;
@@ -352,7 +358,7 @@
 	.detailsContainer {
 		display: flex;
 		flex-direction: row;
-		padding: 10px 0px 30px 0px;
+		margin: 10px 0px 30px 0px;
 		flex-direction: column;
 		position: relative;
 	}
@@ -399,17 +405,19 @@
 		border-radius: 50%;
 		border: 2px solid white;
 		box-sizing: border-box;
+		transition: 0.2s ease;
 	}
 	.resizeHandle:hover {
 		background-color: white;
 		border: 4px solid var(--accent-color);
 	}
 	.resizeHandle:active {
-		background-color: white;
-		border: 6px solid var(--accent-color);
+		transform: scale(1.5);
+		transform-origin: center center;
 	}
 	img {
 		max-height: calc(100vh - 240px);
+		max-width: calc(100vw - 70px);
 	}
 
 	.handleBottomRight {
