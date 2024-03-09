@@ -1,59 +1,136 @@
 <script lang="ts">
 	import type { BoundingBox } from '../types/BoundingBoxType';
 	import { onMount } from 'svelte';
+	import { tick } from 'svelte';
 
+	let fileInput: HTMLInputElement;
 	let imgElement: HTMLImageElement;
 	let boundingBox: BoundingBox = { x: 50, y: 50, width: 100, height: 100 };
 	let target: HTMLElement | null = null;
-	let resizeHandle: HTMLElement | null = null;
+	let resizeHandleBottomRight: HTMLElement | null = null;
+	let resizeHandleTopLeft: HTMLElement | null = null;
+	let resizeHandleTopRight: HTMLElement | null = null;
+	let resizeHandleBottomLeft: HTMLElement | null = null;
 	let isOpen: Boolean = false;
 	let isDragging = false;
 	let isResizing = false;
-	let startX: number, startY: number, startWidth: number, startHeight: number;
+	let resizingCorner = '';
+	let isImageBeingCropped = false;
+	let startX: number,
+		startY: number,
+		startWidth: number,
+		startHeight: number,
+		startXPos: number,
+		startYPos: number;
 
 	function onMouseDown(event: MouseEvent) {
-		if (event.target === target) {
-			isDragging = true;
-		} else if (event.target === resizeHandle) {
-			isResizing = true;
-		}
+		event.preventDefault();
 		startX = event.clientX;
 		startY = event.clientY;
 		startWidth = boundingBox.width;
 		startHeight = boundingBox.height;
+		startXPos = boundingBox.x;
+		startYPos = boundingBox.y;
+
+		if (event.target === target) {
+			isDragging = true;
+		} else if (
+			event.target === resizeHandleBottomRight ||
+			event.target === resizeHandleTopLeft ||
+			event.target === resizeHandleTopRight ||
+			event.target === resizeHandleBottomLeft
+		) {
+			isResizing = true;
+			resizingCorner = event.target.id;
+		}
+
 		document.addEventListener('mousemove', onMouseMove);
 		document.addEventListener('mouseup', onMouseUp);
 	}
 
+	function handleDrop(event: MouseEvent) {
+    	event.preventDefault();
+    	const newFiles = event.dataTransfer.files ? [...event.dataTransfer.files] : [];
+		onFileAdded(newFiles[0])
+	}
+
+	function handleDragOver(event: MouseEvent) {
+		event.preventDefault();
+	}
+
+	function handleClick() {
+		fileInput.click();
+	}
+
 	function onMouseMove(event: MouseEvent) {
+		console.log(imgElement.width)
+		event.preventDefault();
+		const dx = event.clientX - startX;
+		const dy = event.clientY - startY;
+
 		if (isDragging) {
-			const dx = event.clientX - startX;
-			const dy = event.clientY - startY;
 			boundingBox.x += dx;
 			boundingBox.y += dy;
-			startX = event.clientX;
-			startY = event.clientY;
+			boundingBox.x = Math.max(boundingBox.x, 0)
+			boundingBox.y = Math.max(boundingBox.y, 0)
 		} else if (isResizing) {
-			const dx = event.clientX - startX;
-			const dy = event.clientY - startY;
-			boundingBox.width = Math.max(50, startWidth + dx); // Minimum size = 50
-			boundingBox.height = Math.max(50, startHeight + dy); // Minimum size = 50
+			switch (resizingCorner) {
+				case 'resizeHandleBottomRight':
+					boundingBox.width += dx;
+					boundingBox.height += dy;
+					break;
+				case 'resizeHandleTopLeft':
+					boundingBox.x += dx;
+					boundingBox.y += dy;
+					boundingBox.width -= dx;
+					boundingBox.height -= dy;
+					break;
+				case 'resizeHandleTopRight':
+					boundingBox.y += dy;
+					boundingBox.width += dx;
+					boundingBox.height -= dy;
+					break;
+				case 'resizeHandleBottomLeft':
+					boundingBox.x += dx;
+					boundingBox.width -= dx;
+					boundingBox.height += dy;
+					break;
+			}
+			boundingBox.width = Math.max(boundingBox.width, 10)
+			boundingBox.height = Math.max(boundingBox.height, 10)
+			boundingBox.x = Math.max(boundingBox.x, 0)
+			boundingBox.y = Math.max(boundingBox.y, 0)
 		}
+
+		startX = event.clientX;
+		startY = event.clientY;
+
+		console.log(boundingBox.x/imgElement.naturalWidth)
+		console.log(boundingBox.y/imgElement.naturalHeight)
+		console.log(boundingBox.width/imgElement.naturalWidth)
+		console.log(boundingBox.height/imgElement.naturalHeight)
 	}
 
 	function onMouseUp() {
 		isDragging = false;
 		isResizing = false;
+		resizingCorner = '';
 		document.removeEventListener('mousemove', onMouseMove);
 		document.removeEventListener('mouseup', onMouseUp);
 	}
 
 	onMount(() => {
-		document.addEventListener('imageAdded', function (e) {
+		document.addEventListener('fileUploader', function (e) {
 			//@ts-ignore
-			imgElement.src = e.detail;
-			document.body.style.overflow = 'hidden';
-			isOpen = true;
+			if(e.detail.popupOpened){
+				document.body.style.overflow = 'hidden';
+				isOpen = true;
+				isImageBeingCropped = false
+
+
+			}
+			//@ts-ignore
+			//imgElement.src = e.detail;
 		});
 	});
 
@@ -101,9 +178,44 @@
 	}
 
 	function bgClicked(event: MouseEvent): void {
-		if(event.target === backgroundRef) {
+		if (event.target === backgroundRef) {
 			closeModal();
 		}
+	}
+
+	function handleFileChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (!input.files || input.files.length === 0) {
+			console.error('No file selected.');
+			return;
+		}
+		onFileAdded(input.files[0])
+
+	}
+
+	async function selectImage(event: Event,x: Number,y: Number,width: Number,height: Number){
+		isImageBeingCropped = true
+		await tick();
+		imgElement.src = event.target.getAttribute("src")
+		boundingBox.x=x*imgElement.naturalWidth
+		boundingBox.y=y*imgElement.naturalHeight
+		boundingBox.width=width*imgElement.naturalWidth
+		boundingBox.height=height*imgElement.naturalHeight
+	}
+
+	async function onFileAdded(file: any) {
+		const reader = new FileReader();
+		reader.onload = async (e: ProgressEvent<FileReader>) => {
+			if(reader && reader.result){
+				isImageBeingCropped = true
+				await tick();
+				imgElement.src = reader.result;
+				BoundingBox = { x: 50, y: 50, width: 100, height: 100 }
+			}
+			fileInput.value=null
+		};
+		reader.onerror = (error) => alert("Error reading the file! " + error);
+		reader.readAsDataURL(file);
 	}
 
 	let backgroundRef: Element;
@@ -117,26 +229,70 @@
 					<h1>Upload Image</h1>
 					<button class="closeBtn" on:click={closeModal}><i class="fa-solid fa-xmark" /></button>
 				</div>
-				<div class="infoText">
-					Please move/resize the box to select the portion of the image that contains the specimen.
-				</div>
-				<div class="detailsContainer">
-					<img alt="Loaded image" bind:this={imgElement} />
-					<div
-						id="target"
-						bind:this={target}
-						style="width: {boundingBox.width}px; height: {boundingBox.height}px; background: rgba(255, 0, 0, 0.5); position: absolute; left: {boundingBox.x}px; top: {boundingBox.y}px"
-						on:mousedown={onMouseDown}
-					>
-						<div
-							id="resizeHandle"
-							class="resizeHandle"
-							bind:this={resizeHandle}
-							on:mousedown={onMouseDown}
-						/>
+				{#if !isImageBeingCropped}
+				<div
+					class="drop-zone"
+					on:click={handleClick}
+					on:dragover|preventDefault={handleDragOver}
+					on:dragenter={e => e.currentTarget.classList.add('drag-over')}
+					on:dragleave={e => e.currentTarget.classList.remove('drag-over')}
+					on:drop={handleDrop}>
+					Click or drag and drop an image here to upload
+					</div>
+				<input type="file" id="file-upload" hidden accept="image/*" bind:this={fileInput} on:change={handleFileChange} />
+				<h3>Sample Images to Try</h3>
+				<div class="sampleImagesContainer">
+					<div class="sampleImage">
+						<img src="./sample-image-2.jpg" on:click={(e)=>selectImage(e,  0.06310446174545778, 0.1284144744025619, 0.759080944742441, 0.717362931765593)}/>
+					</div>
+					<div class="sampleImage">
+						<img src="./sample-image-3.jpeg" on:click={(e)=>selectImage(e, 0.09600862998921252,0.10690316395014382,0.18087019057892845,0.19463087248322147)}/>
+					</div>
+					<div class="sampleImage">
+						<img src="./sample-image-1.jpg" on:click={(e)=>selectImage(e,  0.3228836299892125,0.2819031639501438,0.3514951905789285,0.2616308724832215)}/>
 					</div>
 				</div>
-				<button class="button imgUploadBtn" on:click={sendCroppedImage}>Add</button>
+				{:else}
+					<div class="infoText">
+						Please move/resize the red box to select the portion of the image that contains the
+						specimen.
+					</div>
+					<div class="detailsContainer">
+						<img alt="Loaded image" bind:this={imgElement} />
+						<div
+							id="target"
+							bind:this={target}
+							style="width: {boundingBox.width}px; height: {boundingBox.height}px; background: rgba(255, 0, 0, 0.4); position: absolute; left: {boundingBox.x}px; top: {boundingBox.y}px"
+							on:mousedown={onMouseDown}
+						>
+							<button
+								class="resizeHandle handleBottomRight"
+								id="resizeHandleBottomRight"
+								bind:this={resizeHandleBottomRight}
+								on:mousedown={onMouseDown}
+							/>
+							<button
+								class="resizeHandle handleTopLeft"
+								id="resizeHandleTopLeft"
+								bind:this={resizeHandleTopLeft}
+								on:mousedown={onMouseDown}
+							/>
+							<button
+								class="resizeHandle handleTopRight"
+								id="resizeHandleTopRight"
+								bind:this={resizeHandleTopRight}
+								on:mousedown={onMouseDown}
+							/>
+							<button
+								class="resizeHandle handleBottomLeft"
+								id="resizeHandleBottomLeft"
+								bind:this={resizeHandleBottomLeft}
+								on:mousedown={onMouseDown}
+							/>
+						</div>
+					</div>
+					<button class="button imgUploadBtn" on:click={sendCroppedImage}>Add</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -168,25 +324,24 @@
 		transition: 0.2s;
 		backdrop-filter: blur(1px);
 		overflow: auto;
-        height: 100vh;
+		height: 100vh;
 	}
 	.imageDetailsOuterContainer.active {
 		opacity: 1;
 		pointer-events: all;
 	}
 
-	.imageDetailsContainerWrapper{
-        padding: 20px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-    }
+	.imageDetailsContainerWrapper {
+		padding: 20px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		min-height: 100vh;
+	}
 
 	.imageDetailsContainer {
 		padding: 20px;
 		max-width: 1200px;
-		min-width: 600px;
 		margin: 20px;
 		border-radius: 10px;
 		background: white;
@@ -202,7 +357,7 @@
 		position: relative;
 	}
 
-	.detailsContainer img{
+	.detailsContainer img {
 		user-select: none;
 	}
 
@@ -237,16 +392,111 @@
 	}
 
 	.resizeHandle {
-		width: 10px;
-		height: 10px;
+		width: 14px;
+		height: 14px;
 		background: var(--accent-color);
 		position: absolute;
-		right: -3px;
-		bottom: -3px;
-		cursor: se-resize;
 		border-radius: 50%;
+		border: 2px solid white;
+		box-sizing: border-box;
+	}
+	.resizeHandle:hover {
+		background-color: white;
+		border: 4px solid var(--accent-color);
+	}
+	.resizeHandle:active {
+		background-color: white;
+		border: 6px solid var(--accent-color);
 	}
 	img {
 		max-height: calc(100vh - 240px);
 	}
+
+	.handleBottomRight {
+		right: -6px;
+		bottom: -6px;
+		cursor: se-resize;
+	}
+
+	.handleTopLeft {
+		left: -6px;
+		top: -6px;
+		cursor: nw-resize;
+	}
+
+	.handleTopRight {
+		right: -6px;
+		top: -6px;
+		cursor: ne-resize;
+	}
+
+	.handleBottomLeft {
+		left: -6px;
+		bottom: -6px;
+		cursor: sw-resize;
+	}
+
+	#target {
+		cursor: move;
+		border: 2px solid rgba(255, 0, 0, 0.7);
+		box-sizing: border-box;
+	}
+
+	.upload-container{
+		width: 95%;
+		max-width: 1200px;
+		display: flex;
+		justify-content: space-around;
+	}
+
+	.drop-zone {
+		border: 2px dashed #ccc;
+		padding: 20px;
+		text-align: center;
+		margin: 20px 0px;
+		cursor: pointer;
+		min-height: 120px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.drop-zone:hover{
+		background-color: rgba(0, 0, 0, 0.05);
+	}
+	.drop-zone:active{
+		background-color: rgba(0, 0, 0, 0.08);
+	}
+
+	.sampleImagesContainer {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+		gap: 10px;
+		justify-items: center;
+		align-items: start;
+		margin-top: 10px;
+	}
+
+	.sampleImage {
+		width: 100%;
+		height: -webkit-fill-available;
+		border-radius: 5px;
+		overflow: hidden;
+		cursor: pointer;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.sampleImage img{
+		transition: 0.2s ease;
+		width: 100%;
+		height: 100%;
+	}
+
+	.sampleImage:hover img {
+		transform: scale(1.1);
+		transform-origin: center center;
+
+	}
+
 </style>
