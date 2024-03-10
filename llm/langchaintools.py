@@ -425,14 +425,17 @@ def generatesqlServerQuery(
     scientificNames: str,
     name: str,
     outputType: str,
-    inputImageDataAvailable: bool
+    inputImageDataAvailable: bool,
+    originalPrompt: str
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
 
     print("prompt sent to generatesqlServerQuery ",prompt)
 
-    if inputImageDataAvailable and not isNameAvaliable(name):
+    if inputImageDataAvailable:
+        prompt = originalPrompt
+    elif not isNameAvaliable(name):
         prompt = prompt.replace(name, '')
     else:
         if isinstance(name, str) and len(name) > 1:
@@ -844,7 +847,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         Important: Work on the task until you finish, do not ask if you should continue
                         """})
 
-        messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
+        messages.append({"role":"user","content":("User has provided a new image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
         isSpeciesData = False
         result = None
         function_name=""
@@ -870,8 +873,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             if pil_image.mode != 'RGB':
                 pil_image = pil_image.convert('RGB')
             tensor = preprocess(pil_image)
+            tensor = tensor.to(device)
             with torch.no_grad():
-                features = model(tensor.unsqueeze(0))
+                features = efficeintNetModel(tensor.unsqueeze(0))
+            features = features.cpu()
             
             features_squeezed = features.squeeze()
             formatted_features = []
@@ -1076,6 +1081,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         yield sse_data
                     if(function_name=="generatesqlServerQuery"):
                         args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
+                        args["originalPrompt"] = prompt
                     
                     result = function_to_call(**args)
                     
@@ -1415,7 +1421,8 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     row['result'+str(i)] = allResults[f]
                 allResultsCsv.append(row)
                 json.dump(allResultsCsv, outfile)
-    except:
+    except Exception as e:
+        print(e)
         event_data = {
                 "result": {
                     "outputType": "error",

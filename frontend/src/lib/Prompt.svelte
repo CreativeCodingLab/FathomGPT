@@ -245,6 +245,7 @@
 		height: auto;
 		border-radius: 10px;
 		margin-left: 10px;
+		border-radius: 5px;
 	}
 
 	.removeImageBtn {
@@ -297,5 +298,7 @@
 	.newChatBtn i{
 		font-size: 20px;
 	}
+
+	
 
 </style>
