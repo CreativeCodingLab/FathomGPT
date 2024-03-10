@@ -91,7 +91,7 @@
         overflow-y: scroll;
         color: black;
         padding: 0px 30px 30px var(--page-horizontal-padding);
-		height: calc(100vh - var(--page-header-height));
+		height: calc(100dvh - var(--page-header-height));
         position: sticky;
         top: var(--page-header-height);
 		transition: 0.2s ease;
@@ -99,7 +99,7 @@
 			position: fixed;
             top: 0;
             z-index: 10000;
-            height: 100vh;
+            height: 100dvh;
             width: 100%;
             background-color: rgba(51,51,51,0.4);
             padding-left: 0px;

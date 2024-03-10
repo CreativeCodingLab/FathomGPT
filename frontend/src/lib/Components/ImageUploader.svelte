@@ -336,7 +336,7 @@
 		left: 0;
 		top: 0;
 		width: 100%;
-		min-height: 100vh;
+		min-height: 100dvh;
 		z-index: 1000;
 		background-color: rgba(0, 0, 0, 0.5);
 		opacity: 0;
@@ -344,7 +344,7 @@
 		transition: 0.2s;
 		backdrop-filter: blur(1px);
 		overflow: auto;
-		height: 100vh;
+		height: 100dvh;
 	}
 	.imageDetailsOuterContainer.active {
 		opacity: 1;
@@ -356,7 +356,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		min-height: 100vh;
+		min-height: 100dvh;
 	}
 
 	.imageDetailsContainer {
@@ -429,7 +429,7 @@
 		transform-origin: center center;
 	}
 	img {
-		max-height: calc(100vh - 240px);
+		max-height: calc(100dvh - 240px);
 		max-width: calc(100vw - 70px);
 	}
 
