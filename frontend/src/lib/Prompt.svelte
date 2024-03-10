@@ -40,6 +40,9 @@
 	}
 
 	function submitPrompt() {
+		if(loading || isNewChatNeeded){
+			return
+		}
 		if (value !== '') {
 			if(isImageSelected){
 				convertBlobUrlToBase64(selectedImage.src, (imageData: any)=>{
@@ -62,6 +65,8 @@
 		isImageSelected=false;
 
 	}
+
+	export let isNewChatNeeded: Boolean;
 
 	onMount(() => {
         document.addEventListener('imageSelected', async function (e) {
@@ -104,6 +109,12 @@
 	function reload(){
         window.location.reload()
     }
+
+	export function addNewRequest(textVal: string, imageVal: string){
+		textarea.value = textVal
+		value = textVal
+		submitPrompt();
+	}
 
 </script>
 

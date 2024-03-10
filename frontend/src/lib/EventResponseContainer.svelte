@@ -138,7 +138,9 @@
 				curLoader.complete()
 				curLoader = null;
 			}
-			guid = eventData.result.guid
+			if(eventData.result.guid!=null){
+				guid = eventData.result.guid
+			}
 			//@ts-ignore
 			//updateBox.$destroy();
 
@@ -188,6 +190,12 @@
 					break;
 				case 'error':
 					handleText(container, "<div style='color:red'>"+eventData.result.responseText+"</div>");
+					break;
+				case 'tokenLengthExceeded':
+					handleText(container, "<div style='color:red'>"+eventData.result.responseText+"</div>");
+					if(eventData.result.outputType=='tokenLengthExceeded'){
+						dispatch('newChatNeeded');
+					}
 					break;
 				default:
 					console.error('[TREY] Error: Invalid output type');

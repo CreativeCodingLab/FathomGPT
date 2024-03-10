@@ -12,28 +12,39 @@
 	import ImageUploader from '$lib/Components/ImageUploader.svelte';
 
 	const URL = serverBaseURL+'/event-stream';
+	let isNewChatNeeded = false
 	
 
 	let container: EventResponseContainer;
 	let promptBox: Prompt;
 
 	function handleResponse(event: any) {
+		if(isNewChatNeeded){
+			return
+		}
 		promptBox.toggleLoading();
-		console.log('response received', event.detail);
 		container.fetchResponse(event.detail.value, event.detail.image);
+	}
+
+	function addNewRequest(event: any) {
+		promptBox.addNewRequest(event.detail.value, event.detail.image)
 	}
 
 	function responseReceived() {
 		promptBox.toggleLoading();
 	}
 
+	function setNewChatNeeded() {
+		isNewChatNeeded = true
+	}
+
 </script>
 
 <main>
-	<Info on:submit={handleResponse}></Info>
+	<Info on:submit={addNewRequest}></Info>
 	<div class="chatContainer">
-		<EventResponseContainer {URL} bind:this={container} on:responseReceived={responseReceived} />
-		<Prompt bind:this={promptBox} on:submit={handleResponse} />
+		<EventResponseContainer {URL} bind:this={container} on:responseReceived={responseReceived} on:newChatNeeded={setNewChatNeeded} />
+		<Prompt bind:this={promptBox} on:submit={handleResponse} isNewChatNeeded={isNewChatNeeded} />
 	</div>
 	<ImageDetail></ImageDetail>
 	<ImageUploader></ImageUploader>
