@@ -34,7 +34,7 @@
 
 <style>
 		.plotLyVis{
-        min-width: 250px;
+        min-width: 550px;
         min-height: 450px;
 		}
 </style>
