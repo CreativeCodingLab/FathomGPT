@@ -34,7 +34,7 @@
 <header>
 	<div class="headerInner">
 		<div class="logoWrapper">
-			<button class="buttonCircled" on:click={openSidebar}><i class="fa-solid fa-bars"></i></button>
+			<button class="buttonCircled openSidebarBtn" on:click={openSidebar}><i class="fa-solid fa-bars"></i></button>
 			<img src="./logo.png" alt="logo" class="logo" on:click={()=>goto('/')}/>
 		</div>
 		{#if currentPath === '/'}
@@ -61,6 +61,13 @@
 		display: flex;
 		@media (max-width: 1080px) {
 			padding: 5px 10px;
+		}
+	}
+
+	.openSidebarBtn{
+		display: none;
+		@media (max-width: 1080px) {
+			display: flex;
 		}
 	}
 
