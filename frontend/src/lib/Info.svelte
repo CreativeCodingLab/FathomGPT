@@ -42,11 +42,11 @@
 
     function hideSideBar(){
         sidebarHidden = true
-		document.body.style.overflow = 'auto';
+		document.body.style="overflow:auto"
     }
 
     function showSideBar(){
-		document.body.style.overflow = 'hidden';
+		document.body.style="overflow:hidden"
         sidebarHidden = false
     }
 
