@@ -128,13 +128,15 @@
 		});
 
 		window.addEventListener("resize",()=>{
-			boundingBox.x = boundingBox.x*imgElement.width/lastImageWidth
-			boundingBox.y = boundingBox.y*imgElement.height/lastImageHeight
-			boundingBox.width = boundingBox.width*imgElement.width/lastImageWidth
-			boundingBox.height = boundingBox.height*imgElement.height/lastImageHeight
+			if(imgElement!=null){
+				boundingBox.x = boundingBox.x*imgElement.width/lastImageWidth
+				boundingBox.y = boundingBox.y*imgElement.height/lastImageHeight
+				boundingBox.width = boundingBox.width*imgElement.width/lastImageWidth
+				boundingBox.height = boundingBox.height*imgElement.height/lastImageHeight
 
-			lastImageWidth = imgElement.width
-			lastImageHeight = imgElement.height
+				lastImageWidth = imgElement.width
+				lastImageHeight = imgElement.height
+			}
 		})
 	});
 
