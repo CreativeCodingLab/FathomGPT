@@ -119,7 +119,9 @@
     }
 
     main.sidebarHidden .sidebar{
-        transform: translateX(-100%);
+		@media (max-width: 1080px) {
+            transform: translateX(-100%);
+        }
     }
 
     .newBtn{
