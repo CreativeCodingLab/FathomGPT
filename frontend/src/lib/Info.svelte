@@ -7,7 +7,7 @@
     const dispatch = createEventDispatcher();
 
     function insertPrompt(event: any) {
-        sidebarHidden=true
+        hideSideBar()
         dispatch("submit", {value:event.target.innerText});
     }
     let prompts = [

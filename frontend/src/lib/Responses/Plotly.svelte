@@ -28,13 +28,20 @@
 <main class="fathomChatContainer">
 	<blockquote>{naturalTextResponse}</blockquote>
 	<br />
-	<div class="plotLyVis" bind:this={curVisContainer}>
+    <div class="plotlyWrapper">
+	    <div class="plotLyVis" bind:this={curVisContainer}>
+    </div>
 	</div>
 </main>
 
 <style>
-		.plotLyVis{
-        min-width: 550px;
-        min-height: 450px;
+		.plotlyWrapper{
+            width: 100%;
+            overflow: auto;
 		}
+
+        .plotLyVis{
+            min-width: 550px;
+            min-height: 450px;
+        }
 </style>
