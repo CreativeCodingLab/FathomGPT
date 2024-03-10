@@ -490,27 +490,41 @@
 
 	.sampleImagesContainer {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 		gap: 10px;
 		justify-items: center;
 		align-items: start;
 		margin-top: 10px;
+		grid-template-columns: 1fr 1fr 1fr 1fr;
+		@media (max-width: 864px) {
+			grid-template-columns: 1fr 1fr;
+		}
+		@media (max-width: 600px) {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	.sampleImage {
-		width: 100%;
 		border-radius: 5px;
 		overflow: hidden;
 		cursor: pointer;
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		width: 100%;
+		height: 100%;
+		min-width: 250px;
+		height: 180px;
+		justify-content: center;
+		align-items: center;
+		background-color: black;
 	}
 
 	.sampleImage img{
 		transition: 0.2s ease;
-		width: 100%;
-		height: 100%;
+		max-width: 100%;
+		max-height: 100%;
+		width: auto;
+		height: auto;
 	}
 
 	.sampleImage:hover img {
