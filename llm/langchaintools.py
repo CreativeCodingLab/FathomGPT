@@ -46,8 +46,11 @@ import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
 openai.api_key = KEYS['openai']
 
-model = models.efficientnet_b7(pretrained=True)
-model.eval()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+efficeintNetModel = models.efficientnet_b7(pretrained=True)
+efficeintNetModel.eval()
+efficeintNetModel.to(device)
 
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)), 
@@ -869,8 +872,10 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
         if pil_image.mode != 'RGB':
             pil_image = pil_image.convert('RGB')
         tensor = preprocess(pil_image)
+        tensor_cuda = tensor.to(device)
         with torch.no_grad():
-            features = model(tensor.unsqueeze(0))
+            features_gpu = efficeintNetModel(tensor_cuda.unsqueeze(0))
+            features = features_gpu.cpu()
         
         features_squeezed = features.squeeze()
         formatted_features = []
