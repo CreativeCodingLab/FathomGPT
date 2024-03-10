@@ -25,14 +25,11 @@
 		startXPos: number,
 		startYPos: number;
 
-	function onMouseDown(event: MouseEvent) {
+		function onMouseDown(event: MouseEvent | TouchEvent) {
 		event.preventDefault();
-		startX = event.clientX;
-		startY = event.clientY;
-		startWidth = boundingBox.width;
-		startHeight = boundingBox.height;
-		startXPos = boundingBox.x;
-		startYPos = boundingBox.y;
+		const { x, y } = getEventCoordinates(event);
+		startX = x;
+		startY = y;
 
 		if (event.target === target) {
 			isDragging = true;
@@ -48,6 +45,9 @@
 
 		document.addEventListener('mousemove', onMouseMove);
 		document.addEventListener('mouseup', onMouseUp);
+		// Adding touch event listeners
+		document.addEventListener('touchmove', onMouseMove, { passive: false });
+		document.addEventListener('touchend', onMouseUp);
 	}
 
 	function handleDrop(event: MouseEvent) {
@@ -64,10 +64,11 @@
 		fileInput.click();
 	}
 
-	function onMouseMove(event: MouseEvent) {
+	function onMouseMove(event: MouseEvent | TouchEvent) {
 		event.preventDefault();
-		let dx = event.clientX - startX;
-		let dy = event.clientY - startY;
+		const { x, y } = getEventCoordinates(event);
+		let dx = x - startX;
+		let dy = y - startY;
 
 		if (isDragging) {
 			boundingBox.x = Math.min(Math.max(boundingBox.x + dx, 0), imgElement.width - boundingBox.width);
@@ -101,8 +102,8 @@
 			}
 		}
 
-		startX = event.clientX;
-		startY = event.clientY;
+		startX = x;
+		startY = y;
 	}
 
 	function onMouseUp() {
@@ -111,6 +112,17 @@
 		resizingCorner = '';
 		document.removeEventListener('mousemove', onMouseMove);
 		document.removeEventListener('mouseup', onMouseUp);
+		document.removeEventListener('touchmove', onMouseMove);
+    	document.removeEventListener('touchend', onMouseUp);
+	}
+
+	function getEventCoordinates(event: MouseEvent | TouchEvent): { x: number; y: number } {
+		if (event instanceof MouseEvent) {
+			return { x: event.clientX, y: event.clientY };
+		} else {
+			const touch = event.touches[0] || event.changedTouches[0];
+			return { x: touch.clientX, y: touch.clientY };
+		}
 	}
 
 	onMount(() => {
@@ -273,30 +285,35 @@
 							bind:this={target}
 							style="width: {boundingBox.width}px; height: {boundingBox.height}px; background: rgba(255, 0, 0, 0.4); position: absolute; left: {boundingBox.x}px; top: {boundingBox.y}px"
 							on:mousedown={onMouseDown}
+							on:touchstart={onMouseDown}
 						>
 							<button
 								class="resizeHandle handleBottomRight"
 								id="resizeHandleBottomRight"
 								bind:this={resizeHandleBottomRight}
 								on:mousedown={onMouseDown}
+								on:touchstart={onMouseDown}
 							/>
 							<button
 								class="resizeHandle handleTopLeft"
 								id="resizeHandleTopLeft"
 								bind:this={resizeHandleTopLeft}
 								on:mousedown={onMouseDown}
+								on:touchstart={onMouseDown}
 							/>
 							<button
 								class="resizeHandle handleTopRight"
 								id="resizeHandleTopRight"
 								bind:this={resizeHandleTopRight}
 								on:mousedown={onMouseDown}
+								on:touchstart={onMouseDown}
 							/>
 							<button
 								class="resizeHandle handleBottomLeft"
 								id="resizeHandleBottomLeft"
 								bind:this={resizeHandleBottomLeft}
 								on:mousedown={onMouseDown}
+								on:touchstart={onMouseDown}
 							/>
 						</div>
 					</div>
