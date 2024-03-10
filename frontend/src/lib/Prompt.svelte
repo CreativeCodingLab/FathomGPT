@@ -77,6 +77,8 @@
 			e.preventDefault();
 			submitPrompt();
 			textarea.value = '';
+			textarea.innerHTML = '';
+			textarea.innerText = '';
 			heightModifier = 3.2;
 			textarea.focus();
 			isImageSelected=false;

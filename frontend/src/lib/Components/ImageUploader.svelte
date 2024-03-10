@@ -19,11 +19,7 @@
 	let resizingCorner = '';
 	let isImageBeingCropped = false;
 	let startX: number,
-		startY: number,
-		startWidth: number,
-		startHeight: number,
-		startXPos: number,
-		startYPos: number;
+		startY: number;
 
 		function onMouseDown(event: MouseEvent | TouchEvent) {
 		event.preventDefault();
@@ -129,11 +125,9 @@
 		document.addEventListener('fileUploader', function (e) {
 			//@ts-ignore
 			if(e.detail.popupOpened){
-				document.body.style.overflow = 'hidden';
+				document.body.style="overflow:hidden"
 				isOpen = true;
 				isImageBeingCropped = false
-
-
 			}
 			//@ts-ignore
 			//imgElement.src = e.detail;
@@ -191,7 +185,7 @@
 	}
 
 	function closeModal() {
-		document.body.style.overflow = 'auto';
+		document.body.style="overflow:auto"
 		isOpen = false;
 	}
 
@@ -505,7 +499,6 @@
 
 	.sampleImage {
 		width: 100%;
-		height: -webkit-fill-available;
 		border-radius: 5px;
 		overflow: hidden;
 		cursor: pointer;
