@@ -831,278 +831,175 @@ availableFunctionsDescription = {
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
 def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=None):
 
+    try:
+        initialMessagesCount = len(messages)
+        start_time = time.time()
+        messages.insert(0,{"role":"system", "content":"""You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. 
 
-    initialMessagesCount = len(messages)
-    start_time = time.time()
-    messages.insert(0,{"role":"system", "content":"""You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. 
-                       You have the ability to do visulizations like generating area chart showing the year the images were taken, generating heatmap of species in Monterey Bay, etc.
-                       You have the ability to find marine species that live below 1000 meters, find the total count of marine species in Monterey Bay, etc.
+                        Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The 'getScientificNamesFromDescription' function will output the same input name when the input name is already a scientific name. Donot re-run the function with the same input. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. 
+                        If you are not running any function, just output the text, dont format it like the other content
+                        Important: Work on the task until you finish, do not ask if you should continue
+                        """})
 
-                       Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The 'getScientificNamesFromDescription' function will output the same input name when the input name is already a scientific name. Donot re-run the function with the same input. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. 
-                       If you are not running any function, just output the text, dont format it like the other content
-                       Work on the task until you finish, do not ask if you should continue
-                       """})
+        messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
+        isSpeciesData = False
+        result = None
+        function_name=""
+        curLoopCount = 0
+        allResultsCsv = []
+        allResults = {}
+        lastTemperature=0
 
-    messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
-    isSpeciesData = False
-    result = None
-    function_name=""
-    curLoopCount = 0
-    allResultsCsv = []
-    allResults = {}
-    lastTemperature=0
+        if SAVE_INTERMEDIATE_RESULTS:
+            with open('data/intermediate_results.json') as f:
+                allResultsCsv = json.load(f)
 
-    if SAVE_INTERMEDIATE_RESULTS:
-        with open('data/intermediate_results.json') as f:
-            allResultsCsv = json.load(f)
+        if isEventStream:
+            event_data = {
+                "message": "Evaluating Prompt"
+            }
+            sse_data = f"data: {json.dumps(event_data)}\n\n"
+            yield sse_data
 
-    if isEventStream:
-        event_data = {
-            "message": "Evaluating Prompt"
-        }
-        sse_data = f"data: {json.dumps(event_data)}\n\n"
-        yield sse_data
-
-    eval_image_feature_string = ""
-    if imageData is not None and imageData!="":
-        pil_image=base64_to_pil_image(imageData)
-        if pil_image.mode != 'RGB':
-            pil_image = pil_image.convert('RGB')
-        tensor = preprocess(pil_image)
-        with torch.no_grad():
-            features = model(tensor.unsqueeze(0))
-        
-        features_squeezed = features.squeeze()
-        formatted_features = []
-
-        for index, feature in enumerate(features_squeezed, start=1):
-            formatted_feature = f"(-1, {index}, {feature:.5f})"
-            formatted_features.append(formatted_feature)
-
-        eval_image_feature_string = ", ".join(formatted_features)
-    
-    
-    while curLoopCount < 4:
-        curLoopCount+=1
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0125",
-            messages=messages,
-            functions=availableFunctions,
-            function_call="auto",
-            temperature=lastTemperature,
-
-        )
-        response_message = response["choices"][0]["message"]
-        if(response_message.get("function_call")):
-            function_name = response_message["function_call"]["name"]
-            args = json.loads(response_message.function_call.get('arguments'))
+        eval_image_feature_string = ""
+        if imageData is not None and imageData!="":
+            pil_image=base64_to_pil_image(imageData)
+            if pil_image.mode != 'RGB':
+                pil_image = pil_image.convert('RGB')
+            tensor = preprocess(pil_image)
+            with torch.no_grad():
+                features = model(tensor.unsqueeze(0))
             
-            print('----')
-            print(function_name)
+            features_squeezed = features.squeeze()
+            formatted_features = []
 
-            for key, value in args.items():
-                if isinstance(value, str):
-                    if value == "True":
-                        args[key] = True
-                    elif value == "False":
-                        args[key] = False
-                    else:
-                        try:
-                            args[key] = float(value) if '.' in value else int(value)
-                        except ValueError:
-                            pass
-                        
-            function_to_call = globals().get(function_name)
-            if(function_name=="modifyExistingVisualization"):
-                if isEventStream:
+            for index, feature in enumerate(features_squeezed, start=1):
+                formatted_feature = f"(-1, {index}, {feature:.5f})"
+                formatted_features.append(formatted_feature)
+
+            eval_image_feature_string = ", ".join(formatted_features)
+        
+        
+        while curLoopCount < 4:
+            curLoopCount+=1
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo-0613",#"gpt-3.5-turbo-0125",
+                    messages=messages,
+                    functions=availableFunctions,
+                    function_call="auto",
+                    temperature=lastTemperature,
+                )
+            except openai.error.InvalidRequestError as e:
+                if "Please reduce the length of the messages or functions." in str(e):
                     event_data = {
-                        "message": "Modifying the visualization"
-                    }
+                            "result": {
+                                "outputType": "tokenLengthExceeded",
+                                "responseText": "Sorry, there max token limit was exceeded for this conversation. Please start a new chat."
+                            }
+                        }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
-
-                lastInteractionWithVisualization = None
-                for i in range(initialMessagesCount, 0, -1):
-                    try:
-                        lastPlotlyCode = eval(messages[i]['content'])['plotlyCode']
-                        if lastPlotlyCode is not None and lastPlotlyCode != "":
-                            lastInteractionWithVisualization = json.loads(json.dumps(messages[i]))
-                            break
-                    except Exception:
-                        continue
-                
-                if lastInteractionWithVisualization is None:
-                    messages.append({"role":"function","content":"User Prompt Error. No previous visualization data found","name": function_name})
-                    continue
-                parsedPrvresponse = eval(lastInteractionWithVisualization['content'])
-
-                prvPlotlyCode = parsedPrvresponse['plotlyCode']
-                sampleData = parsedPrvresponse['sampleData']
-
-                evalNewdbQueryNeeded = openai.ChatCompletion.create(
-                    model="gpt-4-turbo-preview",
-                    temperature=0,
-                    messages=[{"role": "system","content":"""
-                    Your task is to evaluate the current situation and come to a conclusion of True or False. You will be given a plotly code. 
-                               The plotly code will have a sample data as a comment. This is the current data the system has right now. User is trying to modify the plotly visualization. What user is trying to acheieve is given by the prompt that the user provides.
-                               Your task is to evaluate either the user needs additional data or not to perform the modification according to the prompt to the visualization.
-                               Plotly code will be modified later by the user based on the user's prompt, if there are any visual changes like change the x, y axis range, visual attributes, another type of visualization, etc that will be done by the user. In those cases the sample data does not need to be modified.
-
-                    Output True if user needs additional data to modify the visualization else Output False
-                    """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "prompt:" + args['prompt']}],
-                )
-
-                if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
-                    lastTemperature = 1.0
-                    messages.append({"role":"function","content":"Not enough data to modify the visualization, using previous prompts, re-generate another prompt that instructs to draw the visualization with the modification and run generatesqlServerQuery function. Make sure to add all the constraints that were in the earlier prompts.","name": function_name})
-                    continue
-
-                def first_task():
-                    return function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
-
-                with ThreadPoolExecutor(max_workers=1) as executor:
-                    future_result = executor.submit(first_task)
-                    
-                    isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt, isEventStream=isEventStream)
-
-                    result = future_result.result()
-
-                if errorRunningSQL:
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Max token length limit exceeded")
+                    return None
+                else:
+                    print(e)
                     event_data = {
                             "result": {
                                 "outputType": "error",
-                                "responseText": sqlResult
+                                "responseText": "Sorry, there was an openai api error while processing your prompt. Please try again later."
                             }
                         }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
-                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Error while running the generated sql query")
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response="OpenAI api error")
                     return None
-                
-                codeGenerationTries = 3
-                fig=None
-                while(codeGenerationTries > 0):
-                    try:
-                        exec(result["plotlyCode"], globals())
-                        fig = drawVisualization(sqlResult)
-                        codeGenerationTries = 0
-                    except Exception as e:
-                        codeGenerationTries-=1
-
-                        if(codeGenerationTries==0):
-                            event_data = {
-                                    "result": {
-                                        "outputType": "error",
-                                        "responseText": "Error running the generated code"
-                                    }
-                                }
-                            sse_data = f"data: {json.dumps(event_data)}\n\n"
-                            yield sse_data
-                            Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
-                            return None
-                        event_data = {
-                                "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+            except Exception as e:
+                    event_data = {
+                            "result": {
+                                "outputType": "error",
+                                "responseText": "Sorry, there was an openai api error while processing your prompt. Please try again later."
                             }
-                        sse_data = f"data: {json.dumps(event_data)}\n\n"
-                        yield sse_data
-                        result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(e))
-
-                html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-                output = {}
-                output["outputType"] = parsedPrvresponse['outputType']
-                output["responseText"] = result["responseText"]
-                output["html"] = html_output
-
-                if isEventStream:
-                    output['guid']=str(db_obj.id)
-                    event_data = {
-                        "result": output
-                    }
+                        }
                     sse_data = f"data: {json.dumps(event_data)}\n\n"
                     yield sse_data
-                    output["sampleData"] = parsedPrvresponse['sampleData']
-                    output["plotlyCode"] = prvPlotlyCode
-                    output["sqlServerQuery"] = parsedPrvresponse['sqlServerQuery']
-                    output["html"] = ""
-                    Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-                return
-            elif function_to_call:
-                if isEventStream:
-                    event_data = {
-                        "message": availableFunctionsDescription[function_name],
-                    }
-                    if isinstance(result, str):
-                        event_data["message"] = event_data["message"]
-                        allResults[function_name] = result
-                    print(event_data)
-                    sse_data = f"data: {json.dumps(event_data)}\n\n"
-                    yield sse_data
-                if(function_name=="generatesqlServerQuery"):
-                    args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response="OpenAI api error")
+                    return None
+
+            response_message = response["choices"][0]["message"]
+            if(response_message.get("function_call")):
+                function_name = response_message["function_call"]["name"]
+                args = json.loads(response_message.function_call.get('arguments'))
                 
-                result = function_to_call(**args)
-                
+                print('----')
+                print(function_name)
 
-
-                if(function_name=="generatesqlServerQuery"):
-                    if 'sqlQuery' in result:
-                        result['sqlServerQuery'] = result['sqlQuery']
-
-                    if "sqlServerQuery" not in result or result['sqlServerQuery'] == "":
-                        continue
-
-                    def gen_plotly_task(vizprompt, sampleData):
-                        vizmessages = [{"role": "system","content":"""
-                            Your task is to generate plotly code based on the user's prompt. The plotly code should define the necessary import and have drawVisualization function defined that takes in data variable and outputs plotly visualization object.
-                            The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
-                            The plotly visualization should be able to take the data defined like the sample data and should not bug out for input same as sample data.
-                            Important: The plotly code will be run with exact input as that of the sample data, so do not use any properties other than those defined in the sample data.
-                            Do not write any comments in the code.
-                            """}]
-
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData']})
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode']})
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user2']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData2']})
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode2']})
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user3']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData3']})
-                        vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode3']})
-                        vizmessages.append({"role":"user","content": "prompt:" + vizprompt+ "\nsample data:"+sampleData})
-
-                        plotlyCodeGenerator = openai.ChatCompletion.create(
-                            model="gpt-4-0125-preview",
-                            temperature=0,
-                            messages=vizmessages,
-                        )
-
-                        plotlyCode = plotlyCodeGenerator["choices"][0]["message"]["content"]
-                        plotlyCode = plotlyCode.strip()
-                        if plotlyCode.startswith('```python'):
-                            plotlyCode=plotlyCode.replace('```python','')
-                        if plotlyCode.endswith('```'):
-                            plotlyCode = plotlyCode[:-3]
-                        return plotlyCode
-
-                    sql = result['sqlServerQuery']
-                    limit = -1
-                    if result["outputType"]=="images" and sql.strip().startswith('SELECT '):
-                        limit, sql = changeNumberToFetch(sql)
+                for key, value in args.items():
+                    if isinstance(value, str):
+                        if value == "True":
+                            args[key] = True
+                        elif value == "False":
+                            args[key] = False
+                        else:
+                            try:
+                                args[key] = float(value) if '.' in value else int(value)
+                            except ValueError:
+                                pass
+                            
+                function_to_call = globals().get(function_name)
+                if(function_name=="modifyExistingVisualization"):
                     if isEventStream:
                         event_data = {
-                            "message": "Querying database...                             SQL Query:"+sql
+                            "message": "Modifying the visualization"
                         }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                    if(result["outputType"]=="visualization"):
-                        with ThreadPoolExecutor(max_workers=1) as executor:
-                            future_result = executor.submit(gen_plotly_task, args['prompt'], result['sampleData'])
-                            isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+
+                    lastInteractionWithVisualization = None
+                    for i in range(initialMessagesCount, 0, -1):
+                        try:
+                            lastPlotlyCode = eval(messages[i]['content'])['plotlyCode']
+                            if lastPlotlyCode is not None and lastPlotlyCode != "":
+                                lastInteractionWithVisualization = json.loads(json.dumps(messages[i]))
+                                break
+                        except Exception:
+                            continue
+                    
+                    if lastInteractionWithVisualization is None:
+                        messages.append({"role":"function","content":"User Prompt Error. No previous visualization data found","name": function_name})
+                        continue
+                    parsedPrvresponse = eval(lastInteractionWithVisualization['content'])
+
+                    prvPlotlyCode = parsedPrvresponse['plotlyCode']
+                    sampleData = parsedPrvresponse['sampleData']
+
+                    evalNewdbQueryNeeded = openai.ChatCompletion.create(
+                        model="gpt-4-turbo-preview",
+                        temperature=0,
+                        messages=[{"role": "system","content":"""
+                        Your task is to evaluate the current situation and come to a conclusion of True or False. You will be given a plotly code. 
+                                The plotly code will have a sample data as a comment. This is the current data the system has right now. User is trying to modify the plotly visualization. What user is trying to acheieve is given by the prompt that the user provides.
+                                Your task is to evaluate either the user needs additional data or not to perform the modification according to the prompt to the visualization.
+                                Plotly code will be modified later by the user based on the user's prompt, if there are any visual changes like change the x, y axis range, visual attributes, another type of visualization, etc that will be done by the user. In those cases the sample data does not need to be modified.
+
+                        Output True if user needs additional data to modify the visualization else Output False
+                        """},{"role":"user", "content": "code: \n" + "#sample data: "+sampleData.replace("\n","")+"\n\n"+prvPlotlyCode + "prompt:" + args['prompt']}],
+                    )
+
+                    if("TRUE" in evalNewdbQueryNeeded["choices"][0]["message"]["content"].upper()):
+                        lastTemperature = 1.0
+                        messages.append({"role":"function","content":"Not enough data to modify the visualization, using previous prompts, re-generate another prompt that instructs to draw the visualization with the modification and run generatesqlServerQuery function. Make sure to add all the constraints that were in the earlier prompts.","name": function_name})
+                        continue
+
+                    def first_task():
+                        return function_to_call(prompt=args['prompt'], plotlyCode=prvPlotlyCode, sampleData=sampleData)
+
+                    with ThreadPoolExecutor(max_workers=1) as executor:
+                        future_result = executor.submit(first_task)
                         
-                            result["plotlyCode"] = future_result.result()
-                            print(result["plotlyCode"])
+                        isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(parsedPrvresponse['sqlServerQuery'], True, prompt=prompt, isEventStream=isEventStream)
 
-                    else:
-                        isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
-
+                        result = future_result.result()
 
                     if errorRunningSQL:
                         event_data = {
@@ -1113,271 +1010,419 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             }
                         sse_data = f"data: {json.dumps(event_data)}\n\n"
                         yield sse_data
-                        Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated sql query")
+                        Interaction.objects.create(main_object=db_obj, request=prompt, response="Error while running the generated sql query")
                         return None
                     
-                    if sqlResult is None or len(sqlResult)==0:
-                        messages.append({"role":"function","content":"No results found after running the sql query. If getScientificNamesFromDescription was run earlier, ask user to specify the name of the species or any other description.","name": function_name})
-                        continue
+                    codeGenerationTries = 3
+                    fig=None
+                    while(codeGenerationTries > 0):
+                        try:
+                            exec(result["plotlyCode"], globals())
+                            fig = drawVisualization(sqlResult)
+                            codeGenerationTries = 0
+                        except Exception as e:
+                            codeGenerationTries-=1
 
-
-
-                        
-                    print("got data from db")
-
-                    try:
-                        sqlResult, isSpeciesData = postprocess(sqlResult, limit, prompt, sql, isSpeciesData, args["scientificNames"], args["inputImageDataAvailable"])
-                    except:
-                        print('postprocessing error')
-                        pass
-
-
-                    if sqlResult and limit != -1 and limit < len(sqlResult) and isinstance(sqlResult, list):
-                        sqlResult  = sqlResult[:limit]
-
-                    if(result["outputType"]=="visualization"):
-                        codeGenerationTries = 3
-                        fig=None
-                        while(codeGenerationTries > 0):
-                            try:
-                                exec(result["plotlyCode"], globals())
-                                fig = drawVisualization(sqlResult)
-                                codeGenerationTries = 0
-                            except Exception as e:
-                                print("Error ",str(e))
-                                codeGenerationTries-=1
-                                if codeGenerationTries !=1:
-                                    lastError = e
-                                if(codeGenerationTries==0):
-                                    event_data = {
-                                            "result": {
-                                                "outputType": "error",
-                                                "responseText": "Error running the generated code"
-                                            }
-                                        }
-                                    sse_data = f"data: {json.dumps(event_data)}\n\n"
-                                    yield sse_data
-                                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
-                                    return None
+                            if(codeGenerationTries==0):
                                 event_data = {
-                                        "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+                                        "result": {
+                                            "outputType": "error",
+                                            "responseText": "Error running the generated code"
+                                        }
                                     }
                                 sse_data = f"data: {json.dumps(event_data)}\n\n"
                                 yield sse_data
-                                result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}) if codeGenerationTries==2 else parsedPrvresponse['sqlServerQuery'], str(lastError))
+                                Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
+                                return None
+                            event_data = {
+                                    "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+                                }
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                            result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(e))
 
-                        #html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-                        html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
-                        result["html"]=html_output
+                    html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
+                    output = {}
+                    output["outputType"] = parsedPrvresponse['outputType']
+                    output["responseText"] = result["responseText"]
+                    output["html"] = html_output
 
-                    elif(result["outputType"]=="table"):
-                        result["table"]=sqlResult
+                    if isEventStream:
+                        output['guid']=str(db_obj.id)
+                        event_data = {
+                            "result": output
+                        }
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
+                        output["sampleData"] = parsedPrvresponse['sampleData']
+                        output["plotlyCode"] = prvPlotlyCode
+                        output["sqlServerQuery"] = parsedPrvresponse['sqlServerQuery']
+                        output["html"] = ""
+                        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+                    return
+                elif function_to_call:
+                    if isEventStream:
+                        event_data = {
+                            "message": availableFunctionsDescription[function_name],
+                        }
+                        if isinstance(result, str):
+                            event_data["message"] = event_data["message"]
+                            allResults[function_name] = result
+                        print(event_data)
+                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                        yield sse_data
+                    if(function_name=="generatesqlServerQuery"):
+                        args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
+                    
+                    result = function_to_call(**args)
+                    
 
-                    elif(result["outputType"]=="images"):
-                        result["species"]=sqlResult
-                        if "id" not in sqlResult[0] and "concept" not in sqlResult[0]:
-                            responseTextGen = openai.ChatCompletion.create(
-                                model="gpt-3.5-turbo-0613",
-                                messages=[{"role":"system","content":"Generate a response text to the user based on the user's prompt and the data generated"},{"role":"user","content":"Prompt:"+prompt+"\Data Generated+"+json.dumps(sqlResult)}],
+
+                    if(function_name=="generatesqlServerQuery"):
+                        if 'sqlQuery' in result:
+                            result['sqlServerQuery'] = result['sqlQuery']
+
+                        if "sqlServerQuery" not in result or result['sqlServerQuery'] == "":
+                            continue
+
+                        def gen_plotly_task(vizprompt, sampleData):
+                            vizmessages = [{"role": "system","content":"""
+                                Your task is to generate plotly code based on the user's prompt. The plotly code should define the necessary import and have drawVisualization function defined that takes in data variable and outputs plotly visualization object.
+                                The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+                                The plotly visualization should be able to take the data defined like the sample data and should not bug out for input same as sample data.
+                                Important: The plotly code will be run with exact input as that of the sample data, so do not use any properties other than those defined in the sample data.
+                                Do not write any comments in the code.
+                                """}]
+
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData']})
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode']})
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user2']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData2']})
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode2']})
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['user3']+ "\nsample data:"+FEW_SHOT_DATA['visualization']['sampleData3']})
+                            vizmessages.append({"role":"user","content": "prompt:" + FEW_SHOT_DATA['visualization']['plotlyCode3']})
+                            vizmessages.append({"role":"user","content": "prompt:" + vizprompt+ "\nsample data:"+sampleData})
+
+                            plotlyCodeGenerator = openai.ChatCompletion.create(
+                                model="gpt-4-0125-preview",
                                 temperature=0,
+                                messages=vizmessages,
                             )
-                            result["responseText"] = responseTextGen["choices"][0]["message"]["content"]
-                            result["outputType"] = "text"
 
-                    try:
-                        result["responseText"]= result["responseText"].format(**sqlResult[0])
-                    except:
-                        print("Warining: Issues formatting data to response text")
-                    break
+                            plotlyCode = plotlyCodeGenerator["choices"][0]["message"]["content"]
+                            plotlyCode = plotlyCode.strip()
+                            if plotlyCode.startswith('```python'):
+                                plotlyCode=plotlyCode.replace('```python','')
+                            if plotlyCode.endswith('```'):
+                                plotlyCode = plotlyCode[:-3]
+                            return plotlyCode
+
+                        sql = result['sqlServerQuery']
+                        limit = -1
+                        if result["outputType"]=="images" and sql.strip().startswith('SELECT '):
+                            limit, sql = changeNumberToFetch(sql)
+                        if isEventStream:
+                            event_data = {
+                                "message": "Querying database...                             SQL Query:"+sql
+                            }
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                        if(result["outputType"]=="visualization"):
+                            with ThreadPoolExecutor(max_workers=1) as executor:
+                                future_result = executor.submit(gen_plotly_task, args['prompt'], result['sampleData'])
+                                isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+                            
+                                result["plotlyCode"] = future_result.result()
+                                print(result["plotlyCode"])
+
+                        else:
+                            isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
+
+
+                        if errorRunningSQL:
+                            event_data = {
+                                    "result": {
+                                        "outputType": "error",
+                                        "responseText": sqlResult
+                                    }
+                                }
+                            sse_data = f"data: {json.dumps(event_data)}\n\n"
+                            yield sse_data
+                            Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated sql query")
+                            return None
+                        
+                        if sqlResult is None or len(sqlResult)==0:
+                            messages.append({"role":"function","content":"No results found after running the sql query. If getScientificNamesFromDescription was run earlier, ask user to specify the name of the species or any other description.","name": function_name})
+                            continue
+
+
+
+                            
+                        print("got data from db")
+
+                        try:
+                            sqlResult, isSpeciesData = postprocess(sqlResult, limit, prompt, sql, isSpeciesData, args["scientificNames"], args["inputImageDataAvailable"])
+                        except:
+                            print('postprocessing error')
+                            pass
+
+
+                        if sqlResult and limit != -1 and limit < len(sqlResult) and isinstance(sqlResult, list):
+                            sqlResult  = sqlResult[:limit]
+
+                        if(result["outputType"]=="visualization"):
+                            codeGenerationTries = 3
+                            fig=None
+                            while(codeGenerationTries > 0):
+                                try:
+                                    exec(result["plotlyCode"], globals())
+                                    fig = drawVisualization(sqlResult)
+                                    codeGenerationTries = 0
+                                except Exception as e:
+                                    print("Error ",str(e))
+                                    codeGenerationTries-=1
+                                    if codeGenerationTries !=1:
+                                        lastError = e
+                                    if(codeGenerationTries==0):
+                                        event_data = {
+                                                "result": {
+                                                    "outputType": "error",
+                                                    "responseText": "Error running the generated code"
+                                                }
+                                            }
+                                        sse_data = f"data: {json.dumps(event_data)}\n\n"
+                                        yield sse_data
+                                        Interaction.objects.create(main_object=db_obj, request=prompt, response="Error running the generated plotly code")
+                                        return None
+                                    event_data = {
+                                            "message": "Error with the generated code. Fixing it. Try "+str(3-codeGenerationTries)
+                                        }
+                                    sse_data = f"data: {json.dumps(event_data)}\n\n"
+                                    yield sse_data
+                                    result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}) if codeGenerationTries==2 else parsedPrvresponse['sqlServerQuery'], str(lastError))
+
+                            #html_output = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+                            html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
+                            result["html"]=html_output
+
+                        elif(result["outputType"]=="table"):
+                            result["table"]=sqlResult
+
+                        elif(result["outputType"]=="images"):
+                            result["species"]=sqlResult
+                            if "id" not in sqlResult[0] and "concept" not in sqlResult[0]:
+                                responseTextGen = openai.ChatCompletion.create(
+                                    model="gpt-3.5-turbo-0613",
+                                    messages=[{"role":"system","content":"Generate a response text to the user based on the user's prompt and the data generated"},{"role":"user","content":"Prompt:"+prompt+"\Data Generated+"+json.dumps(sqlResult)}],
+                                    temperature=0,
+                                )
+                                result["responseText"] = responseTextGen["choices"][0]["message"]["content"]
+                                result["outputType"] = "text"
+
+                        try:
+                            result["responseText"]= result["responseText"].format(**sqlResult[0])
+                        except:
+                            print("Warining: Issues formatting data to response text")
+                        break
+
+                    else:
+                        messages.append({"role":"function","content":result,"name": function_name})
+                        #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
+                        #response2 = openai.ChatCompletion.create(
+                        #    model="gpt-3.5-turbo-0613",
+                        #    messages=modifiedMessages,
+                        #    temperature=0,
+                        #)
+                        #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
+                        #    modifiedMessages = modifiedMessages[:-2] 
+                        #    break
+                        #else:
+                        #    modifiedMessages = modifiedMessages[:-1] 
 
                 else:
-                    messages.append({"role":"function","content":result,"name": function_name})
-                    #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
-                    #response2 = openai.ChatCompletion.create(
-                    #    model="gpt-3.5-turbo-0613",
-                    #    messages=modifiedMessages,
-                    #    temperature=0,
-                    #)
-                    #if("TRUE" in response2["choices"][0]["message"]["content"].upper()):
-                    #    modifiedMessages = modifiedMessages[:-2] 
-                    #    break
-                    #else:
-                    #    modifiedMessages = modifiedMessages[:-1] 
-
+                    event_data = {
+                            "result": {
+                                "outputType": "error",
+                                "responseText": "Sorry, error while processing your prompt. Please try re-phrasing the prompt and try again."
+                            }
+                        }
+                    sse_data = f"data: {json.dumps(str(event_data))}\n\n"
+                    yield sse_data
+                    Interaction.objects.create(main_object=db_obj, request=prompt, response="Error finding a function to process the prompt")
+                    return None
             else:
-                event_data = {
-                        "result": {
-                            "outputType": "error",
-                            "responseText": "Sorry, error while processing your prompt. Please try re-phrasing the prompt and try again."
-                        }
-                    }
-                sse_data = f"data: {json.dumps(str(event_data))}\n\n"
-                yield sse_data
-                Interaction.objects.create(main_object=db_obj, request=prompt, response="Error finding a function to process the prompt")
-                return None
-        else:
-            if(function_name!="getTaxonomyTree" and function_name!="getTaxonomicRelatives"):
-                try:
-                    responseContent = response["choices"][0]["message"]['content']
-                    print(responseContent)
-                    if(eval(responseContent)["outputType"]=="text"):
-                        result = eval(responseContent)
-                    else:
-                        messages.append({"role":"user","content":"You need to run the functions available to generate response to user's query."})
-                        continue
-                except:
+                if(function_name!="getTaxonomyTree" and function_name!="getTaxonomicRelatives"):
                     try:
-                        result = {
-                            "outputType": "text",
-                            "responseText": response["choices"][0]["message"]['content']
-                        }
+                        responseContent = response["choices"][0]["message"]['content']
+                        print(responseContent)
+                        if(eval(responseContent)["outputType"]=="text"):
+                            result = eval(responseContent)
+                        else:
+                            messages.append({"role":"user","content":"You need to run the functions available to generate response to user's query."})
+                            continue
                     except:
-                        result = {
-                            "outputType": "text",
-                            "responseText": response
-                        }
-            break
+                        try:
+                            result = {
+                                "outputType": "text",
+                                "responseText": response["choices"][0]["message"]['content']
+                            }
+                        except:
+                            result = {
+                                "outputType": "text",
+                                "responseText": response
+                            }
+                break
 
-    output = None
-    if(function_name=="getTaxonomyTree" or function_name=="getTaxonomicRelatives"):
-        parsedResult = json.loads(result)
+        output = None
+        if(function_name=="getTaxonomyTree" or function_name=="getTaxonomicRelatives"):
+            parsedResult = json.loads(result)
 
-        taxonomyResponse = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
-            messages=[{"role":"system","content":"Generate a short summary for this response for the prompt provided"},{"role":"user","content":"Prompt:"+prompt+"\nResponse+"+result}],
-            temperature=0,
-        )
-        output = {
-            "outputType": "taxonomy" if function_name=="getTaxonomyTree" else "text",
-            "responseText": taxonomyResponse["choices"][0]["message"]["content"],
-            "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
-        }
-    else:
-        output = {
-            "outputType": result["outputType"] if "outputType" in result else "",
-            "responseText": result["responseText"] if "responseText" in result else "",
-            "species": result["species"] if "species" in result else "",
-            "html": result["html"] if "html" in result else "",
-            "table": result["table"] if "table" in result else "",
-        }
+            taxonomyResponse = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-0613",
+                messages=[{"role":"system","content":"Generate a short summary for this response for the prompt provided"},{"role":"user","content":"Prompt:"+prompt+"\nResponse+"+result}],
+                temperature=0,
+            )
+            output = {
+                "outputType": "taxonomy" if function_name=="getTaxonomyTree" else "text",
+                "responseText": taxonomyResponse["choices"][0]["message"]["content"],
+                "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
+            }
+        else:
+            output = {
+                "outputType": result["outputType"] if "outputType" in result else "",
+                "responseText": result["responseText"] if "responseText" in result else "",
+                "species": result["species"] if "species" in result else "",
+                "html": result["html"] if "html" in result else "",
+                "table": result["table"] if "table" in result else "",
+            }
 
 
 
-    #if isEventStream:
-    #    event_data = {
-    #        "message": "Formatting response"
-    #    }
-    #    sse_data = f"data: {json.dumps(event_data)}\n\n"
-    #    yield sse_data
-#
-    #summerizerResponse = openai.ChatCompletion.create(
-    #    model="gpt-3.5-turbo-0613",
-    #    temperature=0,
-    #    messages=[{"role": "system","content":"""
-    #    Based on the below details output a json in provided format. The response must be a json. The output json must be valid.
-    #            If the output is vegaLite, you must generate the schema
-    #    
-    #    {
-    #        "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, must use "heatmap" as outputType when input says heatmap, use table when the data can be respresented as rows and column and when it can be listed out
-    #        "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
-    #        "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
-    #        }
-    #    }
-#
-    #    """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
-    #)
-#
-    #    
-    #try:
-    #    summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
-    #    output = {
-    #        "outputType": summaryPromptResponse["outputType"],
-    #        "responseText": summaryPromptResponse["summary"],
-    #    }
-    #    if(summaryPromptResponse["outputType"] == "vegaLite"):
-    #        output["vegaSchema"] = summaryPromptResponse["vegaSchema"]
-    #        output["vegaSchema"]["data"]["values"] = result
-#
-    #except:
-    #    print('summerizer failed')
-    #    summaryPromptResponse = {}
-    #    summaryPromptResponse["outputType"] = 'text'
-    #    if isSpeciesData:
-    #        summaryPromptResponse["outputType"] = 'image'
-    #    if result!=None and len(result) > 0 and 'taxonomy' in result[0]:
-    #        summaryPromptResponse["outputType"] = 'taxonomy'
-#
-    #    output = {
-    #        "outputType": summaryPromptResponse["outputType"],
-    #        "responseText": 'Here are the results',
-    #        "vegaSchema": '',
-    #    }
-    #if "heatmap" in prompt:
-    #    summaryPromptResponse["outputType"] = "heatmap"
+        #if isEventStream:
+        #    event_data = {
+        #        "message": "Formatting response"
+        #    }
+        #    sse_data = f"data: {json.dumps(event_data)}\n\n"
+        #    yield sse_data
     #
-    #if "getScientificNamesFromDescription" in allResults and "getAnswer" not in allResults:
-    #    output["responseText"] = output["responseText"] + "\nScentific names: " + allResults["getScientificNamesFromDescription"]
-#
-    #if summaryPromptResponse["outputType"] == 'image' and result == None:
-    #    output["outputType"] = 'text' 
-    #    output["responseText"] = 'No data found in the database' 
-    #if(isSpeciesData):
-    #    #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
-    #    #if isinstance(result, dict) or isinstance(result, list):
-    #    #    for specimen in result:
-    #    #        if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
-    #    #            taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
-    #    #            specimen["rank"] = taxonomyResponse["rank"]
-    #    #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
-    #    #            computedTaxonomicConcepts.append(specimen["concept"])
-    #    output["species"] = result
-#
-    #elif(summaryPromptResponse["outputType"]=="taxonomy"):
-    #    if(isinstance(result, list)):
-    #        output["species"] = result
-    #    else:
-    #        output["species"] = [result]
-    #    output["outputType"] = "species"
-    #elif(summaryPromptResponse["outputType"]!="vegaSchema"):
-    #    output["table"] = result
+        #summerizerResponse = openai.ChatCompletion.create(
+        #    model="gpt-3.5-turbo-0613",
+        #    temperature=0,
+        #    messages=[{"role": "system","content":"""
+        #    Based on the below details output a json in provided format. The response must be a json. The output json must be valid.
+        #            If the output is vegaLite, you must generate the schema
+        #    
+        #    {
+        #        "outputType": "", //enum(image, text, table, heatmap, vegaLite, taxonomy) The data type based on the 'input' and previous response, must use "heatmap" as outputType when input says heatmap, use table when the data can be respresented as rows and column and when it can be listed out
+        #        "summary": "", //Summary of the data based on the 'output', If there are no results, output will be None
+        #        "vegaSchema": { // Visualization grammar, Optional, Only need when the input asks for visualization except heatmap
+        #        }
+        #    }
+    #
+        #    """},{"role":"user", "content": "{\"input\": \"" + prompt + "\", \"output\":\"" + str(result)[:NUM_RESULTS_TO_SUMMARIZE] + "\"}"}],
+        #)
+    #
+        #    
+        #try:
+        #    summaryPromptResponse = json.loads(str(summerizerResponse["choices"][0]["message"]["content"]))
+        #    output = {
+        #        "outputType": summaryPromptResponse["outputType"],
+        #        "responseText": summaryPromptResponse["summary"],
+        #    }
+        #    if(summaryPromptResponse["outputType"] == "vegaLite"):
+        #        output["vegaSchema"] = summaryPromptResponse["vegaSchema"]
+        #        output["vegaSchema"]["data"]["values"] = result
+    #
+        #except:
+        #    print('summerizer failed')
+        #    summaryPromptResponse = {}
+        #    summaryPromptResponse["outputType"] = 'text'
+        #    if isSpeciesData:
+        #        summaryPromptResponse["outputType"] = 'image'
+        #    if result!=None and len(result) > 0 and 'taxonomy' in result[0]:
+        #        summaryPromptResponse["outputType"] = 'taxonomy'
+    #
+        #    output = {
+        #        "outputType": summaryPromptResponse["outputType"],
+        #        "responseText": 'Here are the results',
+        #        "vegaSchema": '',
+        #    }
+        #if "heatmap" in prompt:
+        #    summaryPromptResponse["outputType"] = "heatmap"
+        #
+        #if "getScientificNamesFromDescription" in allResults and "getAnswer" not in allResults:
+        #    output["responseText"] = output["responseText"] + "\nScentific names: " + allResults["getScientificNamesFromDescription"]
+    #
+        #if summaryPromptResponse["outputType"] == 'image' and result == None:
+        #    output["outputType"] = 'text' 
+        #    output["responseText"] = 'No data found in the database' 
+        #if(isSpeciesData):
+        #    #computedTaxonomicConcepts = []#adding taxonomy data to only the first species in the array with a given concept.
+        #    #if isinstance(result, dict) or isinstance(result, list):
+        #    #    for specimen in result:
+        #    #        if "concept" in specimen and isinstance(specimen["concept"], str) and len(specimen["concept"]) > 0 and specimen["concept"] not in computedTaxonomicConcepts:
+        #    #            taxonomyResponse = json.loads(getTaxonomyTree(specimen["concept"]))
+        #    #            specimen["rank"] = taxonomyResponse["rank"]
+        #    #            specimen["taxonomy"] = taxonomyResponse["taxonomy"]
+        #    #            computedTaxonomicConcepts.append(specimen["concept"])
+        #    output["species"] = result
+    #
+        #elif(summaryPromptResponse["outputType"]=="taxonomy"):
+        #    if(isinstance(result, list)):
+        #        output["species"] = result
+        #    else:
+        #        output["species"] = [result]
+        #    output["outputType"] = "species"
+        #elif(summaryPromptResponse["outputType"]!="vegaSchema"):
+        #    output["table"] = result
+            
+        if isEventStream:
+            output['guid']=str(db_obj.id)
+            event_data = {
+                "result": output
+            }
+            sse_data = ""
+            try:
+                sse_data = f"data: {json.dumps(event_data)}\n\n"
+            except:
+                sse_data = f"data: {str(event_data)}\n\n"
+            yield sse_data
+            output['html']=""
+            if "species" in output:
+                output['result']=output['species']
+            output['species']=""
+            output['sqlServerQuery']=result["sqlServerQuery"] if "sqlServerQuery" in result else ""
+            output['plotlyCode']=result["plotlyCode"] if "plotlyCode" in result else ""
+            output['sampleData']=result["sampleData"] if "sampleData" in result else ""
+            Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
+
+        end_time = time.time()
+
+        time_taken = end_time - start_time
+
+        formatted_time = "{:.2f}".format(time_taken)
+        print(f"Time taken: {formatted_time} seconds")
         
-    if isEventStream:
-        output['guid']=str(db_obj.id)
+        if SAVE_INTERMEDIATE_RESULTS:
+            with open("data/intermediate_results.json", "w") as outfile:
+                row = {'prompt': prompt}
+                i = 0
+                for f in allResults:
+                    i = i + 1
+                    row['function'+str(i)] = f
+                    row['result'+str(i)] = allResults[f]
+                allResultsCsv.append(row)
+                json.dump(allResultsCsv, outfile)
+    except:
         event_data = {
-            "result": output
-        }
-        sse_data = ""
-        try:
-            sse_data = f"data: {json.dumps(event_data)}\n\n"
-        except:
-            sse_data = f"data: {str(event_data)}\n\n"
+                "result": {
+                    "outputType": "error",
+                    "responseText": "Sorry, there was an error while processing your prompt. Please try again later."
+                }
+            }
+        sse_data = f"data: {json.dumps(event_data)}\n\n"
         yield sse_data
-        output['html']=""
-        if "species" in output:
-            output['result']=output['species']
-        output['species']=""
-        output['sqlServerQuery']=result["sqlServerQuery"] if "sqlServerQuery" in result else ""
-        output['plotlyCode']=result["plotlyCode"] if "plotlyCode" in result else ""
-        output['sampleData']=result["sampleData"] if "sampleData" in result else ""
-        Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-
-    end_time = time.time()
-
-    time_taken = end_time - start_time
-
-    formatted_time = "{:.2f}".format(time_taken)
-    print(f"Time taken: {formatted_time} seconds")
-    
-    if SAVE_INTERMEDIATE_RESULTS:
-        with open("data/intermediate_results.json", "w") as outfile:
-            row = {'prompt': prompt}
-            i = 0
-            for f in allResults:
-                i = i + 1
-                row['function'+str(i)] = f
-                row['result'+str(i)] = allResults[f]
-            allResultsCsv.append(row)
-            json.dump(allResultsCsv, outfile)
+        Interaction.objects.create(main_object=db_obj, request=prompt, response="Error while processing the prompt")
+        return None
 
     return output
 
