@@ -29,7 +29,7 @@
         "What is the total number of Patiria miniata found in the database?",
         "Generate a heatmap of all species in Monterey Bay",
         "Generate a scatterplot between oxygen and pressure data in Monetery bay from the database",
-        "Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1",
+        "Generate a pie chart showing the count of Bathochordaeus stygius across 7 salinity ranges from 30 to 38, each range spanning 1 unit.",
         "Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides colored coded for each species from 0°C to 20 in 5°C increments.",
         "Generate a box plot for the showing the oxygen level at which Aurelia Aurita live",
         //"Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in below 2, 2 to 10, 10 to 100, 100 to 1000, above 1000 pressure levels",
