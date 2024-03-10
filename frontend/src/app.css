@@ -197,3 +197,8 @@ body {
 .buttonCircled:hover i{
 	color: white !important;
 }
+
+.fathomChatContainer{
+    overflow: hidden;
+    max-width: calc(100vw - 40px);
+}

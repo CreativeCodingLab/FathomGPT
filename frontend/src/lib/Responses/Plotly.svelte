@@ -37,6 +37,7 @@
 <style>
 		.plotlyWrapper{
             width: calc(100vw - 80px);
+            max-width: 920px;
             overflow: auto;
 
 		}
