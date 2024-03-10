@@ -53,7 +53,5 @@
 		flex: 1;
 		background-color: var(--color-sea-salt-gray);
 		max-width: 100vw;
-    	overflow-x: hidden;
-
 	}
 </style>
