@@ -55,6 +55,12 @@
 				});
 			}
 		}
+		textarea.value = '';
+		textarea.innerHTML = '';
+		textarea.innerText = '';
+		textarea.focus();
+		isImageSelected=false;
+
 	}
 
 	onMount(() => {
@@ -76,12 +82,7 @@
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			submitPrompt();
-			textarea.value = '';
-			textarea.innerHTML = '';
-			textarea.innerText = '';
 			heightModifier = 3.2;
-			textarea.focus();
-			isImageSelected=false;
 		} else if (e.key === 'Enter' && e.shiftKey) {
 			heightModifier += 1;
 		}
