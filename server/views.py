@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
-from .interact_thre import patternDivision
+from .interact_mask import patternDivision
 from .segment import segment
 from django.http import JsonResponse
 import sys
