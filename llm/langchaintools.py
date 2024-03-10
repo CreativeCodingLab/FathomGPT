@@ -426,7 +426,7 @@ def generatesqlServerQuery(
     name: str,
     outputType: str,
     inputImageDataAvailable: bool,
-    originalPrompt: str
+    originalPrompt: str = ''
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
