@@ -1,10 +1,13 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
-
+	import { onMount } from 'svelte';
+    let sidebarHidden:Boolean=true
+	let backgroundRef: Element;
 
     const dispatch = createEventDispatcher();
 
     function insertPrompt(event: any) {
+        sidebarHidden=true
         dispatch("submit", {value:event.target.innerText});
     }
     let prompts = [
@@ -36,10 +39,25 @@
     function reload(){
         window.location.reload()
     }
+
+    function hideSidebar(event: any){
+        if(event.target === backgroundRef){
+            sidebarHidden = true
+        }
+    }
+
+    onMount(() => {
+        document.addEventListener('sidebarEvents', function (e) {
+            if(e.detail.sidebarOpened){
+                sidebarHidden = false
+            }
+        });
+	})
 </script>
-<main>
+<main on:click={hideSidebar} class:sidebarHidden="{sidebarHidden}" bind:this={backgroundRef}>
     <div class="sidebar">
         <div class="stickyContainer">
+            <button class="closeSidebarBtn buttonCircled"><i class="fa-solid fa-xmark" on:click={()=>sidebarHidden = true}></i></button>
             <button class="button newBtn" on:click={reload}> <i class="fa-solid fa-plus"></i> New chat</button>
             <h2>Try Asking:</h2>
             <hr>
@@ -66,9 +84,48 @@
 		height: calc(100vh - var(--page-header-height));
         position: sticky;
         top: var(--page-header-height);
+		transition: 0.2s ease;
 		@media (max-width: 1080px) {
-			display: none;
+			position: fixed;
+            top: 0;
+            z-index: 10000;
+            height: 100vh;
+            width: 100%;
+            background-color: rgba(51,51,51,0.3);
+            padding-left: 0px;
+            padding-bottom: 0px;
+            overflow-x: hidden;
 		}
+    }
+
+    main.sidebarHidden{
+		@media (max-width: 1080px) {
+            background-color: transparent;
+            pointer-events: none;
+            overflow: hidden;
+        }
+    }
+
+    .sidebar{
+		@media (max-width: 1080px) {
+            width: 25rem;
+            background-color: white;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 20px;
+            padding-top: 20px;
+            transition: 0.2s ease;
+        }
+    }
+
+    main.sidebarHidden .sidebar{
+        transform: translateX(-100%);
+    }
+
+    .newBtn{
+		@media (max-width: 1080px) {
+            display: none;
+        }
     }
 
     sub{
@@ -83,6 +140,9 @@
         padding-bottom: 16px;
         z-index: 10;
         width: calc(100% + 10px);
+		@media (max-width: 1080px) {
+            padding-top: 10px;
+        }
     }
 
     h2 {
@@ -105,6 +165,19 @@
         color: var(--accent-color);
         transform: scale(1.05);
         transform: translate(0.5rem, 0);
+    }
+
+    .closeSidebarBtn{
+        display: none;
+		@media (max-width: 1080px) {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+
+    .closeSidebarBtn i{
+        font-size: 24px;
     }
 
 </style>
