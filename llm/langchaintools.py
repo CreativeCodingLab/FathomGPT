@@ -1137,7 +1137,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             yield sse_data
                         if(result["outputType"]=="visualization"):
                             with ThreadPoolExecutor(max_workers=1) as executor:
-                                future_result = executor.submit(gen_plotly_task, args['prompt'], result['sampleData'])
+                                future_result = executor.submit(gen_plotly_task, prompt, result['sampleData'])
                                 isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
                             
                                 result["plotlyCode"] = future_result.result()
