@@ -4,6 +4,7 @@
 	export let prerender = true;
 	import '@fortawesome/fontawesome-free/css/all.min.css';
 	import { page } from '$app/stores';
+	import { createEventDispatcher } from 'svelte';
 	let theme = 'light'; // Default theme
 
 	$: currentPath = $page.url.pathname;
@@ -16,11 +17,26 @@
 			goto('/');
 		}
 	}
+
+	function openSidebar(){
+		const myCustomEvent = new CustomEvent('sidebarEvents', {
+			detail: {
+				sidebarOpened: true
+			}
+		});
+		document.dispatchEvent(myCustomEvent);
+	}
+
+
+
 </script>
 
 <header>
 	<div class="headerInner">
-		<img src="./logo.png" alt="logo" class="logo" on:click={()=>goto('/')}/>
+		<div class="logoWrapper">
+			<button class="buttonCircled" on:click={openSidebar}><i class="fa-solid fa-bars"></i></button>
+			<img src="./logo.png" alt="logo" class="logo" on:click={()=>goto('/')}/>
+		</div>
 		{#if currentPath === '/'}
 		<button class="button" on:click={changePage}>Pattern</button>
 		{:else if currentPath === '/pattern'}
@@ -43,6 +59,9 @@
 		border-bottom: 1px solid var(--color-sea-salt-gray);
 		box-shadow: 0 4px 32px rgba(109,108,144,.12);
 		display: flex;
+		@media (max-width: 1080px) {
+			padding: 5px 10px;
+		}
 	}
 
 	.headerInner{
@@ -55,6 +74,16 @@
 
 	.logo {
 		height: 80px;
+	}
+
+	.logoWrapper{
+		display: flex;
+		justify-content: start;
+		align-items: center;
+	}
+
+	.buttonCircled{
+		margin-right: 10px;
 	}
 
 </style>
