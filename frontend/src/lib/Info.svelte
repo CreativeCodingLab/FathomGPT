@@ -40,24 +40,34 @@
         window.location.reload()
     }
 
-    function hideSidebar(event: any){
+    function hideSideBar(){
+        sidebarHidden = true
+		document.body.style.overflow = 'auto';
+    }
+
+    function showSideBar(){
+		document.body.style.overflow = 'hidden';
+        sidebarHidden = false
+    }
+
+    function hideSidebarEvent(event: any){
         if(event.target === backgroundRef){
-            sidebarHidden = true
+            hideSideBar()
         }
     }
 
     onMount(() => {
         document.addEventListener('sidebarEvents', function (e) {
             if(e.detail.sidebarOpened){
-                sidebarHidden = false
+                showSideBar()
             }
         });
 	})
 </script>
-<main on:click={hideSidebar} class:sidebarHidden="{sidebarHidden}" bind:this={backgroundRef}>
+<main on:click={hideSidebarEvent} class:sidebarHidden="{sidebarHidden}" bind:this={backgroundRef}>
     <div class="sidebar">
         <div class="stickyContainer">
-            <button class="closeSidebarBtn buttonCircled"><i class="fa-solid fa-xmark" on:click={()=>sidebarHidden = true}></i></button>
+            <button class="closeSidebarBtn buttonCircled"><i class="fa-solid fa-xmark" on:click={hideSideBar}></i></button>
             <button class="button newBtn" on:click={reload}> <i class="fa-solid fa-plus"></i> New chat</button>
             <h2>Try Asking:</h2>
             <hr>
@@ -91,7 +101,7 @@
             z-index: 10000;
             height: 100vh;
             width: 100%;
-            background-color: rgba(51,51,51,0.3);
+            background-color: rgba(51,51,51,0.4);
             padding-left: 0px;
             padding-bottom: 0px;
             overflow-x: hidden;
