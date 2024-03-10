@@ -36,8 +36,9 @@
 
 <style>
 		.plotlyWrapper{
-            width: 100%;
+            width: calc(100% - 80px);
             overflow: auto;
+
 		}
 
         .plotLyVis{
