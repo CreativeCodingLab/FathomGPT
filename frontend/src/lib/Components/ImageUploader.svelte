@@ -205,16 +205,26 @@
 
 	}
 
-	async function selectImage(event: Event,x: Number,y: Number,width: Number,height: Number){
-		isImageBeingCropped = true
+	async function selectImage(event: Event, x: Number, y: Number, width: Number, height: Number) {
+		isImageBeingCropped = true;
 		await tick();
-		imgElement.src = event.target.getAttribute("src")
-		boundingBox.x=x*imgElement.width
-		boundingBox.y=y*imgElement.height
-		boundingBox.width=width*imgElement.width
-		boundingBox.height=height*imgElement.height
-		lastImageWidth = imgElement.width
-		lastImageHeight = imgElement.height
+
+		const imageLoaded = new Promise((resolve) => {
+			imgElement.removeEventListener('load', resolve);
+			imgElement.addEventListener('load', resolve, { once: true });
+		});
+
+		imgElement.src = event.target.getAttribute("src");
+
+		await imageLoaded;
+
+		boundingBox.x = x * imgElement.width;
+		boundingBox.y = y * imgElement.height;
+		boundingBox.width = width * imgElement.width;
+		boundingBox.height = height * imgElement.height;
+
+		lastImageWidth = imgElement.width;
+		lastImageHeight = imgElement.height;
 	}
 
 	async function onFileAdded(file: any) {
