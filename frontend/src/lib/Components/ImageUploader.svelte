@@ -272,7 +272,7 @@
 						<img src="./sample-image-2.jpg" on:click={(e)=>selectImage(e,  0.06310446174545778, 0.1284144744025619, 0.8748704184266516, 0.825471039873701)}/>
 					</div>
 					<div class="sampleImage">
-						<img src="./sample-image-3.jpeg" on:click={(e)=>selectImage(e, 0.2522586299892125, 0.2659940730410529, 0.479165645124383, 0.5166005694529184)}/>
+						<img src="./sample-image-3.jpg" on:click={(e)=>selectImage(e, 0.2522586299892125, 0.2659940730410529, 0.479165645124383, 0.5166005694529184)}/>
 					</div>
 					<div class="sampleImage">
 						<img src="./sample-image-1.jpg" on:click={(e)=>selectImage(e,  0.44362226635284885, 0.3705395275865075, 0.48359746330620124, 0.3752672361195851)}/>
