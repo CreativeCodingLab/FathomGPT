@@ -11,25 +11,30 @@
         dispatch("submit", {value:event.target.innerText});
     }
     let prompts = [
+        "What color are moon jellyfish",
+        "What is the scientific name of moon jelly",
+        "What are some creatures with caudal fins",
+
         "Find me images of Aurelia aurita",
         "Find me images of moon jelly sorted by depth",
+        "Find me images of moon jelly in Monterey bay and depth less than 5k meters",
         "Find me best images of moon jelly",
-        "Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters",
-        "Find me images of starfish in Monterey bay and depth less than 5k meters",
-        "Find me best images of ray-finned creatures in Monterey bay and depth less than 5k meters",
-        "Find me images of predators of moon jelly",
+
+        "Find me images of creatures with caudal fins",
         "Find me images of orange creatures",
+        "Find me images of predators of moon jelly",
+        "Find me images of creatures found in tropical seas",
+
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
-        "What color are moon jellyfsh",
-        "How large are moon jellyfish",
+
         "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year",
         "Generate an area chart showing the year the images were taken",
         "Display a bar chart showing the distribution of all species in Monterey Bay, categorized by the salinity level they are found in",
         "What is the total number of Patiria miniata found in the database?",
         "Generate a heatmap of all species in Monterey Bay",
         "Generate a scatterplot between oxygen and pressure data in Monetery bay from the database",
-        "Display a pie chart that correlates salinity levels with the distribution of Bathochordaeus stygius categorizing salinity levels from 30 to 38 with each level of width 1",
+        "Generate a pie chart showing the count of Bathochordaeus stygius across 7 salinity ranges from 30 to 38, each range spanning 1 unit.",
         "Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides colored coded for each species from 0°C to 20 in 5°C increments.",
         "Generate a box plot for the showing the oxygen level at which Aurelia Aurita live",
         //"Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in below 2, 2 to 10, 10 to 100, 100 to 1000, above 1000 pressure levels",

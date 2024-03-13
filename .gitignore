@@ -164,3 +164,4 @@ cython_debug/
 /frontend/node_modules
 /images
 /frontend/_web.config
+/checkpoints
