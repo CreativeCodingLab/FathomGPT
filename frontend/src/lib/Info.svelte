@@ -11,18 +11,23 @@
         dispatch("submit", {value:event.target.innerText});
     }
     let prompts = [
+        "What color are moon jellyfish",
+        "What is the scientific name of moon jelly",
+        "What creatures with caudal fins",
+
         "Find me images of Aurelia aurita",
         "Find me images of moon jelly sorted by depth",
+        "Find me images of moon jelly in Monterey bay and depth less than 5k meters",
         "Find me best images of moon jelly",
-        "Find me images of creatures with tentacles in Monterey bay and depth less than 5k meters",
-        "Find me images of starfish in Monterey bay and depth less than 5k meters",
-        "Find me best images of ray-finned creatures in Monterey bay and depth less than 5k meters",
-        "Find me images of predators of moon jelly",
+
+        "Find me images of creatures with caudal fins",
         "Find me images of orange creatures",
+        "Find me images of predators of moon jelly",
+        "Find me images of creatures found in tropical seas",
+
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
-        "What color are moon jellyfsh",
-        "How large are moon jellyfish",
+
         "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year",
         "Generate an area chart showing the year the images were taken",
         "Display a bar chart showing the distribution of all species in Monterey Bay, categorized by the salinity level they are found in",
