@@ -13,7 +13,7 @@
     let prompts = [
         "What color are moon jellyfish",
         "What is the scientific name of moon jelly",
-        "What creatures with caudal fins",
+        "What are some creatures with caudal fins",
 
         "Find me images of Aurelia aurita",
         "Find me images of moon jelly sorted by depth",
