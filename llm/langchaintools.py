@@ -426,22 +426,33 @@ def generatesqlServerQuery(
     name: str,
     outputType: str,
     inputImageDataAvailable: bool,
-    originalPrompt: str = ''
+    originalPrompt: str
 ) -> str:
     """Converts text to sql. If the common name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images.
     """
 
     print("prompt sent to generatesqlServerQuery ",prompt)
 
-    if inputImageDataAvailable:
-        prompt = originalPrompt
-    elif not isNameAvaliable(name):
-        prompt = prompt.replace(name, '')
+    print(name)
+    print(scientificNames)
+
+    if not inputImageDataAvailable and not isNameAvaliable(name):
+        print('a')
+        if isinstance(scientificNames, str) and len(scientificNames) > 1:
+            prompt = prompt.replace(name, scientificNames)
+        else:
+            prompt = prompt.replace(name, '')
     else:
+        print('b')
         if isinstance(name, str) and len(name) > 1:
             prompt = prompt.replace(name, scientificNames)
         elif isinstance(scientificNames, str) and len(scientificNames) > 1:
             prompt = prompt.rstrip(".")+" with names: "+scientificNames
+
+    print(prompt)
+
+    if inputImageDataAvailable:
+        prompt = originalPrompt
 
     needsGpt4 = outputType == "visualization"
 
@@ -847,7 +858,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         Important: Work on the task until you finish, do not ask if you should continue
                         """})
 
-        messages.append({"role":"user","content":("User has provided a new image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
+        messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
         isSpeciesData = False
         result = None
         function_name=""
@@ -1137,7 +1148,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                             yield sse_data
                         if(result["outputType"]=="visualization"):
                             with ThreadPoolExecutor(max_workers=1) as executor:
-                                future_result = executor.submit(gen_plotly_task, prompt, result['sampleData'])
+                                future_result = executor.submit(gen_plotly_task, args['prompt'], result['sampleData'])
                                 isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
                             
                                 result["plotlyCode"] = future_result.result()
