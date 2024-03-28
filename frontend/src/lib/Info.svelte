@@ -28,17 +28,19 @@
         "What are the ancestors of moon jelly",
         "Show me the taxonomy of Aurelia aurita",
 
-        "Generate an Interactive Time-lapse Map of Marine Species Observations Grouped by Year",
+        "Find me any 3 species of starfish and get me their total image count in the database",
+        "Generate me a list of top 20 species from the database with their count",
+
+
         "Generate an area chart showing the year the images were taken",
         "Display a bar chart showing the distribution of all species in Monterey Bay, categorized by the salinity level they are found in",
         "What is the total number of Patiria miniata found in the database?",
         "Generate a heatmap of all species in Monterey Bay",
         "Generate a scatterplot between oxygen and pressure data in Monetery bay from the database",
         "Generate a pie chart showing the count of Bathochordaeus stygius across 7 salinity ranges from 30 to 38, each range spanning 1 unit.",
-        "Display a bar chart showing the temperature ranges for Aurelia Aurita and Pycnopodia helianthoides colored coded for each species from 0°C to 20 in 5°C increments.",
-        "Generate a box plot for the showing the oxygen level at which Aurelia Aurita live",
+        "Produce a bar chart displaying temperature ranges (0°C to 20°C) for Aurelia Aurita and Pycnopodia helianthoides, each species color-coded.",
+        "Generate a box-plot showing the oxygen levels at which images that have Aurelia Aurita live.",
         //"Group bar chart showing the pressure level for Bathochordaeus stygius and Aurelia Aurita categorized in below 2, 2 to 10, 10 to 100, 100 to 1000, above 1000 pressure levels",
-        "Find me any 3 species of starfish and get me their total image count in the database",
     ]
 
     function reload(){

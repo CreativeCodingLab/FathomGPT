@@ -903,7 +903,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             curLoopCount+=1
             try:
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo-0613",#"gpt-3.5-turbo-0125",
+                    model="gpt-3.5-turbo-0125",#"",
                     messages=messages,
                     functions=availableFunctions,
                     function_call="auto",
@@ -1094,6 +1094,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         args["inputImageDataAvailable"] = len(eval_image_feature_string)!=0
                         args["originalPrompt"] = prompt
                     
+                    lastResult = result
                     result = function_to_call(**args)
                     
 
@@ -1245,6 +1246,12 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         break
 
                     else:
+                        if function_name == "getAnswer":
+                            result = {
+                                "outputType":"text",
+                                "responseText": result
+                            }
+                            break
                         messages.append({"role":"function","content":result,"name": function_name})
                         #modifiedMessages.append({"role":"system","content":"Is the result generated in previous query enough to response the prompt. Prompt: {prompt} Output either 'True' or 'False', nothing else"})
                         #response2 = openai.ChatCompletion.create(
