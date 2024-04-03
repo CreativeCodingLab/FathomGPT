@@ -5,6 +5,7 @@ from .models import MainObject, Interaction, Image
 from .serializers import MainObjectSerializer, InteractionSerializer
 from .llm import run_promptv1
 from .interact_mask import patternDivision
+from .cropping import cropping
 from .segment import segment
 from django.http import JsonResponse
 import sys
@@ -178,6 +179,24 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             img_base64 = base64.b64encode(buffer).decode()
             
             return JsonResponse({'image': 'data:image/jpeg;base64,' + img_base64})
+
+    @csrf_exempt
+    @action(detail=False, methods=['POST'])
+    def crop_image(self, request):
+        if request.method == 'POST':
+            data = request.data
+            image_base64 = data['image'].split(",")[1]
+            
+            img_array = np.frombuffer(base64.b64decode(image_base64), np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            
+            processed_img = cropping(img)
+            
+            _, buffer = cv2.imencode('.jpg', processed_img)
+            img_base64 = base64.b64encode(buffer).decode()
+            
+            return JsonResponse({'image': 'data:image/jpeg;base64,' + img_base64})
+
 
 
     

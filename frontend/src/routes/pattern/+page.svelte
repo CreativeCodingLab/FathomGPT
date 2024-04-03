@@ -38,19 +38,20 @@
 		switch (number) {
 			case 0:
 				isPatternExtract.set(true);
-				selectedPatternImage = patternImagedata0;
+				selectedPatternImage.set($patternImagedata0);
 				break;
 			case 1:
 				isPatternExtract.set(true);
-				selectedPatternImage = patternImagedata1;
+				selectedPatternImage.set($patternImagedata1);
 				break;
 			case 2:
 				isPatternExtract.set(true);
-				selectedPatternImage = patternImagedata2;
+				selectedPatternImage.set($patternImagedata2);
 				break;
 			default:
 				break;
 		}
+		imageCropping();
 	}
 
 	async function handleImageClick(event: MouseEvent) {
@@ -144,6 +145,31 @@
 			// };
 		}
 	}
+
+	async function imageCropping() {
+			const base64data = $selectedPatternImage;
+			loading = true;
+			fetch(serverBaseURL + '/crop_image', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					image: base64data,
+				})
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					selectedPatternImage.set(data.image);
+					loading = false;
+				})
+				.catch((error) => {
+					alert('Error while generating the pattern');
+					console.error('Error:', error);
+					loading = false;
+				});
+	}
+
 </script>
 
 <svelte:head>

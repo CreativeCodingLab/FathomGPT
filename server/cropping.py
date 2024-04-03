@@ -11,5 +11,9 @@ def cropping(img):
 
     cropped = np.zeros_like(img)
     cropped = img[min_y-10:max_y+10, min_x-10:max_x+10]
-    cropped = cv2.resize(cropped, dsize=(800, 600), interpolation=cv2.INTER_CUBIC)
+
+    ratio = cropped.shape[1] / cropped.shape[0] # width / height
+    print(cropped.shape, cropped.shape[1], ratio)
+
+    cropped = cv2.resize(cropped, dsize=(int(600 * ratio), 600), interpolation=cv2.INTER_CUBIC)
     return cropped
