@@ -1190,6 +1190,9 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
 
                         try:
                             sqlResult, isSpeciesData = postprocess(sqlResult, limit, prompt, sql, isSpeciesData, args["scientificNames"], args["inputImageDataAvailable"])
+                            for r in sqlResult:
+                                if 'oer.hpc.msstate.edu' in r['url'] and 'BenthicAnimalGuide_training' not in r['url']:
+                                    r['url'] = r['url'].replace('/FathomNet/', '/FathomNet/BenthicAnimalGuide_training/')
                         except:
                             print('postprocessing error')
                             pass
