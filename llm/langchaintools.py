@@ -41,6 +41,8 @@ from PIL import Image
 import io
 import torch
 from concurrent.futures import ThreadPoolExecutor
+from torchvision.models.vision_transformer import vit_b_16
+from torchvision.models import ViT_B_16_Weights
 
 import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
@@ -48,9 +50,9 @@ openai.api_key = KEYS['openai']
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-efficeintNetModel = models.efficientnet_b7(pretrained=True)
-efficeintNetModel.eval()
-efficeintNetModel.to(device)
+vit = vit_b_16(weights=ViT_B_16_Weights.DEFAULT)
+vit.eval()
+vit.to(device)
 
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)), 
@@ -556,13 +558,13 @@ def addImageSearchQuery(imageData, generatedJSON):
                 SELECT
                     IFV.image_id AS bb1,
                     BBFV.bounding_box_id AS bb2,
-                    SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude * BB.magnitude) AS CosineSimilarity
+                    SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude * BB.magnitude2) AS CosineSimilarity
                 FROM #InputFeatureVectors IFV
-                INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index
+                INNER JOIN bounding_box_image_feature_vectors2 BBFV ON IFV.vector_index = BBFV.vector_index
                 INNER JOIN bounding_boxes BB ON BBFV.bounding_box_id = BB.id
                 INNER JOIN #InputMagnitudes IM ON IFV.image_id = IM.image_id
                 WHERE IM.magnitude > 0 AND BB.magnitude > 0
-                GROUP BY IFV.image_id, BBFV.bounding_box_id, IM.magnitude, BB.magnitude
+                GROUP BY IFV.image_id, BBFV.bounding_box_id, IM.magnitude, BB.magnitude2
             )
             """
         
@@ -594,20 +596,20 @@ def addImageSearchQuery(imageData, generatedJSON):
                         BBFV.vector_index,
                         BBFV.vector_value
                     FROM @BoundingBoxIDs BBI
-                    INNER JOIN bounding_box_image_feature_vectors BBFV ON BBI.ID = BBFV.bounding_box_id
+                    INNER JOIN bounding_box_image_feature_vectors2 BBFV ON BBI.ID = BBFV.bounding_box_id
                 ),
                 SimilaritySearch AS (
                     SELECT
                         IFV.InputBoxID AS bb1,
                         BBFV.bounding_box_id AS bb2,
-                        SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude * TM.magnitude) AS CosineSimilarity
+                        SUM(IFV.vector_value * BBFV.vector_value) / (IM.magnitude2 * TM.magnitude2) AS CosineSimilarity
                     FROM InputFeatureVectors IFV
-                    INNER JOIN bounding_box_image_feature_vectors BBFV ON IFV.vector_index = BBFV.vector_index
+                    INNER JOIN bounding_box_image_feature_vectors2 BBFV ON IFV.vector_index = BBFV.vector_index
                     INNER JOIN bounding_boxes IM ON IFV.InputBoxID = IM.id
                     INNER JOIN bounding_boxes TM ON BBFV.bounding_box_id = TM.id
                     WHERE IFV.InputBoxID != BBFV.bounding_box_id
-                    AND IM.magnitude > 0 AND TM.magnitude > 0
-                    GROUP BY IFV.InputBoxID, BBFV.bounding_box_id, IM.magnitude, TM.magnitude
+                    AND IM.magnitude2 > 0 AND TM.magnitude2 > 0
+                    GROUP BY IFV.InputBoxID, BBFV.bounding_box_id, IM.magnitude2, TM.magnitude2
                 )
 
             """
@@ -623,6 +625,7 @@ def addImageSearchQuery(imageData, generatedJSON):
     if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
         sql+=") ORDER BY CosineSimilarity DESC"
 
+    print(sql)
     return sql
 
 
@@ -747,7 +750,7 @@ availableFunctions = [{
     },
 },{
     "name": "generatesqlServerQuery",
-    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. The sql server has can search images of species.",
+    "description": "Converts text to sql. If no scientific name of a species is provided, it is important convert it to its scientific name. If the data is need for specific task, input the task too. The database has image, bounding box and marine regions table. The database has data of species in a marine region with the corresponding images. The sql server has can search images of species. This tool gets the data from the database to visualize the data. Use this tool to generate bar chart, pie-chart, area chart, heatmap, etc. It can generate all visualizations supported by python plotly library.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -886,7 +889,12 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             tensor = preprocess(pil_image)
             tensor = tensor.to(device)
             with torch.no_grad():
-                features = efficeintNetModel(tensor.unsqueeze(0))
+                tensor = tensor.unsqueeze(0)
+                feats = vit._process_input(tensor)
+                batch_class_token = vit.class_token.expand(tensor.shape[0], -1, -1)
+                feats = torch.cat([batch_class_token, feats], dim=1)
+                feats = vit.encoder(feats)
+                features = feats[:, 0]
             features = features.cpu()
             
             features_squeezed = features.squeeze()
@@ -1109,7 +1117,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         def gen_plotly_task(vizprompt, sampleData):
                             vizmessages = [{"role": "system","content":"""
                                 Your task is to generate plotly code based on the user's prompt. The plotly code should define the necessary import and have drawVisualization function defined that takes in data variable and outputs plotly visualization object.
-                                The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead.
+                                The input data object is just a list of object, if you want it to be pandas data frame object, convert it first. Donot use mapbox, use openstreet maps instead. Try to use openstreet maps instead of plotly's own map. You may need to group the data when showing visualizations that need grouping like bar-chart, pie-chart, etc.
                                 The plotly visualization should be able to take the data defined like the sample data and should not bug out for input same as sample data.
                                 Important: The plotly code will be run with exact input as that of the sample data, so do not use any properties other than those defined in the sample data.
                                 Do not write any comments in the code.
