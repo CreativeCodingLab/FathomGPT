@@ -1,1 +1,1 @@
-# ovai-gpt
+# FathomGPT
