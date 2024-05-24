@@ -419,6 +419,10 @@ def postprocess(results, limit, prompt, sql, isSpeciesData, scientificNames, isI
     if not isinstance(results, list) or len(results) == 0 or 'url' not in results[0]:
         return results, isSpeciesData
     
+    for r in results:
+        if 'oer.hpc.msstate.edu' in r['url'] and 'BenthicAnimalGuide_training' not in r['url']:
+            r['url'] = r['url'].replace('/FathomNet/', '/FathomNet/BenthicAnimalGuide_training/')
+
     deduped = []
     urls = []
     for r in results:
