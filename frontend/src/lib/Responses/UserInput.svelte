@@ -1,12 +1,16 @@
 <script lang="ts">
 	export let text: string;
 	export let image: string | null;
+	export let video: string | null;
 </script>
 
 <main>
 	<p>{text}</p>
 	{#if image!=null}
 		<img src="{image}"/>
+	{/if}
+	{#if video!=null}
+		<video controls="true" src="{video}"/>
 	{/if}
 </main>
 
@@ -25,7 +29,7 @@
 	main *{
 		color: white;
 	}
-	img{
+	img, video{
 		max-width: min(100%, 500px);
 		max-height: 500px;
 		width: auto;

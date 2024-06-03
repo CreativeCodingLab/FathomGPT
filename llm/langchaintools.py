@@ -43,6 +43,10 @@ import torch
 from concurrent.futures import ThreadPoolExecutor
 from torchvision.models.vision_transformer import vit_b_16
 from torchvision.models import ViT_B_16_Weights
+import cv2
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
+from torchvision.transforms import functional as F
+
 
 import os
 os.environ["OPENAI_API_KEY"] = KEYS['openai']
@@ -735,6 +739,99 @@ def fixGeneratedSQLForImageSearch(prompt, sql, error):
 
     return result
 
+def annotateVideo(VideoGuid):
+    # Define the path to the videos folder
+    videos_dir = "./videos"
+
+    # Construct the video file path
+    video_path = os.path.join(videos_dir, f"{VideoGuid}.mp4")
+    if not os.path.exists(video_path):
+        raise ValueError("Invalid video GUID or video file does not exist")
+    
+    # Define the annotated video path
+    annotated_video_path = os.path.join("./static/api", f"{VideoGuid}_annotated.mp4")
+
+    # Load the Faster R-CNN model
+    model = fasterrcnn_resnet50_fpn(pretrained=True)
+    model.eval()
+
+    # Move the model to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise ValueError("Error opening video file")
+
+    # Get video properties
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(annotated_video_path, fourcc, fps, (frame_width, frame_height))
+
+    # Process each frame
+    batch_size = 4  # Adjust batch size based on available memory
+    frames = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frames.append(frame)
+        if len(frames) == batch_size:
+            # Convert the frames to tensors and perform inference in batch
+            images_tensor = [F.to_tensor(f).unsqueeze(0).to(device) for f in frames]
+            images_tensor = torch.cat(images_tensor)
+
+            with torch.no_grad():
+                outputs = model(images_tensor)
+
+            for i in range(len(frames)):
+                frame = frames[i]
+                output = outputs[i]
+
+                # Draw bounding boxes and labels on the frame
+                for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
+                    x1, y1, x2, y2 = map(int, box)
+                    frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    frame = cv2.putText(frame, f"{label.item()}:{score:.2f}", (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                # Write the annotated frame to the output video
+                out.write(frame)
+
+            frames = []
+
+    # Release remaining frames if any
+    if frames:
+        images_tensor = [F.to_tensor(f).unsqueeze(0).to(device) for f in frames]
+        images_tensor = torch.cat(images_tensor)
+
+        with torch.no_grad():
+            outputs = model(images_tensor)
+
+        for i in range(len(frames)):
+            frame = frames[i]
+            output = outputs[i]
+
+            # Draw bounding boxes and labels on the frame
+            for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
+                x1, y1, x2, y2 = map(int, box)
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                frame = cv2.putText(frame, f"{label.item()}:{score:.2f}", (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            # Write the annotated frame to the output video
+            out.write(frame)
+
+    # Release resources
+    cap.release()
+    out.release()
+
+    return f"/api/{VideoGuid}_annotated.mp4"
+
 availableFunctions = [{
     "name": "getScientificNamesFromDescription",
     "description": "Function to get all scientific names that fits a common name or appearance. If there are no matches, return anything. DO NOT use this tool for descriptions of location, depth, taxonomy, salinity, or temperature. If the input name is already a scientific name, the function will return the same name, donot run the same function with the same input more than once.",
@@ -830,6 +927,20 @@ availableFunctions = [{
         },
         "required": ["prompt"],
     },
+},
+{
+    "name": "annotateVideo",
+    "description": "Annotates the video with the species information identified by a neural network.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "VideoGuid": {
+                "type": "string",
+                "description": "Guid of the video provided by the user.",
+            },
+        },
+        "required": ["VideoGuid"],
+    },
 }
 ]
 
@@ -846,10 +957,12 @@ availableFunctionsDescription = {
 
     "modifyExistingVisualization": "Modifying the chart.",
 
+    "annotateVideo": "Annotating species in the video.",
+
 }
 
 # messages must be in the format: [{"prompt": prompt, "response": json.dumps(response)}]
-def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=None):
+def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=False, db_obj=None):
 
     try:
         initialMessagesCount = len(messages)
@@ -861,7 +974,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                         Important: Work on the task until you finish, do not ask if you should continue
                         """})
 
-        messages.append({"role":"user","content":("User has provided image of species most probably to do an image search" if imageData!="" else "")+"\nPrompt:"+prompt})
+        messages.append({"role":"user","content":("User has provided image of species most probably to do an image search, but do as the prompt says." if imageData!="" else "")+(f"User has provided video with guid ID {videoGuid} most probably to do annotate it, but do as the prompt says." if videoGuid!="" else "")+"\nPrompt:"+prompt})
         isSpeciesData = False
         result = None
         function_name=""
@@ -911,7 +1024,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             curLoopCount+=1
             try:
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo-0125",#"",
+                    model="gpt-3.5-turbo-0125",
                     messages=messages,
                     functions=availableFunctions,
                     function_call="auto",
@@ -1107,7 +1220,20 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                     
 
 
-                    if(function_name=="generatesqlServerQuery"):
+                    if(function_name=="annotateVideo"):
+                        print("function name ", function_name)
+                        taxonomyResponse = openai.ChatCompletion.create(
+                            model="gpt-3.5-turbo-0613",
+                            messages=[{"role":"system","content":"Generate a short summary for this response for the prompt provided. The system has processed the video and now it is displayed below the summary text"},{"role":"user","content":"Prompt:"+prompt+"\nResponse+"+result}],
+                            temperature=0,
+                        )
+                        result = {
+                            "outputType": "video",
+                            "responseText": taxonomyResponse["choices"][0]["message"]["content"],
+                            "videoUrl": result
+                        }
+                        break
+                    elif(function_name=="generatesqlServerQuery"):
                         if 'sqlQuery' in result:
                             result['sqlServerQuery'] = result['sqlQuery']
 
@@ -1331,6 +1457,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
                 "species": result["species"] if "species" in result else "",
                 "html": result["html"] if "html" in result else "",
                 "table": result["table"] if "table" in result else "",
+                "videoUrl": result["videoUrl"] if "videoUrl" in result else "",
             }
 
 
@@ -1431,6 +1558,7 @@ def get_Response(prompt, imageData="", messages=[], isEventStream=False, db_obj=
             output['sqlServerQuery']=result["sqlServerQuery"] if "sqlServerQuery" in result else ""
             output['plotlyCode']=result["plotlyCode"] if "plotlyCode" in result else ""
             output['sampleData']=result["sampleData"] if "sampleData" in result else ""
+            output['videoUrl']=result["videoUrl"] if "videoUrl" in result else ""
             Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
 
         end_time = time.time()
