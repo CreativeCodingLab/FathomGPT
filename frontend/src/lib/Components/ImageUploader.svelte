@@ -230,19 +230,39 @@
 	async function onFileAdded(file: any) {
 		const reader = new FileReader();
 		reader.onload = async (e: ProgressEvent<FileReader>) => {
-			if(reader && reader.result){
-				isImageBeingCropped = true
-				await tick();
-				imgElement.src = reader.result;
-				BoundingBox = { x: 50, y: 50, width: 100, height: 100 }
-				lastImageWidth = imgElement.width
-				lastImageHeight = imgElement.height
+			if (reader && reader.result) {
+				console.log(file.type)
+				if (file.type.startsWith('video/')) {
+					const videoBlob = new Blob([reader.result], { type: file.type });
+					const videoUrl = URL.createObjectURL(videoBlob);
+					const myCustomEvent = new CustomEvent('videoSelected', {
+						detail: videoUrl
+					});
+					document.dispatchEvent(myCustomEvent);
+					closeModal();
+				} else if (file.type.startsWith('image/')) {
+					isImageBeingCropped = true;
+					await tick();
+					imgElement.src = reader.result as string;
+					BoundingBox = { x: 50, y: 50, width: 100, height: 100 };
+					lastImageWidth = imgElement.width;
+					lastImageHeight = imgElement.height;
+				} else {
+					alert("Unsupported file type!");
+				}
 			}
-			fileInput.value=null
+			console.log(reader)
+			fileInput.value = null;
 		};
 		reader.onerror = (error) => alert("Error reading the file! " + error);
-		reader.readAsDataURL(file);
+	
+		if (file && file.type.startsWith('video/')) {
+			reader.readAsArrayBuffer(file); // Read video file as ArrayBuffer
+		} else {
+			reader.readAsDataURL(file); // Read image file as DataURL
+		}
 	}
+
 
 	let backgroundRef: Element;
 </script>
@@ -252,7 +272,7 @@
 		<div class="imageDetailsContainerWrapper" on:click={bgClicked} bind:this={backgroundRef}>
 			<div class="imageDetailsContainer">
 				<div class="header">
-					<h1>Upload Image</h1>
+					<h1>Upload Image/Video</h1>
 					<button class="closeBtn" on:click={closeModal}><i class="fa-solid fa-xmark" /></button>
 				</div>
 				{#if !isImageBeingCropped}
@@ -263,9 +283,9 @@
 					on:dragenter={e => e.currentTarget.classList.add('drag-over')}
 					on:dragleave={e => e.currentTarget.classList.remove('drag-over')}
 					on:drop={handleDrop}>
-					Click or drag and drop an image here to upload
+					Click or drag and drop an image/video here to upload
 					</div>
-				<input type="file" id="file-upload" hidden accept="image/*" bind:this={fileInput} on:change={handleFileChange} />
+				<input type="file" id="file-upload" hidden accept="image/*, video/mp4, video/mov" bind:this={fileInput} on:change={handleFileChange} />
 				<h3>Sample Images to Try</h3>
 				<div class="sampleImagesContainer">
 					<div class="sampleImage">

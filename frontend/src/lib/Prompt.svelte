@@ -13,7 +13,9 @@
 	let loading = false;
 	let imageTag: HTMLInputElement;
 	let isImageSelected = false;
+	let isVideoSelected = false;
 	let selectedImage: HTMLImageElement;
+	let selectedVideo: HTMLVideoElement;
 	let isNewChat: Boolean = true;
 
 	export function toggleLoading() {
@@ -52,6 +54,12 @@
 					});
 				})
 			}
+			else if(isVideoSelected){
+				dispatch('submit', {
+					value,
+					video: selectedVideo.src
+				});
+			}
 			else{
 				dispatch('submit', {
 					value,
@@ -63,6 +71,7 @@
 		textarea.innerText = '';
 		textarea.focus();
 		isImageSelected=false;
+		isVideoSelected=false;
 
 	}
 
@@ -74,6 +83,13 @@
 			isImageSelected = true
 			await tick();
             selectedImage.src=e.detail
+        });
+
+		document.addEventListener('videoSelected', async function (e) {
+            //@ts-ignore
+			isVideoSelected = true
+			await tick();
+            selectedVideo.src=e.detail
         });
 
 		document.addEventListener('chatEvents', function (e) {
@@ -102,8 +118,12 @@
 		document.dispatchEvent(myCustomEvent);
 	}
 
-	function removeSelectedImage(){
+	function removeSelectedVideo(){
 		isImageSelected=false;
+	}
+
+	function removeSelectedImage(){
+		isVideoSelected=false;
 	}
 
 	function reload(){
@@ -130,6 +150,11 @@
 			<div class="selectedImageWrapper">
 				<img class="selectedImage" bind:this={selectedImage}/>
 				<button class="removeImageBtn" on:click={removeSelectedImage}><i class="fa-solid fa-xmark" /></button>
+			</div>
+			{:else if isVideoSelected}
+			<div class="selectedImageWrapper">
+				<video class="selectedVideo" bind:this={selectedVideo}/>
+				<button class="removeImageBtn" on:click={removeSelectedVideo}><i class="fa-solid fa-xmark" /></button>
 			</div>
 			{:else}
 			<button class="buttonCircled" on:click={openFileSelector}>
@@ -238,7 +263,7 @@
 		width: 100%;
 		height: 100%;
 	}
-	.selectedImage{
+	.selectedImage, .selectedVideo{
 		max-width: 80px;
 		max-height: 80px;
 		width: auto;

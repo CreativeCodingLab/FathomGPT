@@ -25,6 +25,8 @@ import base64
 from llm.langchaintools import getTaxonomyTree
 import cv2
 import numpy as np
+from rest_framework.parsers import MultiPartParser, FormParser
+import tempfile
 
 sqlServer = os.getenv("SQL_SERVER")
 database = os.getenv("DATABASE")
@@ -34,7 +36,7 @@ dbPwd = os.getenv("DB_PWD")
 class MainObjectViewSet(viewsets.ModelViewSet):
     queryset = MainObject.objects.all()
     serializer_class = MainObjectSerializer
-
+    parser_classes = (MultiPartParser, FormParser)
 
     @csrf_exempt
     @action(detail=False, methods=['POST'])
@@ -133,7 +135,7 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             return JsonResponse({'guid': str(image_instance.guid)})
         else:
             return JsonResponse({'error': 'Invalid request'}, status=400)
-
+        
     @csrf_exempt
     @action(detail=False, methods=['POST'])
     def segment_image(self, request):
@@ -179,12 +181,34 @@ class MainObjectViewSet(viewsets.ModelViewSet):
             
             return JsonResponse({'image': 'data:image/jpeg;base64,' + img_base64})
 
+    @csrf_exempt
+    @action(detail=False, methods=['POST'])
+    def upload_video(self, request):
+        if request.method == 'POST':
+            if 'video' not in request.FILES:
+                return JsonResponse({'error': 'No video file provided'}, status=400)
+
+            video_file = request.FILES['video']
+            video_guid = uuid.uuid4()
+
+            videos_dir = './videos'
+            os.makedirs(videos_dir, exist_ok=True)
+
+            video_file_path = os.path.join(videos_dir, f"{video_guid}.mp4")
+
+            with open(video_file_path, 'wb') as video_file_out:
+                for chunk in video_file.chunks():
+                    video_file_out.write(chunk)
+
+            return JsonResponse({'guid': str(video_guid)})
+        else:
+            return JsonResponse({'error': 'Invalid request'}, status=400)
 
     
 
-def event_stream(new_question, image, messages, isEventStream, db_obj):
+def event_stream(new_question, image, videoGuid, messages, isEventStream, db_obj):
     while True:
-        yield from run_prompt(new_question, image, messages, isEventStream=isEventStream, db_obj = db_obj)
+        yield from run_prompt(new_question, image, videoGuid, messages, isEventStream=isEventStream, db_obj = db_obj)
         time.sleep(10)
         break
 
@@ -194,6 +218,7 @@ class PostStreamView(View):
         guid = request.GET.get('guid')
         new_question = request.GET.get('question')
         imageguid = request.GET.get('image')
+        videoguid = request.GET.get('video')
         base64_image = ''
 
         if imageguid is not None:
@@ -236,7 +261,7 @@ class PostStreamView(View):
         #
 
         print("generating response")
-        response = StreamingHttpResponse(event_stream(new_question, base64_image, messages, True, main_object))#
+        response = StreamingHttpResponse(event_stream(new_question, base64_image, videoguid, messages, True, main_object))#
         response['Cache-Control'] = 'no-cache'
         response['Content-Type'] = 'text/event-stream'
         return response

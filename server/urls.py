@@ -21,6 +21,9 @@ urlpatterns = [
     path('api/upload_image', views.MainObjectViewSet.as_view({
         'post':'upload_image'
         })),
+    path('api/upload_video', views.MainObjectViewSet.as_view({
+        'post':'upload_video'
+        })),
     path('api/generate_pattern', views.MainObjectViewSet.as_view({
         'post':'generate_pattern'
         })),
