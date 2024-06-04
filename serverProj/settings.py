@@ -25,7 +25,7 @@ SECRET_KEY = '3c9qx8@x*%fm1q@^k)2)se5vcj39@d2o+)k)__brketys2k9=a'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['4.227.228.53', 'localhost', '127.0.0.1', 'fathom.navinate.com', 'frontend-one-one-drab.vercel.app', '10.165.46.247', 'localhost:5173', '128.46.81.40']
+ALLOWED_HOSTS = ['4.227.228.53', 'localhost', '127.0.0.1', 'fathom.navinate.com', 'frontend-one-one-drab.vercel.app', '10.165.46.247', 'localhost:5173', '128.46.81.40', "chew-z.ecn.purdue.edu"]
 
 
 # Application definition
@@ -129,7 +129,7 @@ USE_TZ = True
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-CORS_ALLOWED_ORIGINS=['http://4.227.228.53', 'http://localhost', 'http://127.0.0.1', 'http://fathom.navinate.com', 'http://frontend-one-one-drab.vercel.app', 'http://10.165.46.247', 'http://localhost:5173']
+CORS_ALLOWED_ORIGINS=['http://4.227.228.53', 'http://localhost', 'http://127.0.0.1', 'http://fathom.navinate.com', 'http://frontend-one-one-drab.vercel.app', 'http://10.165.46.247', 'http://localhost:5173', 'https://chew-z.ecn.purdue.edu']
 CORS_ORIGIN_WHITELIST = [
     "http://localhost:5173"
 ]
