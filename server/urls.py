@@ -6,8 +6,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 router = DefaultRouter()
-router.register(r'main_objects', views.MainObjectViewSet)
-router.register(r'stream', views.MainObjectViewSet)
+router.register(r'main_objects', views.MainObjectViewSet, basename='unique_mainobject')
+router.register(r'stream', views.MainObjectViewSet, basename='unique_stream')
 
 urlpatterns = [
     path('', include(router.urls)),
