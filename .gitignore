@@ -169,3 +169,5 @@ cython_debug/
 
 *.sqlite3
 /myenv
+*.mp4
+*.mov

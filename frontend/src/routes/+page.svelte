@@ -23,7 +23,7 @@
 			return
 		}
 		promptBox.toggleLoading();
-		container.fetchResponse(event.detail.value, event.detail.image);
+		container.fetchResponse(event.detail.value, event.detail.image, event.detail.video);
 	}
 
 	function addNewRequest(event: any) {

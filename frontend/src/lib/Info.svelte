@@ -35,7 +35,7 @@
         "Generate an area chart showing the year the images were taken",
         "Display a bar chart showing the distribution of all species in Monterey Bay, categorized by the salinity level they are found in",
         "What is the total number of Patiria miniata found in the database?",
-        "Generate a heatmap of all species in Monterey Bay",
+        "Display a heatmap of all species in Monterey Bay",
         "Generate a scatterplot between oxygen and pressure data in Monetery bay from the database",
         "Generate a pie chart showing the count of Bathochordaeus stygius across 7 salinity ranges from 30 to 38, each range spanning 1 unit.",
         "Produce a bar chart displaying temperature ranges (0°C to 20°C) for Aurelia Aurita and Pycnopodia helianthoides, each species color-coded.",

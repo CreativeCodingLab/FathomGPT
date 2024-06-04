@@ -4,6 +4,7 @@
 	import handleText from '$lib/Handlers/TextHandler';
 	import handleHeatMap from '$lib/Handlers/HeatMapHandler';
 	import handleTaxonomy from '$lib/Handlers/TaxonomyHandler';
+	import handleVideo from '$lib/Handlers/VideoHandler';
 	import handleVega from '$lib/Handlers/VegaHandler';
 	import { createEventDispatcher } from 'svelte';
 	import { handleTable } from './Handlers/Tablehandler';
@@ -34,18 +35,66 @@
 		});
 	}
 
-	export async function fetchResponse(inputtedText: string, inputtedImage: string) {
-
+	export async function fetchResponse(inputtedText: string, inputtedImage: string, inputtedVideo: string) {
 		//repeat user input into a user input text box component
-		const userInput = new UserInput({ target: container, props: { text: inputtedText, image: inputtedImage } });
+		const userInput = new UserInput({ target: container, props: { text: inputtedText, image: inputtedImage, video: inputtedVideo } });
 		window.scrollTo(0, document.body.scrollHeight);
 
 		let request = `${URL}?question=${inputtedText}`;
 		if (guid !== null) {
 			request += `&guid=${guid}`;
 		}
-		
-		if (inputtedImage != null) {
+
+		if(inputtedVideo != null){
+			const videoBlob = await fetch(inputtedVideo).then(r => r.blob());
+			const formData = new FormData();
+			formData.append('video', videoBlob);
+
+			const uploadVideo = () => {
+				return new Promise((resolve, reject) => {
+					const xhr = new XMLHttpRequest();
+					xhr.open('POST', `${serverBaseURL}/upload_video`, true);
+
+					xhr.upload.onprogress = (event) => {
+						if (event.lengthComputable) {
+							const percentComplete = (event.loaded / event.total) * 100;
+							console.log(`Video upload progress: ${percentComplete}%`);
+						}
+					};
+
+					xhr.onload = () => {
+						if (xhr.status === 200) {
+							const data = JSON.parse(xhr.responseText);
+							if (data.guid) {
+								console.log('Video uploaded successfully! GUID:', data.guid);
+								resolve(data.guid);
+							} else {
+								console.error('Failed to upload video:', data.error);
+								reject(new Error('Failed to upload video'));
+							}
+						} else {
+							console.error('Failed to upload video:', xhr.statusText);
+							reject(new Error('Failed to upload video'));
+						}
+					};
+
+					xhr.onerror = () => {
+						console.error('Upload error:', xhr.statusText);
+						reject(new Error('Upload error'));
+					};
+
+					xhr.send(formData);
+				});
+			};
+
+			try {
+				const videoGuid = await uploadVideo();
+				request += `&video=${videoGuid}`;
+			} catch (error) {
+				console.error('Error uploading video:', error);
+			}
+		}
+		else if (inputtedImage != null) {
 			const payload = {
 				image: inputtedImage
 			};
@@ -178,6 +227,9 @@
 					break;
 				case 'taxonomy':
 					handleTaxonomy(container, eventData.result);
+					break;
+				case 'video':
+					handleVideo(container, eventData.result);
 					break;
 				case 'vegaLite':
 					handleVega(container, eventData.result);
