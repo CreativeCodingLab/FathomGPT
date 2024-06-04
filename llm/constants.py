@@ -201,7 +201,7 @@ AVAILABLE_FUNCTIONS = [
 ]
 
 DB_STRUCTURE="""
-bounding_box_comments (id PRIMARY KEY, bounding_box_uuid, created_timestamp, email, last_updated_timestamp, text, uuid, alternate_concept, flagged)
+bounding_box_comments (id PRIMARY KEY, bounding_box_uuid, created_timestamp, last_updated_timestamp, text, uuid, alternate_concept, flagged)
 bounding_boxes (id PRIMARY KEY, concept, created_timestamp, group_of, height, last_updated_timestamp, observer, occluded, truncated, uuid, verification_timestamp, verified, verifier, width, x, y, image_id, alt_concept, user_defined_key, magnitude)
 bounding_box_image_feature_vectors (bounding_box_id FOREIGN KEY REFERENCES bounding_boxes(id) ON DELETE CASCADE, vector_index, vector_value)
 bounding_boxes_aud (id, rev, PRIMARY KEY (id, rev), revtype, concept, created_timestamp, group_of, height, last_updated_timestamp, observer, occluded, truncated, uuid, verification_timestamp, verified, verifier, width, x, y, image_id, alt_concept, user_defined_key)
