@@ -1221,7 +1221,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                     
                     lastResult = result
                     result = function_to_call(**args)
-                    time_taken['ran function: '+function_name] = time.time()
+                    time_taken['ran function '+function_name] = time.time()
                     
 
 
