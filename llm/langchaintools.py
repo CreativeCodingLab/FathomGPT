@@ -967,6 +967,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
     try:
         initialMessagesCount = len(messages)
         start_time = time.time()
+        time_taken = {'start': start_time}
         messages.insert(0,{"role":"system", "content":"""You are FathomGPT. You have access to fathom database that you can use to retrieve and visualize data of marine species. 
 
                         Use the tools provided to generate response to the prompt. Important: If the prompt contains a common name or description use the 'getScientificNamesFromDescription' tool first. If the prompt is for similar images, use the 'getScientificNamesFromDescription' tool last. The 'getScientificNamesFromDescription' function will output the same input name when the input name is already a scientific name. Donot re-run the function with the same input. The prompt might have refernce to previous prompts but the tools do not have previous memory. So do not use words like their, its in the input to the tools, provide the name. 
@@ -1067,6 +1068,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                     return None
 
             response_message = response["choices"][0]["message"]
+            time_taken['evaluated prompt'] = time.time()
             if(response_message.get("function_call")):
                 function_name = response_message["function_call"]["name"]
                 args = json.loads(response_message.function_call.get('arguments'))
@@ -1181,12 +1183,13 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                             yield sse_data
                             result["plotlyCode"] = tryFixGeneratedCode(prompt, result["plotlyCode"], json.dumps({key: value[:2] for key, value in sqlResult.items()}), str(e))
 
+                    time_taken['modified visualization'] = time.time()
                     html_output = plotly.offline.plot(fig, include_plotlyjs=False, output_type='div')
                     output = {}
                     output["outputType"] = parsedPrvresponse['outputType']
                     output["responseText"] = result["responseText"]
                     output["html"] = html_output
-                    output['time_taken'] = time.time() - start_time
+                    output['time_taken'] = time_taken
 
                     if isEventStream:
                         output['guid']=str(db_obj.id)
@@ -1218,6 +1221,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                     
                     lastResult = result
                     result = function_to_call(**args)
+                    time_taken['ran function: '+function_name] = time.time()
                     
 
 
@@ -1233,6 +1237,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                             "responseText": taxonomyResponse["choices"][0]["message"]["content"],
                             "videoUrl": result
                         }
+                        time_taken['annotated video'] = time.time()
                         break
                     elif(function_name=="generatesqlServerQuery"):
                         if 'sqlQuery' in result:
@@ -1293,7 +1298,8 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                         else:
                             isSpeciesData, sqlResult, errorRunningSQL = yield from GetSQLResult(sql, result["outputType"]=="visualization", imageData=eval_image_feature_string, prompt=prompt, fullGeneratedSQLJSON=result,isEventStream=isEventStream)
 
-
+                        time_taken['queried database'] = time.time()
+                        
                         if errorRunningSQL:
                             event_data = {
                                     "result": {
@@ -1323,7 +1329,8 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                         except:
                             print('postprocessing error')
                             pass
-
+                        
+                        time_taken['finished postprocess'] = time.time()
 
                         if sqlResult and limit != -1 and limit < len(sqlResult) and isinstance(sqlResult, list):
                             sqlResult  = sqlResult[:limit]
@@ -1451,6 +1458,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                 "responseText": taxonomyResponse["choices"][0]["message"]["content"],
                 "species": parsedResult if isinstance(parsedResult, list) else [parsedResult]
             }
+            time_taken['got taxonomy'] = time.time()
         else:
             output = {
                 "outputType": result["outputType"] if "outputType" in result else "",
@@ -1542,9 +1550,9 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
         #    output["table"] = result
             
         end_time = time.time()
-        time_taken = end_time - start_time
-        formatted_time = "{:.2f}".format(time_taken)
+        formatted_time = "{:.2f}".format(end_time - start_time)
         print(f"Time taken: {formatted_time} seconds")
+        time_taken['done'] = time.time()
         
         if isEventStream:
             output['guid']=str(db_obj.id)
