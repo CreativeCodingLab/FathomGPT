@@ -1186,6 +1186,7 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
                     output["outputType"] = parsedPrvresponse['outputType']
                     output["responseText"] = result["responseText"]
                     output["html"] = html_output
+                    output['time_taken'] = time.time() - start_time
 
                     if isEventStream:
                         output['guid']=str(db_obj.id)
@@ -1540,8 +1541,14 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
         #elif(summaryPromptResponse["outputType"]!="vegaSchema"):
         #    output["table"] = result
             
+        end_time = time.time()
+        time_taken = end_time - start_time
+        formatted_time = "{:.2f}".format(time_taken)
+        print(f"Time taken: {formatted_time} seconds")
+        
         if isEventStream:
             output['guid']=str(db_obj.id)
+            output['time_taken'] = time_taken
             event_data = {
                 "result": output
             }
@@ -1560,13 +1567,6 @@ def get_Response(prompt, imageData="", videoGuid="", messages=[], isEventStream=
             output['sampleData']=result["sampleData"] if "sampleData" in result else ""
             output['videoUrl']=result["videoUrl"] if "videoUrl" in result else ""
             Interaction.objects.create(main_object=db_obj, request=prompt, response=output)
-
-        end_time = time.time()
-
-        time_taken = end_time - start_time
-
-        formatted_time = "{:.2f}".format(time_taken)
-        print(f"Time taken: {formatted_time} seconds")
         
         if SAVE_INTERMEDIATE_RESULTS:
             with open("data/intermediate_results.json", "w") as outfile:
