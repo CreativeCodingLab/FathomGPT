@@ -1,0 +1,94 @@
+{
+    "categories": [
+        {
+            "id": 1,
+            "name": "Anemone",
+            "supercategory": ""
+        },
+        {
+            "id": 2,
+            "name": "Barnacle",
+            "supercategory": ""
+        },
+        {
+            "id": 3,
+            "name": "Black coral",
+            "supercategory": ""
+        },
+        {
+            "id": 4,
+            "name": "Crab",
+            "supercategory": ""
+        },
+        {
+            "id": 5,
+            "name": "Eel",
+            "supercategory": ""
+        },
+        {
+            "id": 6,
+            "name": "Feather star",
+            "supercategory": ""
+        },
+        {
+            "id": 7,
+            "name": "Fish",
+            "supercategory": ""
+        },
+        {
+            "id": 8,
+            "name": "Gastropod",
+            "supercategory": ""
+        },
+        {
+            "id": 9,
+            "name": "Glass sponge",
+            "supercategory": ""
+        },
+        {
+            "id": 10,
+            "name": "Sea cucumber",
+            "supercategory": ""
+        },
+        {
+            "id": 11,
+            "name": "Sea fan",
+            "supercategory": ""
+        },
+        {
+            "id": 12,
+            "name": "Sea pen",
+            "supercategory": ""
+        },
+        {
+            "id": 13,
+            "name": "Sea spider",
+            "supercategory": ""
+        },
+        {
+            "id": 14,
+            "name": "Sea star",
+            "supercategory": ""
+        },
+        {
+            "id": 15,
+            "name": "Squat lobster",
+            "supercategory": ""
+        },
+        {
+            "id": 16,
+            "name": "Stony coral",
+            "supercategory": ""
+        },
+        {
+            "id": 17,
+            "name": "Urchin",
+            "supercategory": ""
+        },
+        {
+            "id": 18,
+            "name": "Worm",
+            "supercategory": ""
+        }
+    ]
+}
