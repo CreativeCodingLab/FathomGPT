@@ -465,30 +465,21 @@ def generatesqlServerQuery(
 
     needsGpt4 = outputType == "visualization"
 
-    messages = [{"role": "system", "content": FEW_SHOT_DATA["imagesWithInput"]['instructions'] if inputImageDataAvailable else FEW_SHOT_DATA["visualization"]['instructions'] if needsGpt4 else """You are a very intelligent json generated that can generate highly efficient sql queries and plotly python code. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
-                The Generated SQL must be valid
-                The JSON format and the attributes on the JSON are provided below
-                {
-                    "sqlServerQuery": "",
-                 """+ ("""
-                    "sampleData": "",
-                    """ if needsGpt4 else "")
-                    +
-                """
-                    "responseText": ""
-                }
+    messages = [{"role": "system", "content": FEW_SHOT_DATA["imagesWithInput"]['instructions'] if inputImageDataAvailable else FEW_SHOT_DATA["visualization"]['instructions'] if needsGpt4 else ("""You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+The Generated SQL must be valid. 
+The JSON format and the attributes on the JSON are provided below
+{
+    "outputType": "",
+    "sqlServerQuery": "",
+    "responseText": ""
+}
+outputType: This is the type of output the user will be looking at. It is an enum that can be text, images or table.
+sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
+responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
-                sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. sqlServerQuery must be generated when InputImageDataAvailable is True 
-                """+
-                ("""
-                sampleData: This is the sample data that you think should be generated when running the sql query. This is optional. It is only needed when the outputType is visualization
-                """ if needsGpt4 else "")
-                +"""responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
-
-
-                SQL Server Database Structure:
+SQL Server Database Structure:
              """+DB_STRUCTURE+"\n\n"+
-                FEW_SHOT_DATA[outputType]['instructions']
+                FEW_SHOT_DATA[outputType]['instructions'])
             }]
     messages.append({
             "role": "user","content": FEW_SHOT_DATA["imagesWithInput" if inputImageDataAvailable else outputType]['user']
@@ -507,6 +498,7 @@ def generatesqlServerQuery(
                 "role": "user","content": f"""
                 User Prompt: {prompt}"""
             })
+    print(messages)
     print('gpt-3.5-turbo-0125' if needsGpt4 else SQL_IMAGE_SEARCH_FINE_TUNED_MODEL if inputImageDataAvailable else SQL_FINE_TUNED_MODEL)
 
     completion = openai.ChatCompletion.create(
@@ -525,7 +517,8 @@ def generatesqlServerQuery(
     result = fixTabsAndNewlines(result)
     result = json.loads(result)
     print(result)
-    result['outputType'] = outputType
+    if inputImageDataAvailable or needsGpt4:
+        result['outputType'] = outputType
     return result
 
 def addImageSearchQuery(imageData, generatedJSON):
@@ -632,7 +625,6 @@ def addImageSearchQuery(imageData, generatedJSON):
     if len(imageData)!=0 and (len(imageIDs)!=0 or len(boundingBoxIDs)!=0):
         sql+=") ORDER BY CosineSimilarity DESC"
 
-    print(sql)
     return sql
 
 

@@ -31,11 +31,12 @@ CONCEPTS_EMBEDDING = "data/concepts_names_desc_embeddings.csv"
 EARTH_RADIUS=6378137 # Earth’s radius, sphere
 MILES_TO_METERS=1609.34
 
-SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::8q54GZRV'#'ft:gpt-3.5-turbo-1106:forbeslab::8q4F8LLn'#'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'#'ft:gpt-3.5-turbo-1106:forbeslab::8ozsHpQ5'
+SQL_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::9iy2UUA2'#'ft:gpt-3.5-turbo-1106:forbeslab::8q54GZRV'
+#'ft:gpt-3.5-turbo-1106:forbeslab::8q4F8LLn'#'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV'#'ft:gpt-3.5-turbo-1106:forbeslab::8ozsHpQ5'
 
 # ft:gpt-3.5-turbo-1106:forbeslab::8q54GZRV last working model
 
-SQL_IMAGE_SEARCH_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::8qkm3fbS'
+SQL_IMAGE_SEARCH_FINE_TUNED_MODEL = 'ft:gpt-3.5-turbo-1106:forbeslab::9j02rgf7'#'ft:gpt-3.5-turbo-1106:forbeslab::8qkm3fbS'
 #'ft:gpt-3.5-turbo-0613:forbeslab::822X8OkV' Without observation gpt-3.5-turbo-0613
 #'ft:gpt-3.5-turbo-0613:forbeslab::83TTzs4O' With observation gpt-3.5-turbo-0613
 
@@ -202,7 +203,7 @@ AVAILABLE_FUNCTIONS = [
 
 DB_STRUCTURE="""
 bounding_box_comments (id PRIMARY KEY, bounding_box_uuid, created_timestamp, last_updated_timestamp, text, uuid, alternate_concept, flagged)
-bounding_boxes (id PRIMARY KEY, concept, created_timestamp, group_of, height, last_updated_timestamp, observer, occluded, truncated, uuid, verification_timestamp, verified, verifier, width, x, y, image_id, alt_concept, user_defined_key, magnitude)
+bounding_boxes (id PRIMARY KEY, concept, created_timestamp, height, last_updated_timestamp, observer, occluded, truncated, uuid, verification_timestamp, verified, verifier, width, x, y, image_id, alt_concept, user_defined_key, magnitude)
 bounding_box_image_feature_vectors (bounding_box_id FOREIGN KEY REFERENCES bounding_boxes(id) ON DELETE CASCADE, vector_index, vector_value)
 bounding_boxes_aud (id, rev, PRIMARY KEY (id, rev), revtype, concept, created_timestamp, group_of, height, last_updated_timestamp, observer, occluded, truncated, uuid, verification_timestamp, verified, verifier, width, x, y, image_id, alt_concept, user_defined_key)
 darwin_cores (id PRIMARY KEY, access_rights, basis_of_record, bibliographic_citation, collection_code, collection_id, data_generalizations, dataset_id, dataset_name, dynamic_properties, information_withheld, institution_code, institution_id, license, modified, owner_institution_code, record_language, record_references, record_type, rights_holder, uuid, image_set_upload_id)
@@ -226,81 +227,41 @@ id	created_timestamp	tag	last_updated_timestamp	media_type	uuid	value	image_id
 
 FEW_SHOT_DATA = {
     "images": {
-        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs. Important: You must include the id and concept of boding boxes on the response. There must be an output json.",
-        "user": """
-            User Prompt: "Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides""",
-        "assistant": """
-        {
-            "sqlServerQuery": "SELECT TOP 10     i.url AS url,     b.concept AS concept,     b.id as id,     b.image_id as image_id FROM      dbo.bounding_boxes AS b JOIN      dbo.images AS i ON b.image_id = i.id WHERE      b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')",
-            "responseText": "Few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides are shown below."
-        }""",
-        "user2": """
-            User Prompt: "Find me images of Aurelia aurita that looks good""",
-        "assistant2": """
-        {
-            "sqlServerQuery": "SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC",
-            "responseText": "Here is an image of Aurelia aurita that you may find appealing."
-        }""",
+        "instructions": "The sql query must have bounding box id of the species, concept of the species and the image url of the species on all inputs. Important: You must include the id and concept of boding boxes on the response. There must be an output json. Use the regions table to identify the min/max latitude/longitude of a place.",
+        "user": """Provide me few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides""",
+        "assistant": """{ "outputType": "images", "sqlServerQuery": "SELECT TOP 10 i.url AS url, b.concept AS concept, b.id as id, b.image_id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept IN ('Asterias rubens', 'Acanthaster planci', 'Linckia laevigata', 'Protoreaster nodosus', 'Pycnopodia helianthoides')", "responseText": "Few images of Asterias rubens, Acanthaster planci, Linckia laevigata, Protoreaster nodosus, Pycnopodia helianthoides are shown below."}""",
+        "user2": """Find me images of Aurelia aurita that looks good""",
+        "assistant2": """ { "outputType": "images", "sqlServerQuery": "SELECT TOP 10 i.url, b.concept, b.id, i.id as image_id FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.concept = 'Aurelia aurita' ORDER BY (b.width * b.height) / (i.width * i.height) DESC", "responseText": "Here is an image of Aurelia aurita that you may find appealing." }""",
     },
     "text": {
-        "instructions": "Make sure the response text is a templated string so that data can be formatted inside the text. There must be an output json.",
-        "user": f"""
-            User Prompt: ""How many images of Pycnopodia helianthoides are in the database"
-            Output type: text""",
-        "assistant": """{
-                "sqlServerQuery": "SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'",
-                "responseText": "There are {TotalImages} images of Pycnopodia helianthoides in the database."
-            }""",
-        "user2": f"""
-            User Prompt: ""In what pressure level is the species with bounding box id 2258729 living at"
-            Output type: text""",
-        "assistant2": """{
-                "sqlServerQuery": "SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;",
-                "responseText": "The species with bounding box id 2258729 us {concept}. It is living at pressure {pressure_dbar} dbar."
-            }""",
+        "instructions": "Make sure the response text is a templated string so that data can be formatted inside the text. There must be an output json. Use the regions table to identify the min/max latitude/longitude of a place.",
+        "user": f"""How many images of Pycnopodia helianthoides are in the database""",
+        "assistant": """{ "outputType": "text", "sqlServerQuery": "SELECT COUNT(*) as TotalImages FROM dbo.bounding_boxes  WHERE concept = 'Pycnopodia helianthoides'", "responseText": "There are {TotalImages} images of Pycnopodia helianthoides in the database." }""",
+        "user2": f"""In what pressure level is the species with bounding box id 2258729 living at""",
+        "assistant2": """{ "outputType": "text", "sqlServerQuery": "SELECT images.pressure_dbar, bounding_boxes.concept FROM dbo.bounding_boxes JOIN dbo.images ON bounding_boxes.image_id = images.id WHERE bounding_boxes.id = 2258739;", "responseText": "The species with bounding box id 2258729 us {concept}. It is living at pressure {pressure_dbar} dbar."}""",
     },
     "imagesWithInput": {
-        "instructions": """
-            You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
-            The Generated SQL must be valid for Micorsoft sql server
-            The JSON format and the attributes on the JSON are provided below
-            {
-            "similarImageIDs": [],
-            "similarBoundingBoxIDs": [],
-            "similarImageSearch": true/false,
-            "sqlServerQuery": "",
-            "responseText": ""
-            }
-            similarImageIDs: these are the image id that will be provided by the user in the prompt on which image search needs to be done
-            similarBoundingBoxIDs: these are the bounding_boxes id that will be provided by the user in the prompt on which bounding boxes search needs to be done
-            similarImageSearch: this is a boolean field, that is true when the prompt says to find similar images, else it is false
-            sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
-            responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
+        "instructions": """You are a very intelligent json generated that can generate highly efficient sql queries. You will be given an input prompt for which you need to generated the JSON in a format given below, nothing else.
+The Generated SQL must be valid.
+The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs that you generated above to calculate the similarity search. You will suppose the similarity search is already done and you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt
+If the prompt is providing common names of species rather than the scientific name, donot use the common name in the generated sql query. In the generated sql query only use scientific names of species, ignore other non-scientific names.
+The JSON format and the attributes on the JSON are provided below
+{
+    "similarImageIDs": [],
+    "similarBoundingBoxIDs": [],
+    "sqlServerQuery": "",
+    "responseText": ""
+}
+similarImageIDs: The similar image IDs provided in the user's query
+similarBoundingBoxIDs: The similar bounding box IDs provided in the user's query
+sqlServerQuery: This is the sql server query you need to generate based on the user's prompt. The database structure provided will be very useful to generate the sql query. 
+responseText: Suppose you are answering the user with the output from the prompt. You need to write the message in this section. When the response is text, you need to output the textResponse in a way the values from the generated sql can be formatted in the text
 
-            The prompt will asks for similar images, there is another system that takes in the similarImageIDs and similarBoundingBoxIDs that you generated above to calculate the similarity search. You will suppose the similarity search is already done and you have sql table SimilaritySearch that has the input bounding box id as bb1, output bounding box id as bb2 and Cosine Similarity Score as CosineSimilarity. You will use this table and add the conditions that is given provided by the user. You will also ouput the ouput bounding box image url and the concept. The result must be ordered in descending order using the CosineSimilarity value. Also, you will take 10 top results unless specified by the prompt
-            """+f"SQL Server Database Structure: ${DB_STRUCTURE}",
-        "user": f"""
-            User Prompt: Find me similar images of species that are not Bathochordaeus stygius
-            """,
-        "assistant": """"
-        {
-            "similarImageIDs": [],
-            "similarBoundingBoxIDs": [],
-            "similarImageSearch": true,
-            "sqlServerQuery": "SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept <> 'Bathochordaeus stygius' ORDER BY SS.CosineSimilarity DESC;",
-            "responseText": "Here are the similar images of species that are not Bathochordaeus stygius."
-        }""",
-        "user2": f"""
-            User Prompt: "Find me images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter"
-            """,
-        "assistant2": """"
-        {
-            "similarImageIDs": [],
-            "similarBoundingBoxIDs": [],
-            "similarImageSearch": true,
-            "sqlServerQuery": "SELECT TOP 10     SS.bb1,     SS.bb2,     BB.concept,     IMG.url,     SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.oxygen_ml_l BETWEEN 0.5 AND 1 ORDER BY SS.CosineSimilarity DESC;",
-            "responseText": "Below are images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter."
-        }""",
+"""+f"SQL Server Database Structure: ${DB_STRUCTURE}",
+        "user": f"""Find me similar images of species that are not Bathochordaeus stygius""",
+        "assistant": """ { "similarImageIDs": [], "similarBoundingBoxIDs": [], "similarImageSearch": true, "sqlServerQuery": "SELECT TOP 10 SS.bb1, SS.bb2, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE BB.concept <> 'Bathochordaeus stygius' ORDER BY SS.CosineSimilarity DESC;", "responseText": "Here are the similar images of species that are not Bathochordaeus stygius." }""",
+        "user2": f"""Find me images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter""",
+        "assistant2": """ { "similarImageIDs": [], "similarBoundingBoxIDs": [], "similarImageSearch": true, "sqlServerQuery": "SELECT TOP 10 SS.bb1, SS.bb2, BB.concept, IMG.url, SS.CosineSimilarity FROM SimilaritySearch SS INNER JOIN bounding_boxes BB ON BB.id = SS.bb2 INNER JOIN images IMG ON BB.image_id = IMG.id WHERE IMG.oxygen_ml_l BETWEEN 0.5 AND 1 ORDER BY SS.CosineSimilarity DESC;", "responseText": "Below are images of species that looks alike that live at oxygen level between 0.5 to 1 ml per liter." }""",
     },
     "visualization": {
         "instructions": """
@@ -390,20 +351,10 @@ def drawVisualization(data):
     return fig"""
     },
     "table": {
-        "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result. There must be an output json.",
-        "user": f"""
-            User Prompt: "List the species that are found in image with id 2256720""",
-        "user2": f"""
-            User Prompt: "What species are frequently found at 1000m depth?""",
-        "assistant": """
-        {
-            "sqlServerQuery": "SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;",
-            "responseText": "The table below lists all the species found in image with id 2256720."
-        }""",
-        "assistant2": """
-        {
-            "sqlServerQuery": "SELECT b.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE i.depth_meters = 1000 GROUP BY b.concept ORDER BY frequency DESC;",
-            "responseText": "Table shows the frequently found species at 1000m depth and their count."
-        }""",
+        "instructions": "The response text can be templated so that it can hold the count of the data array from the sql query result. There must be an output json. Use the regions table to identify the min/max latitude/longitude of a place.",
+        "user": f"""List the species that are found in image with id 2256720""",
+        "user2": f"""What species are frequently found at 1000m depth?""",
+        "assistant": """ { "outputType": "table", "sqlServerQuery": "SELECT b.concept FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE b.image_id = 2256720;", "responseText": "The table below lists all the species found in image with id 2256720." }""",
+        "assistant2": """ { "outputType": "table", "sqlServerQuery": "SELECT b.concept AS species, COUNT(*) AS frequency FROM dbo.bounding_boxes AS b JOIN dbo.images AS i ON b.image_id = i.id WHERE i.depth_meters = 1000 GROUP BY b.concept ORDER BY frequency DESC;", "responseText": "Table shows the frequently found species at 1000m depth and their count." }""",
     },
 }
