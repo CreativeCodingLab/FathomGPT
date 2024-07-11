@@ -218,11 +218,13 @@ def getNamesFromTaxa(concept, taxa):
   return taxa
   
 def filterUnavailableConcepts(names):
-  concepts = boundingboxes.find_concepts()
+  with open(CONCEPTS_JSON) as f:
+    concepts = json.load(f)
   return [n for n in names if n in concepts]
 
 def filterUnavailableDescendants(names):
-  concepts = boundingboxes.find_concepts()
+  with open(CONCEPTS_JSON) as f:
+    concepts = json.load(f)
   return [n for n in names if n.name in concepts]
 
 # Bounding box processing ---------------------------
@@ -322,7 +324,8 @@ def get_normalized(name):
     return ''.join([get_singular(w) for w in words])
     
 def isNameAvaliable(concept):
-    concepts = boundingboxes.find_concepts()
+    with open(CONCEPTS_JSON) as f:
+        concepts = json.load(f)
     concepts = [c.lower() for c in concepts]
     return concept.lower() in concepts
 
