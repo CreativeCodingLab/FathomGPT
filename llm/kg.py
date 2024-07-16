@@ -25,7 +25,7 @@ import copy
 
 def callGPT(instructions, text):
     try:
-        answer = openai.ChatCompletion.create(
+        result = openai.ChatCompletion.create(
           model="gpt-3.5-turbo-0125",
           timeout=30,
           messages=[
@@ -33,10 +33,10 @@ def callGPT(instructions, text):
             {"role": "user", "content": text}
           ]
         )
-        answer = json.loads(answer['choices'][0]['message']['content'].replace('```json\n', '').replace('```', ''))
+        answer = json.loads(result['choices'][0]['message']['content'].replace('```json\n', '').replace('```', ''))
     except:
         try:
-            answer = openai.ChatCompletion.create(
+            result = openai.ChatCompletion.create(
               model="gpt-3.5-turbo-0125",
               timeout=30,
               messages=[
@@ -44,11 +44,11 @@ def callGPT(instructions, text):
                 {"role": "user", "content": text}
               ]
             )
-            answer = json.loads(answer['choices'][0]['message']['content'].replace('```json\n', '').replace('```', ''))
+            answer = json.loads(result['choices'][0]['message']['content'].replace('```json\n', '').replace('```', ''))
         except:
-            return None
+            return None, 0
     
-    return answer
+    return answer, result["usage"]["total_tokens"]
     
     
 def embed(terms):
@@ -66,14 +66,14 @@ def embed(terms):
 def kg_name_res(prompt, instructions):
     
 
-    prompt_kg = callGPT(instructions, prompt)
+    prompt_kg, tokens = callGPT(instructions, prompt)
     
     ps = PorterStemmer()
     
     if prompt_kg and 'subject' in prompt_kg and 'relation' in prompt_kg and 'object' in prompt_kg:
         prompt = {"s": ps.stem(prompt_kg['subject']), "o": ps.stem(prompt_kg['object']), "r": prompt_kg['relation'].lower()}
     else:
-        return None
+        return None, 0
     print(prompt)
 
     prompt_embedding = openai.Embedding.create(
@@ -94,8 +94,8 @@ def kg_name_res(prompt, instructions):
             rel = r
             break
 
-    if not rel:
-        return None
+    if not rel or rel == 'found in':
+        return None, 0
     
     with open('scripts/kg/kg_stemmed.json') as f:
         kgs = json.load(f)
@@ -168,7 +168,7 @@ def kg_name_res(prompt, instructions):
     
     results = dict(sorted(results.items(), key=lambda x: x[1], reverse=True))  
     print(results)
-    return results
+    return results, tokens
 
 
 #instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"

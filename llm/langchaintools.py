@@ -236,14 +236,31 @@ def getScientificNamesFromDescription(
         results.extend(commonNameToSciName(description))
     
     if len(results) == 0:
+        
         try:
             instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\". The relation should be one of: have, color, predators, eats, found in, is, unknown"
-            kg_matches = kg_name_res(description, instructions)
+            
+            messages = [
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": description}
+            ]
+            num_tokens = num_tokens_from_messages(messages, "gpt-4-0125-preview")
+            logger['input tokens'] = num_tokens
+            logger['api id'] = "gpt-3.5-turbo-0125"
+            logger['api call start time'] = time.time()
+            
+            
+            
+            kg_matches, tokens = kg_name_res(description, instructions)
             if not kg_matches or len(kg_matches) == 0:
                 instructions = "Generate the JSON knowledge graph in subject, relation, object format. Do not answer the question. Only include information from the prompt. All missing values must be set to \"Unknown\"."
-                kg_matches = kg_name_res(description, instructions)
+                kg_matches, tokens = kg_name_res(description, instructions)
                 if not kg_matches or len(kg_matches) == 0:
-                    kg_matches = kg_name_res(description, instructions)
+                    kg_matches, tokens = kg_name_res(description, instructions)
+            
+            logger['api call end time'] = time.time()
+            logger['output tokens'] = tokens
+            
             results = list(kg_matches.keys())
         except:
             print('kg name res error')
