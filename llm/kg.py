@@ -20,6 +20,7 @@ import time
 import numpy as np
 import os.path
 from nltk.stem import PorterStemmer
+import copy
 
 
 def callGPT(instructions, text):
@@ -65,14 +66,6 @@ def embed(terms):
 def kg_name_res(prompt, instructions):
     
 
-    answer = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-1106",
-        timeout=30,
-        messages=[
-            {"role": "system", "content": instructions},
-            {"role": "user", "content": prompt}
-        ]
-    )
     prompt_kg = callGPT(instructions, prompt)
     
     ps = PorterStemmer()
@@ -153,21 +146,25 @@ def kg_name_res(prompt, instructions):
                         sciNames[c] = results[r]
         results = sciNames
     
-    if prompt['o'] != 'unknown' and len(results) == 0:
-        for c in kgs:
-            kg = kgs[c]
-            
-            if rel in kg and prompt['o'] in kg[rel]:
-                results[c] = len(kg[rel])
-                #print(c, kg[rel])
+    if (prompt['o'] != 'unknown' or prompt['s'] != 'unknown') and len(results) == 0:
+        attempts = [prompt, copy.deepcopy(prompt)]
+        attempts[1]['o'] = prompt['s']
+        for prompt in attempts:
+            for c in kgs:
+                kg = kgs[c]
                 
-            if 'is' in kg and prompt['o'] in kg['is']:
-                results[c] = len(kg[rel]) * 2
-        
-        if len(results) > 0:
-            maxLen = max(list(results.values()))
-            for c in results:
-                results[c] = 1.0 - results[c] / maxLen
+                if rel in kg and prompt['o'] in kg[rel]:
+                    results[c] = len(kg[rel])
+                    #print(c, kg[rel])
+                    
+                if 'is' in kg and prompt['o'] in kg['is']:
+                    results[c] = len(kg[rel]) * 2
+            
+            if len(results) > 0:
+                maxLen = max(list(results.values()))
+                for c in results:
+                    results[c] = 1.0 - results[c] / maxLen
+                break
     
     results = dict(sorted(results.items(), key=lambda x: x[1], reverse=True))  
     print(results)
