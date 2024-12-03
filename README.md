@@ -1,6 +1,6 @@
 # FathomGPT: A Natural Language Interface for Interactively Exploring Ocean Science Data
 
-| [Demo](https://chew-z.ecn.purdue.edu/) | Paper (coming soon) |
+| [Demo](https://chew-z.ecn.purdue.edu/) | [Paper](https://dl.acm.org/doi/10.1145/3654777.3676462) |
 
 FathomGPT is an open source system for the interactive investigation of ocean science images and data via a natural language web interface. It was designed in close collaboration with marine scientists to enable researchers and ocean enthusiasts to explore and analyze the FathomNet database. 
 
